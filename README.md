@@ -1,3 +1,13 @@
+# Swagger UI
+
+## Build
+
+```
+$ swag init -g cmd/api/main.go -o docs
+```
+
+[Swagger UI URL](http://localhost:8080/api-docs/index.html)
+
 # Go 專案架構分析報告
 
 ## 1. 整體架構概述

@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"passontw-slot-game/internal/service"
 
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,17 +25,57 @@ type CreateUserRequest struct {
 	Password string `json:"password" binding:"required,min=6,max=50"`
 }
 
+type PaginatedResponse struct {
+	Data       interface{} `json:"data"`
+	Total      int64       `json:"total"`
+	Page       int         `json:"page"`
+	PageSize   int         `json:"page_size"`
+	TotalPages int         `json:"total_pages"`
+}
+
 // GetUsers godoc
-// @Summary      Get users message
-// @Description  get users message
+// @Summary      Get users list
+// @Description  get paginated users list
 // @Tags         users
 // @Accept       json
 // @Produce      json
-// @Success      200  {object}  map[string]string
+// @Param        page query     int false "Page number (default: 1)"
+// @Param        page_size query int false "Page size (default: 10)"
+// @Success      200  {object}  PaginatedResponse
 // @Router       /api/v1/users [get]
 func (h *UserHandler) GetUsers(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "get users",
+	// 獲取分頁參數
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	pageSize, err := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	if err != nil || pageSize < 1 {
+		pageSize = 10
+	}
+
+	// 限制最大頁面大小
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
+	// 獲取用戶列表
+	users, total, err := h.userService.GetUsers(page, pageSize)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get users"})
+		return
+	}
+
+	// 計算總頁數
+	totalPages := (int(total) + pageSize - 1) / pageSize
+
+	c.JSON(http.StatusOK, PaginatedResponse{
+		Data:       users,
+		Total:      total,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
 	})
 }
 

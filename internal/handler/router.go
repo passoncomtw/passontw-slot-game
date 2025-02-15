@@ -12,6 +12,7 @@ import (
 func NewRouter(
 	cfg *config.Config,
 	helloHandler *HelloHandler,
+	userHandler *UserHandler,
 ) *gin.Engine {
 	router := gin.Default()
 
@@ -25,6 +26,7 @@ func NewRouter(
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("/hello", helloHandler.HelloWorld)
+		v1.GET("/users", userHandler.GetUsers)
 	}
 
 	return router

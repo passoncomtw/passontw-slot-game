@@ -12,13 +12,6 @@ type MessageResponse struct {
 	Message string `json:"message" example:"hello world!"`
 }
 
-// NewMessageResponse 创建一个带有默认值的 MessageResponse
-// func NewMessageResponse() MessageResponse {
-// 	return MessageResponse{
-// 		Message: "hello world",
-// 	}
-// }
-
 type HelloHandler struct {
 	helloService service.HelloService
 }

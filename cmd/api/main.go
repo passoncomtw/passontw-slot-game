@@ -32,6 +32,7 @@ func main() {
 			logger.NewLogger,
 			service.NewHelloService,
 			handler.NewHelloHandler,
+			handler.NewUserHandler,
 			handler.NewRouter,
 		),
 		fx.Invoke(handler.StartServer),

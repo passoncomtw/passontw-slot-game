@@ -3,6 +3,7 @@ package main
 import (
 	"passontw-slot-game/internal/config"
 	"passontw-slot-game/internal/handler"
+	"passontw-slot-game/internal/pkg/database"
 	"passontw-slot-game/internal/pkg/logger"
 	"passontw-slot-game/internal/service"
 
@@ -24,13 +25,18 @@ import (
 // @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
 
 // @host      localhost:8080
-// @BasePath  /api/v1
+// @BasePath  /
 func main() {
 	app := fx.New(
 		fx.Provide(
 			config.NewConfig,
 			logger.NewLogger,
+			database.NewDatabase,
 			service.NewHelloService,
+			fx.Annotate(
+				service.NewUserService,
+				fx.As(new(service.UserService)),
+			),
 			handler.NewHelloHandler,
 			handler.NewUserHandler,
 			handler.NewRouter,

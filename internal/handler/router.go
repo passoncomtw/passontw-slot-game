@@ -27,6 +27,7 @@ func NewRouter(
 	{
 		v1.GET("/hello", helloHandler.HelloWorld)
 		v1.GET("/users", userHandler.GetUsers)
+		v1.POST("/users", userHandler.CreateUser)
 	}
 
 	return router

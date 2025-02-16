@@ -18,13 +18,13 @@ import (
 //
 // );
 type User struct {
-	ID        int        `gorm:"primaryKey;column:id" json:"id"`
-	CreatedAt time.Time  `gorm:"column:created_at;not null;default:now()" json:"created_at"`
-	UpdatedAt time.Time  `gorm:"column:updated_at;not null;default:now()" json:"updated_at"`
-	DeletedAt *time.Time `gorm:"column:deleted_at" json:"deleted_at,omitempty"`
-	Name      string     `gorm:"column:name;type:varchar(20);not null" json:"name" binding:"required,max=20"`
-	Phone     string     `gorm:"column:phone;type:varchar(20);not null" json:"phone" binding:"required,max=20"`
-	Password  string     `gorm:"column:password;type:varchar(200);not null" json:"-"` // "-" 表示不在 JSON 輸出中顯示
+	ID        int        `gorm:"primaryKey;column:id" json:"id" example:"1"`
+	CreatedAt time.Time  `gorm:"column:created_at;not null;default:now()" json:"created_at" example:"2025-02-16T16:05:00.763995Z"`
+	UpdatedAt time.Time  `gorm:"column:updated_at;not null;default:now()" json:"updated_at" example:"2025-02-16T16:05:00.763995Z"`
+	DeletedAt *time.Time `gorm:"column:deleted_at" json:"deleted_at,omitempty" example:"2025-02-16T16:05:00.763995Z"`
+	Name      string     `gorm:"column:name;type:varchar(20);not null" json:"name" binding:"required,max=20" example:"testdemo001"`
+	Phone     string     `gorm:"column:phone;type:varchar(20);not null" json:"phone" binding:"required,max=20" example:"0987654321"`
+	Password  string     `gorm:"column:password;type:varchar(200);not null" json:"-"`
 }
 
 // TableName 指定資料表名稱

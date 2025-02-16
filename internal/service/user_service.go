@@ -2,6 +2,8 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"passontw-slot-game/internal/config"
 	"passontw-slot-game/internal/domain/entity"
 	"time"
 
@@ -27,10 +29,11 @@ func NewUserService(db *gorm.DB) UserService {
 }
 
 func (s *userService) CreateUser(name, phone, password string) (*entity.User, error) {
+	hashPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	user := &entity.User{
 		Name:     name,
 		Phone:    phone,
-		Password: password,
+		Password: string(hashPassword),
 	}
 
 	if err := s.db.Create(user).Error; err != nil {
@@ -63,6 +66,7 @@ func (s *userService) GetUsers(page, pageSize int) ([]entity.User, int64, error)
 func (s *userService) Login(phone, password string) (*entity.User, string, error) {
 	var user entity.User
 
+	fmt.Println("phone: " + phone)
 	// 查找用戶
 	if err := s.db.Where("phone = ?", phone).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -84,7 +88,7 @@ func (s *userService) Login(phone, password string) (*entity.User, string, error
 	})
 
 	// 這裡使用一個簡單的密鑰，實際應用中應該使用環境變量或配置文件
-	tokenString, err := token.SignedString([]byte("your-secret-key"))
+	tokenString, err := token.SignedString([]byte(config.GetEnv("JWT_SECRET", "your-secret-key")))
 	if err != nil {
 		return nil, "", err
 	}

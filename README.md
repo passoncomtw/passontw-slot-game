@@ -6,7 +6,7 @@
 $ swag init -g cmd/api/main.go -o docs
 ```
 
-[Swagger UI URL](http://localhost:8080/api-docs/index.html)
+[Swagger UI URL](http://localhost:3000/api-docs/index.html)
 
 # Go 專案架構分析報告
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"passontw-slot-game/docs"
 	"passontw-slot-game/internal/config"
 	"passontw-slot-game/internal/handler"
 	"passontw-slot-game/internal/pkg/database"
@@ -24,9 +25,12 @@ import (
 // @license.name  Apache 2.0
 // @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host      localhost:8080
 // @BasePath  /
 func main() {
+	// 從環境變數中獲取 API_HOST
+	apiHost := config.GetEnv("API_HOST", "localhost:3000")
+	docs.SwaggerInfo.Host = apiHost
+
 	app := fx.New(
 		fx.Provide(
 			config.LoadEnv,

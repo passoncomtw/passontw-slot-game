@@ -20,17 +20,17 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 }
 
 type CreateUserRequest struct {
-	Name     string `json:"name" binding:"required,min=1,max=20"`
-	Phone    string `json:"phone" binding:"required,min=1,max=20"`
-	Password string `json:"password" binding:"required,min=6,max=50"`
+	Name     string `json:"name" binding:"required,min=1,max=20" example:"testdemo001"`
+	Phone    string `json:"phone" binding:"required,min=1,max=20" example:"0987654321"`
+	Password string `json:"password" binding:"required,min=6,max=50" example:"a12345678"`
 }
 
 type PaginatedResponse struct {
 	Data       interface{} `json:"data"`
-	Total      int64       `json:"total"`
-	Page       int         `json:"page"`
-	PageSize   int         `json:"page_size"`
-	TotalPages int         `json:"total_pages"`
+	Total      int64       `json:"total" example:"200"`
+	Page       int         `json:"page" example:"1"`
+	PageSize   int         `json:"page_size" example:"10"`
+	TotalPages int         `json:"total_pages" example:"20"`
 }
 
 // GetUsers godoc

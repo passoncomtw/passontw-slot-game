@@ -88,3 +88,11 @@ func validateEnvConfig(config *EnvConfig) {
 		log.Print("Warning: using default JWT secret key, this is not recommended for production")
 	}
 }
+
+// GetEnv 獲取環境變數，如果不存在則返回默認值
+func GetEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}

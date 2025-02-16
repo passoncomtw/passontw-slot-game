@@ -14,8 +14,7 @@ import (
 )
 
 // @title           Passontw Slot Game API
-// @version         1.0
-// @description     This is a sample server.
+// @description     Passontw Slot Game API.
 // @termsOfService  http://swagger.io/terms/
 
 // @contact.name   API Support
@@ -25,11 +24,19 @@ import (
 // @license.name  Apache 2.0
 // @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
 
+// @securityDefinitions.apikey Bearer
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
+
 // @BasePath  /
 func main() {
 	// 從環境變數中獲取 API_HOST
 	apiHost := config.GetEnv("API_HOST", "localhost:3000")
+	version := config.GetEnv("VERSION", "0.9.0")
+
 	docs.SwaggerInfo.Host = apiHost
+	docs.SwaggerInfo.Version = version
 
 	app := fx.New(
 		fx.Provide(

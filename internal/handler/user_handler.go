@@ -39,6 +39,7 @@ type PaginatedResponse struct {
 // @Tags         users
 // @Accept       json
 // @Produce      json
+// @Security     Bearer
 // @Param        page query     int false "Page number (default: 1)"
 // @Param        page_size query int false "Page size (default: 10)"
 // @Success      200  {object}  PaginatedResponse

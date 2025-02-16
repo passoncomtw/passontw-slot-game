@@ -28,9 +28,14 @@ func NewRouter(
 	// API 路由組
 	v1 := router.Group("/api/v1")
 	{
-		v1.GET("/users", userHandler.GetUsers)
 		v1.POST("/auth", authHandler.userLogin)
-		v1.POST("/users", userHandler.CreateUser)
+
+		authorized := v1.Group("")
+		authorized.Use(middleware.AuthMiddleware(cfg))
+		{
+			authorized.GET("/users", userHandler.GetUsers)
+			authorized.POST("/users", userHandler.CreateUser)
+		}
 	}
 
 	return router

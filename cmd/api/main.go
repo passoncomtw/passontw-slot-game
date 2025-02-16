@@ -29,6 +29,7 @@ import (
 func main() {
 	app := fx.New(
 		fx.Provide(
+			config.LoadEnv,
 			config.NewConfig,
 			logger.NewLogger,
 			database.NewDatabase,
@@ -38,6 +39,7 @@ func main() {
 				fx.As(new(service.UserService)),
 			),
 			handler.NewHelloHandler,
+			handler.NewAuthHandler,
 			handler.NewUserHandler,
 			handler.NewRouter,
 		),

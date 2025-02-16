@@ -12,6 +12,7 @@ import (
 func NewRouter(
 	cfg *config.Config,
 	helloHandler *HelloHandler,
+	authHandler *AuthHandler,
 	userHandler *UserHandler,
 ) *gin.Engine {
 	router := gin.Default()
@@ -22,11 +23,13 @@ func NewRouter(
 	// Swagger UI
 	router.GET("/api-docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	router.GET("/hello", helloHandler.HelloWorld)
+
 	// API 路由組
 	v1 := router.Group("/api/v1")
 	{
-		v1.GET("/hello", helloHandler.HelloWorld)
 		v1.GET("/users", userHandler.GetUsers)
+		v1.POST("/auth", authHandler.userLogin)
 		v1.POST("/users", userHandler.CreateUser)
 	}
 

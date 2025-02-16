@@ -1,12 +1,11 @@
 package config
 
+import "fmt"
+
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
-}
-
-type ServerConfig struct {
-	Port string
+	JWT      JWTConfig
 }
 
 type DatabaseConfig struct {
@@ -18,16 +17,22 @@ type DatabaseConfig struct {
 }
 
 func NewConfig() *Config {
+	envConfig := LoadEnv()
+
 	return &Config{
 		Server: ServerConfig{
-			Port: ":8080",
+			Port: fmt.Sprintf(":%s", envConfig.Server.Port),
 		},
 		Database: DatabaseConfig{
-			Host:     "172.237.27.51",
-			Port:     15432,
-			User:     "postgres",
-			Password: "1qaz@WSX3edc",
-			Name:     "games",
+			Host:     envConfig.Database.Host,
+			Port:     envConfig.Database.Port,
+			Name:     envConfig.Database.Name,
+			User:     envConfig.Database.User,
+			Password: envConfig.Database.Password,
+		},
+		JWT: JWTConfig{
+			Secret:    envConfig.JWT.Secret,
+			ExpiresIn: envConfig.JWT.ExpiresIn,
 		},
 	}
 }

@@ -24,6 +24,11 @@ go.work.sum
 # env file
 .env
 
+.env
+.DS_Store
+tmp/
+logs/
+
 # swagger ui files
 /docs/swagger.json
 /docs/swagger.yaml

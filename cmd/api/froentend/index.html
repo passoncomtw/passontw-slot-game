@@ -1,0 +1,45 @@
+// 測試用的 HTML 文件 (web/index.html)
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h2>WebSocket Test</h2>
+    <div id="messages"></div>
+    <input type="text" id="messageInput" placeholder="Enter message">
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        const ws = new WebSocket('ws://localhost:3000/ws');
+        const messages = document.getElementById('messages');
+        const input = document.getElementById('messageInput');
+
+        ws.onopen = function() {
+            appendMessage('Connected to WebSocket server');
+        };
+
+        ws.onmessage = function(event) {
+            appendMessage('Received: ' + event.data);
+        };
+
+        ws.onclose = function() {
+            appendMessage('Disconnected from WebSocket server');
+        };
+
+        function appendMessage(message) {
+            const div = document.createElement('div');
+            div.textContent = message;
+            messages.appendChild(div);
+        }
+
+        function sendMessage() {
+            const message = input.value;
+            if (message) {
+                ws.send(message);
+                input.value = '';
+            }
+        }
+    </script>
+</body>
+</html>

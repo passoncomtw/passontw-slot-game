@@ -14,6 +14,7 @@ func NewRouter(
 	helloHandler *HelloHandler,
 	authHandler *AuthHandler,
 	userHandler *UserHandler,
+	wsHandler *WebSocketHandler,
 ) *gin.Engine {
 	router := gin.Default()
 
@@ -24,6 +25,7 @@ func NewRouter(
 	router.GET("/api-docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.GET("/hello", helloHandler.HelloWorld)
+	router.GET("/ws", wsHandler.HandleWebSocket)
 
 	// API 路由組
 	v1 := router.Group("/api/v1")

@@ -52,6 +52,7 @@ func main() {
 			handler.NewHelloHandler,
 			handler.NewAuthHandler,
 			handler.NewUserHandler,
+			handler.NewWebSocketHandler,
 			handler.NewRouter,
 		),
 		fx.Invoke(handler.StartServer),

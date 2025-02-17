@@ -45,6 +45,7 @@ func main() {
 			logger.NewLogger,
 			database.NewDatabase,
 			service.NewHelloService,
+			service.NewAuthService,
 			fx.Annotate(
 				service.NewUserService,
 				fx.As(new(service.UserService)),

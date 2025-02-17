@@ -31,11 +31,13 @@
             ws = new WebSocket(`ws://localhost:3000/ws?token=${token}`);
 
             ws.onopen = function() {
+                console.log('WebSocket connected');
                 status.textContent = 'Connected';
                 status.style.color = 'green';
             };
 
             ws.onmessage = function(event) {
+                console.log('Received message:', event.data);
                 const data = JSON.parse(event.data);
                 let message = '';
                 
@@ -44,12 +46,19 @@
                 } else if (data.type === 'message') {
                     message = `${data.content.userName}: ${data.content.message}`;
                 }
-
                 appendMessage(message);
             };
 
-            ws.onclose = function() {
+            ws.onclose = function(event) {
+                console.log('WebSocket closed:', event);
                 status.textContent = 'Disconnected';
+                status.style.color = 'red';
+                // 可以在這裡添加重連邏輯
+            };
+
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                status.textContent = 'Error';
                 status.style.color = 'red';
             };
         }
@@ -58,12 +67,13 @@
             const div = document.createElement('div');
             div.textContent = message;
             messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
         }
 
         function sendMessage() {
             const message = input.value;
-            console.log("🚀 ~ sendMessage ~ message:", message)
             if (message && ws) {
+                console.log('Sending message:', message);
                 ws.send(message);
                 input.value = '';
             }

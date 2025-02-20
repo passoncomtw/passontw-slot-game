@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// MessageResponse 表示返回的消息结构
 type MessageResponse struct {
 	Message string `json:"message" example:"hello world!"`
 }

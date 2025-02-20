@@ -1,4 +1,4 @@
-package game
+package service
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ type Checker struct {
 }
 
 // NewChecker 創建新的規則檢查器
-func NewChecker() *Checker {
+func NewCheckerService() *Checker {
 	checker := &Checker{
 		symbolInfo: make(map[domain.Symbol]domain.SymbolInfo),
 	}

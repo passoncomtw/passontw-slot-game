@@ -47,6 +47,7 @@ func main() {
 			service.NewGameService,
 			service.NewHelloService,
 			service.NewAuthService,
+			service.NewCheckerService,
 			fx.Annotate(
 				service.NewUserService,
 				fx.As(new(service.UserService)),

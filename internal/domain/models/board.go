@@ -7,17 +7,16 @@ import (
 
 type Board [3][3]domain.Symbol
 
-// WinningLine 代表一條中獎線
 type WinningLine struct {
-	Type     string        // 線的類型（橫、直、斜）
-	Position int           // 線的位置
-	Symbol   domain.Symbol // 中獎符號
+	Type     string
+	Position int
+	Symbol   domain.Symbol
+	Payout   float64
 }
 
 func (b Board) PrintBoard() string {
 	var result string
 
-	// 打印上邊框
 	result += "┌───┬───┬───┐\n"
 
 	// 打印每一行

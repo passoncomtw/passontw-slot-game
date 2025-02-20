@@ -7,15 +7,6 @@ import (
 	"time"
 )
 
-type WinResult struct {
-	Lines  []models.WinningLine
-	Payout float64
-}
-
-type Checker struct {
-	symbolInfo map[domain.Symbol]domain.SymbolInfo
-}
-
 type Generator struct {
 	symbols []domain.SymbolInfo
 	rng     *rand.Rand
@@ -42,56 +33,6 @@ func NewGenerator() *Generator {
 		symbols: domain.GetSymbolList(),
 		rng:     rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
-}
-
-func (c *Checker) CheckWin(board models.Board) WinResult {
-	var result WinResult
-
-	for i := 0; i < 3; i++ {
-		if board[i][0] == board[i][1] && board[i][1] == board[i][2] {
-			line := models.WinningLine{
-				Type:     "Horizontal",
-				Position: i,
-				Symbol:   board[i][0],
-			}
-			result.Lines = append(result.Lines, line)
-			result.Payout += c.symbolInfo[board[i][0]].Payout
-		}
-	}
-
-	for j := 0; j < 3; j++ {
-		if board[0][j] == board[1][j] && board[1][j] == board[2][j] {
-			line := models.WinningLine{
-				Type:     "Vertical",
-				Position: j,
-				Symbol:   board[0][j],
-			}
-			result.Lines = append(result.Lines, line)
-			result.Payout += c.symbolInfo[board[0][j]].Payout
-		}
-	}
-
-	if board[0][0] == board[1][1] && board[1][1] == board[2][2] {
-		line := models.WinningLine{
-			Type:     "Diagonal",
-			Position: 1, // 左上到右下
-			Symbol:   board[1][1],
-		}
-		result.Lines = append(result.Lines, line)
-		result.Payout += c.symbolInfo[board[1][1]].Payout
-	}
-
-	if board[0][2] == board[1][1] && board[1][1] == board[2][0] {
-		line := models.WinningLine{
-			Type:     "Diagonal",
-			Position: 2, // 右上到左下
-			Symbol:   board[1][1],
-		}
-		result.Lines = append(result.Lines, line)
-		result.Payout += c.symbolInfo[board[1][1]].Payout
-	}
-
-	return result
 }
 
 func (s *gameService) GetRamdomSpin() string {

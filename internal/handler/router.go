@@ -24,7 +24,6 @@ func NewRouter(
 	router.GET("/api-docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.GET("/hello", helloHandler.HelloWorld)
-	router.GET("/game/spin", gameHandler.GetGameSpin)
 	router.GET("/ws", wsHandler.HandleWebSocket)
 
 	// API 路由組
@@ -37,6 +36,7 @@ func NewRouter(
 		{
 			authorized.GET("/users", userHandler.GetUsers)
 			authorized.POST("/users", userHandler.CreateUser)
+			router.POST("/game/spin", gameHandler.GetGameSpin)
 		}
 	}
 

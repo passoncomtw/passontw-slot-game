@@ -12,19 +12,19 @@ import (
 func NewRouter(
 	cfg *config.Config,
 	helloHandler *HelloHandler,
+	gameHandler *GameHandler,
 	authHandler *AuthHandler,
 	userHandler *UserHandler,
 	wsHandler *WebSocketHandler,
 ) *gin.Engine {
 	router := gin.Default()
 
-	// 添加全局中間件
 	router.Use(middleware.Logger())
 
-	// Swagger UI
 	router.GET("/api-docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.GET("/hello", helloHandler.HelloWorld)
+	router.GET("/game/spin", gameHandler.GetGameSpin)
 	router.GET("/ws", wsHandler.HandleWebSocket)
 
 	// API 路由組

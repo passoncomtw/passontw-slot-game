@@ -44,6 +44,7 @@ func main() {
 			config.NewConfig,
 			logger.NewLogger,
 			database.NewDatabase,
+			service.NewGameService,
 			service.NewHelloService,
 			service.NewAuthService,
 			fx.Annotate(
@@ -51,6 +52,7 @@ func main() {
 				fx.As(new(service.UserService)),
 			),
 			handler.NewHelloHandler,
+			handler.NewGameHandler,
 			handler.NewAuthHandler,
 			handler.NewUserHandler,
 			handler.NewWebSocketHandler,

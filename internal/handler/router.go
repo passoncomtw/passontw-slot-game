@@ -15,6 +15,7 @@ func NewRouter(
 	gameHandler *GameHandler,
 	authHandler *AuthHandler,
 	userHandler *UserHandler,
+	orderHandler *OrderHandler,
 	wsHandler *WebSocketHandler,
 ) *gin.Engine {
 	router := gin.Default()
@@ -36,6 +37,7 @@ func NewRouter(
 		{
 			authorized.GET("/users", userHandler.GetUsers)
 			authorized.POST("/users", userHandler.CreateUser)
+			authorized.POST("/orders", orderHandler.CreateOrder)
 			router.POST("/game/spin", gameHandler.GetGameSpin)
 		}
 	}

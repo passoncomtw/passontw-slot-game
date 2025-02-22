@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"passontw-slot-game/internal/config"
 	"passontw-slot-game/internal/domain/entity"
 	"time"
@@ -13,9 +12,16 @@ import (
 )
 
 type UserService interface {
-	CreateUser(name, phone, password string) (*entity.User, error)
+	CreateUser(params CreateUserParams) (*entity.User, error)
 	GetUsers(page, pageSize int) ([]entity.User, int64, error)
 	Login(phone, password string) (*entity.User, string, error)
+}
+
+type CreateUserParams struct {
+	Name           string
+	Phone          string
+	Password       string
+	InitialBalance float64
 }
 
 type userService struct {
@@ -28,15 +34,59 @@ func NewUserService(db *gorm.DB) UserService {
 	}
 }
 
-func (s *userService) CreateUser(name, phone, password string) (*entity.User, error) {
-	hashPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	user := &entity.User{
-		Name:     name,
-		Phone:    phone,
-		Password: string(hashPassword),
-	}
+func (s *userService) CreateUser(params CreateUserParams) (*entity.User, error) {
+	var user *entity.User
 
-	if err := s.db.Create(user).Error; err != nil {
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		var existingUser entity.User
+		if err := tx.Where("phone = ?", params.Phone).First(&existingUser).Error; err == nil {
+			return errors.New("phone number already exists")
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		hashPassword, err := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+
+		newUser := &entity.User{
+			Name:             params.Name,
+			Phone:            params.Phone,
+			Password:         string(hashPassword),
+			AvailableBalance: params.InitialBalance,
+			FrozenBalance:    0,
+		}
+
+		if err := tx.Create(newUser).Error; err != nil {
+			return err
+		}
+
+		if params.InitialBalance > 0 {
+			balanceRecord := &entity.BalanceRecord{
+				UserID:        newUser.ID,
+				Type:          entity.BalanceOperationAdd,
+				Amount:        params.InitialBalance,
+				BeforeBalance: 0,
+				AfterBalance:  params.InitialBalance,
+				BeforeFrozen:  0,
+				AfterFrozen:   0,
+				Description:   "Initial balance",
+				Operator:      "SYSTEM",
+				ReferenceID:   "INITIAL_" + time.Now().Format("20060102150405"),
+				Remark:        entity.JSON{"type": "initial_balance"},
+			}
+
+			if err := tx.Create(balanceRecord).Error; err != nil {
+				return err
+			}
+		}
+
+		user = newUser
+		return nil
+	})
+
+	if err != nil {
 		return nil, err
 	}
 
@@ -47,15 +97,12 @@ func (s *userService) GetUsers(page, pageSize int) ([]entity.User, int64, error)
 	var users []entity.User
 	var total int64
 
-	// 獲取總數
 	if err := s.db.Model(&entity.User{}).Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// 計算偏移量
 	offset := (page - 1) * pageSize
 
-	// 查詢用戶列表
 	if err := s.db.Offset(offset).Limit(pageSize).Find(&users).Error; err != nil {
 		return nil, 0, err
 	}
@@ -66,8 +113,6 @@ func (s *userService) GetUsers(page, pageSize int) ([]entity.User, int64, error)
 func (s *userService) Login(phone, password string) (*entity.User, string, error) {
 	var user entity.User
 
-	fmt.Println("phone: " + phone)
-	// 查找用戶
 	if err := s.db.Where("phone = ?", phone).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, "", errors.New("user not found")
@@ -75,25 +120,21 @@ func (s *userService) Login(phone, password string) (*entity.User, string, error
 		return nil, "", err
 	}
 
-	// 驗證密碼
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		return nil, "", errors.New("invalid password")
 	}
 
-	// 生成 JWT token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub":  user.ID,
 		"name": user.Name,
 		"exp":  time.Now().Add(time.Hour * 24).Unix(), // 24小時過期
 	})
 
-	// 這裡使用一個簡單的密鑰，實際應用中應該使用環境變量或配置文件
 	tokenString, err := token.SignedString([]byte(config.GetEnv("JWT_SECRET", "your-secret-key")))
 	if err != nil {
 		return nil, "", err
 	}
 
-	// 清理敏感資訊
 	user.Password = ""
 
 	return &user, tokenString, nil

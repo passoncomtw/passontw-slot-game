@@ -53,6 +53,7 @@ func main() {
 				fx.As(new(service.UserService)),
 			),
 			handler.NewHelloHandler,
+			handler.NewOrderHandler,
 			handler.NewGameHandler,
 			handler.NewAuthHandler,
 			handler.NewUserHandler,

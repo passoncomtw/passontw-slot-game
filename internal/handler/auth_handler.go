@@ -40,6 +40,7 @@ type LoginResponse struct {
 // @Router       /api/v1/auth [post]
 func (h *AuthHandler) userLogin(c *gin.Context) {
 	var req LoginRequest
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

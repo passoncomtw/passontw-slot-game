@@ -7,6 +7,7 @@ import (
 	"passontw-slot-game/pkg/utils"
 	"time"
 
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -142,7 +143,7 @@ type Order struct {
 	BetAmount        float64         `gorm:"column:bet_amount;not null" json:"bet_amount"`
 	WinAmount        float64         `gorm:"column:win_amount;not null" json:"win_amount"`
 	GameResult       json.RawMessage `gorm:"column:game_result;type:jsonb;not null" json:"game_result"`
-	BalanceRecordIDs []int64         `json:"balance_record_ids,omitempty"`
+	BalanceRecordIDs pq.Int64Array   `gorm:"column:balance_record_ids;type:integer[]" json:"balance_record_ids,omitempty"`
 	CreatedAt        time.Time       `gorm:"column:created_at;not null" json:"created_at"`
 	UpdatedAt        time.Time       `gorm:"column:updated_at;not null" json:"updated_at"`
 	CompletedAt      *time.Time      `gorm:"column:completed_at" json:"completed_at,omitempty"`

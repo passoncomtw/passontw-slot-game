@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"passontw-slot-game/internal/domain/entity"
+	"passontw-slot-game/pkg/utils"
+	"strconv"
 	"time"
 
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -49,8 +52,13 @@ func (s *orderService) CreateOrderWithBalance(params CreateOrderParams) (*entity
 		for i, record := range balanceRecords {
 			recordIDs[i] = int64(record.ID)
 		}
+		snowflakeID, getNextIDErr := utils.GetNextID()
+		if getNextIDErr != nil {
+			return fmt.Errorf("failed to get snowflakeID: %v", getNextIDErr)
+		}
 
 		order = &entity.Order{
+			OrderID:          strconv.FormatInt(snowflakeID, 10),
 			Type:             params.Type,
 			UserID:           params.UserID,
 			Status:           entity.OrderStatusPending,
@@ -59,7 +67,7 @@ func (s *orderService) CreateOrderWithBalance(params CreateOrderParams) (*entity
 			GameResult:       params.GameResult,
 			CreatedAt:        time.Now(),
 			UpdatedAt:        time.Now(),
-			BalanceRecordIDs: recordIDs,
+			BalanceRecordIDs: pq.Int64Array(recordIDs),
 		}
 
 		fmt.Printf("order: %v", order)

@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS orders (
     bet_amount DECIMAL(20,2) NOT NULL,       -- 下注金額
     win_amount DECIMAL(20,2) NOT NULL,       -- 獲勝金額
     game_result JSONB NOT NULL,              -- 遊戲結果
-    balance_record_ids INTEGER[],            -- 相關餘額記錄ID
+    balance_record_ids _int4,            -- 相關餘額記錄ID
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP WITH TIME ZONE,    -- 完成時間
@@ -41,6 +41,3 @@ BEGIN
     RETURN prefix || date_part || LPAD(seq_num::TEXT, 4, '0');
 END;
 $$ LANGUAGE plpgsql;
-
-ALTER TABLE orders
-ALTER COLUMN balance_record_ids TYPE INTEGER[] USING balance_record_ids::INTEGER[];

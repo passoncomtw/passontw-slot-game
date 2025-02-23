@@ -1,12 +1,14 @@
 package main
 
 import (
+	"log"
 	"passontw-slot-game/docs"
 	"passontw-slot-game/internal/config"
 	"passontw-slot-game/internal/handler"
 	"passontw-slot-game/internal/pkg/database"
 	"passontw-slot-game/internal/pkg/logger"
 	"passontw-slot-game/internal/service"
+	"passontw-slot-game/pkg/utils"
 
 	_ "passontw-slot-game/docs" // 導入 swagger docs
 
@@ -38,16 +40,23 @@ func main() {
 	docs.SwaggerInfo.Host = apiHost
 	docs.SwaggerInfo.Version = version
 
+	err := utils.InitSnowflake(1) // 使用一個合適的 worker ID
+	if err != nil {
+		log.Fatalf("Failed to initialize Snowflake: %v", err)
+	}
+
 	app := fx.New(
 		fx.Provide(
 			config.LoadEnv,
 			config.NewConfig,
 			logger.NewLogger,
 			database.NewDatabase,
+			service.NewOrderService,
 			service.NewGameService,
 			service.NewHelloService,
 			service.NewAuthService,
 			service.NewCheckerService,
+			service.NewBalanceService,
 			fx.Annotate(
 				service.NewUserService,
 				fx.As(new(service.UserService)),

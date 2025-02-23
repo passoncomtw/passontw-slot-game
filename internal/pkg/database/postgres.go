@@ -28,6 +28,8 @@ func NewDatabase(cfg *config.Config) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to get database instance: %w", err)
 	}
 
+	db.Debug()
+
 	// 設置連接池
 	sqlDB.SetMaxOpenConns(10)           // 最大連接數
 	sqlDB.SetMaxIdleConns(5)            // 最大空閒連接數

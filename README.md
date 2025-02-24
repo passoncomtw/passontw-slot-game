@@ -182,3 +182,17 @@ project-root/
    - 自動化腳本支持
 
 這個架構適合中大型的 Go 服務端應用，特別是需要長期維護和迭代的專案。
+
+## Types 檔案結構
+
+```
+./internal/interfaces
+├── auth.go #登入的 interface
+├── common.go #共用的 interface
+├── games.go #遊戲的 interface
+├── types
+│   ├── errors.go # 錯誤的 types
+│   └── games.go  # 遊戲的基本 types
+├── users.go # 玩家的 interfaces
+└── websocket.go # Websocket 的基本 interfaces
+```

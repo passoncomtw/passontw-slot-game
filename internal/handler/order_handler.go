@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"passontw-slot-game/internal/interfaces"
+	"passontw-slot-game/internal/interfaces/types"
 	"passontw-slot-game/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -31,11 +33,11 @@ func NewOrderHandler(
 }
 
 type CreateOrderResponse struct {
-	OrderID    string       `json:"order_id"`
-	GameResult SpinResponse `json:"game_result"`
-	BetAmount  float64      `json:"bet_amount"`
-	WinAmount  float64      `json:"win_amount"`
-	Balance    float64      `json:"balance"`
+	OrderID    string                  `json:"order_id"`
+	GameResult interfaces.SpinResponse `json:"game_result"`
+	BetAmount  float64                 `json:"bet_amount"`
+	WinAmount  float64                 `json:"win_amount"`
+	Balance    float64                 `json:"balance"`
 }
 
 // CreateOrder godoc
@@ -47,12 +49,12 @@ type CreateOrderResponse struct {
 // @Security     Bearer
 // @Param        request body SpinRequest true "Spin request with bet amount"
 // @Success      200  {object}  CreateOrderResponse
-// @Failure      400  {object}  ErrorResponse
+// @Failure      400  {object}  types.ErrorResponse
 // @Router       /api/v1/orders [post]
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
-	var req SpinRequest
+	var req interfaces.SpinRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{
+		c.JSON(http.StatusBadRequest, types.ErrorResponse{
 			Error: "Invalid request format",
 			Code:  http.StatusBadRequest,
 		})
@@ -62,7 +64,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	// 獲取用戶ID
 	userID, ok := c.Get("userId")
 	if !ok {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{
+		c.JSON(http.StatusUnauthorized, types.ErrorResponse{
 			Error: "User not authenticated",
 			Code:  http.StatusUnauthorized,
 		})
@@ -76,17 +78,17 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	totalWinAmount := winResult.Payout * req.BetAmount
 
 	// 構建遊戲結果
-	gameResult := SpinResponse{
+	gameResult := interfaces.SpinResponse{
 		Success:      true,
 		Board:        boardInt,
 		WinAmount:    totalWinAmount,
 		TotalLines:   len(winResult.Lines),
-		WinningLines: make([]WinningLineInfo, 0),
+		WinningLines: make([]types.WinningLineInfo, 0),
 	}
 
 	// 添加獲勝線信息
 	for _, line := range winResult.Lines {
-		gameResult.WinningLines = append(gameResult.WinningLines, WinningLineInfo{
+		gameResult.WinningLines = append(gameResult.WinningLines, types.WinningLineInfo{
 			Type:     line.Type,
 			Position: line.Position,
 			Symbols:  convertSymbolsToInt(line.Symbol, 3),
@@ -97,7 +99,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	// 將遊戲結果轉換為JSON
 	gameResultJSON, err := json.Marshal(gameResult)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{
+		c.JSON(http.StatusInternalServerError, types.ErrorResponse{
 			Error: "Failed to process game result",
 			Code:  http.StatusInternalServerError,
 		})
@@ -114,7 +116,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	})
 	fmt.Printf("balanceRecords: %v", balanceRecords)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{
+		c.JSON(http.StatusInternalServerError, types.ErrorResponse{
 			Error: fmt.Sprintf("Failed to create order: %v", err),
 			Code:  http.StatusInternalServerError,
 		})
@@ -124,7 +126,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	// 獲取最新餘額
 	currentBalance, err := h.balanceService.GetUserBalance(userID.(int))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{
+		c.JSON(http.StatusInternalServerError, types.ErrorResponse{
 			Error: "Failed to get current balance",
 			Code:  http.StatusInternalServerError,
 		})

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"passontw-slot-game/internal/interfaces"
 	"passontw-slot-game/internal/service"
 	"time"
 
@@ -35,11 +36,6 @@ type Client struct {
 	send     chan []byte
 	userID   string
 	userName string
-}
-
-type Message struct {
-	Type    string      `json:"type"`
-	Content interface{} `json:"content"`
 }
 
 type WebSocketHandler struct {
@@ -109,7 +105,7 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 	h.clients[client] = true
 
 	// 發送歡迎消息
-	welcome := Message{
+	welcome := interfaces.Message{
 		Type: "welcome",
 		Content: map[string]string{
 			"message": "Welcome " + userName,
@@ -147,7 +143,7 @@ func (c *Client) readPump() {
 		}
 		log.Printf("Received message from %s: %s", c.userName, string(message))
 
-		response := Message{
+		response := interfaces.Message{
 			Type: "message",
 			Content: map[string]interface{}{
 				"userId":   c.userID,

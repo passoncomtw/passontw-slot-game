@@ -2,8 +2,9 @@ package handler
 
 import (
 	"net/http"
+	"passontw-slot-game/internal/interfaces"
+	"passontw-slot-game/internal/interfaces/types"
 	"passontw-slot-game/internal/service"
-
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -17,29 +18,6 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 	return &UserHandler{
 		userService: userService,
 	}
-}
-
-type CreateUserRequest struct {
-	Name           string  `json:"name" binding:"required,min=1,max=20" example:"testdemo001"`
-	Phone          string  `json:"phone" binding:"required,min=1,max=20" example:"0987654321"`
-	Password       string  `json:"password" binding:"required,min=6,max=50" example:"a12345678"`
-	InitialBalance float64 `json:"initial_balance,omitempty" example:"1000.00"`
-}
-
-type CreateUserResponse struct {
-	ID               int     `json:"id" example:"1"`
-	Name             string  `json:"name" example:"testdemo001"`
-	Phone            string  `json:"phone" example:"0987654321"`
-	AvailableBalance float64 `json:"available_balance" example:"1000.00"`
-	FrozenBalance    float64 `json:"frozen_balance" example:"0.00"`
-}
-
-type PaginatedResponse struct {
-	Data       interface{} `json:"data"`
-	Total      int64       `json:"total" example:"200"`
-	Page       int         `json:"page" example:"1"`
-	PageSize   int         `json:"page_size" example:"10"`
-	TotalPages int         `json:"total_pages" example:"20"`
 }
 
 // GetUsers godoc
@@ -80,7 +58,7 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 	// 計算總頁數
 	totalPages := (int(total) + pageSize - 1) / pageSize
 
-	c.JSON(http.StatusOK, PaginatedResponse{
+	c.JSON(http.StatusOK, interfaces.PaginatedResponse{
 		Data:       users,
 		Total:      total,
 		Page:       page,
@@ -96,14 +74,14 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     Bearer
-// @Param        request body     CreateUserRequest true "Create User Request"
-// @Success      201  {object}  CreateUserResponse
-// @Failure      400  {object}  ErrorResponse
+// @Param        request body interfaces.CreateUserRequest true "Create User Request"
+// @Success      201  {object}  interfaces.CreateUserResponse
+// @Failure      400  {object}  types.ErrorResponse
 // @Router       /api/v1/users [post]
 func (h *UserHandler) CreateUser(c *gin.Context) {
-	var req CreateUserRequest
+	var req interfaces.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{
+		c.JSON(http.StatusBadRequest, types.ErrorResponse{
 			Error: "Invalid request parameters",
 			Code:  http.StatusBadRequest,
 		})
@@ -111,7 +89,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	}
 
 	if req.InitialBalance < 0 {
-		c.JSON(http.StatusBadRequest, ErrorResponse{
+		c.JSON(http.StatusBadRequest, types.ErrorResponse{
 			Error: "Initial balance cannot be negative",
 			Code:  http.StatusBadRequest,
 		})
@@ -126,14 +104,14 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{
+		c.JSON(http.StatusBadRequest, types.ErrorResponse{
 			Error: err.Error(),
 			Code:  http.StatusBadRequest,
 		})
 		return
 	}
 
-	response := CreateUserResponse{
+	response := interfaces.CreateUserResponse{
 		ID:               user.ID,
 		Name:             user.Name,
 		Phone:            user.Phone,

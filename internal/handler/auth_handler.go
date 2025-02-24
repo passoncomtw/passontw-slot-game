@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"passontw-slot-game/internal/interfaces"
 	"passontw-slot-game/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -17,29 +18,19 @@ func NewAuthHandler(userService service.UserService) *AuthHandler {
 	}
 }
 
-type LoginRequest struct {
-	Phone    string `json:"phone" binding:"required" example:"0987654321"`
-	Password string `json:"password" binding:"required" example:"a12345678"`
-}
-
-type LoginResponse struct {
-	Token string      `json:"token"  example:"0987654321"`
-	User  interface{} `json:"user"`
-}
-
 // Login godoc
 // @Summary      User login
 // @Description  Login with phone and password
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        request body LoginRequest true "Login credentials"
-// @Success      200  {object}  LoginResponse
+// @Param        request body interfaces.LoginRequest true "Login credentials"
+// @Success      200  {object}  interfaces.LoginResponse
 // @Failure      400  {object}  map[string]string
 // @Failure      401  {object}  map[string]string
 // @Router       /api/v1/auth [post]
 func (h *AuthHandler) userLogin(c *gin.Context) {
-	var req LoginRequest
+	var req interfaces.LoginRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -52,7 +43,7 @@ func (h *AuthHandler) userLogin(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, LoginResponse{
+	c.JSON(http.StatusOK, interfaces.LoginResponse{
 		Token: token,
 		User:  user,
 	})

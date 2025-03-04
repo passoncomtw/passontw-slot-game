@@ -33,3 +33,6 @@ logs/
 /docs/swagger.json
 /docs/swagger.yaml
 /docs/docs.go
+
+# build result
+passontw-slot-game

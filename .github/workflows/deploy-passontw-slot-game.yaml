@@ -34,6 +34,11 @@ jobs:
 
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          
+      - name: Install dependencies
+        run: go mod download
+      - name: generator Swagger docs
+        run: swag init -g cmd/api/main.go
 
       - name: Lint
         run: golangci-lint run ./cmd/api/main.go

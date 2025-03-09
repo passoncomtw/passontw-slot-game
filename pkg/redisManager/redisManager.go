@@ -83,9 +83,6 @@ func ProvideRedisConfig(cfg *config.Config) *RedisConfig {
 
 // ProvideRedisClient 提供 Redis 客戶端實例，用於 fx
 func ProvideRedisClient(lc fx.Lifecycle, config *RedisConfig) *redis.Client {
-	fmt.Printf("=========================\n")
-	fmt.Printf("config: %v\n", config)
-	fmt.Printf("=========================\n")
 	client := redis.NewClient(&redis.Options{
 		Addr:     config.Addr,
 		Username: config.Username,

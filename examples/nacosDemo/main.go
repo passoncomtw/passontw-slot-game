@@ -47,7 +47,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("get config error: %v", err)
 	}
-	fmt.Printf("Initial config: %+v\n", config)
 
 	// 監聽配置變更
 	err = client.ListenConfig("slot_game_config", func(data string) {
@@ -56,7 +55,6 @@ func main() {
 			log.Printf("parse new config error: %v", err)
 			return
 		}
-		fmt.Printf("Config changed: %+v\n", newConfig)
 		// 這裡可以重新加載應用配置
 	})
 	if err != nil {

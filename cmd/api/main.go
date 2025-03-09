@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"passontw-slot-game/docs"
 	"passontw-slot-game/internal/config"
@@ -34,12 +35,15 @@ import (
 
 // @BasePath  /
 func main() {
-	// 從環境變數中獲取 API_HOST
-	apiHost := config.GetEnv("API_HOST", "localhost:3000")
-	version := config.GetEnv("VERSION", "0.9.0")
+	cfg, cfgerror := config.LoadConfigFromNacos()
 
-	docs.SwaggerInfo.Host = apiHost
-	docs.SwaggerInfo.Version = version
+	if cfgerror != nil {
+		fmt.Printf("get nacos config error: %v", cfgerror)
+		return
+	}
+
+	docs.SwaggerInfo.Host = cfg.Server.APIHost
+	docs.SwaggerInfo.Version = cfg.Server.Version
 
 	err := utils.InitSnowflake(1) // 使用一個合適的 worker ID
 	if err != nil {
@@ -48,8 +52,9 @@ func main() {
 
 	app := fx.New(
 		fx.Provide(
-			config.LoadEnv,
-			config.NewConfig,
+			func() *config.Config {
+				return cfg
+			},
 			redis.ProvideRedisConfig,
 			redis.ProvideRedisClient,
 			redis.ProvideRedisManager,

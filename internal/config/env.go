@@ -10,7 +10,9 @@ import (
 )
 
 type ServerConfig struct {
-	Port string
+	APIHost string
+	Port    string
+	Version string
 }
 
 type RedisENVConfig struct {
@@ -21,10 +23,12 @@ type RedisENVConfig struct {
 	DB       int
 }
 type EnvConfig struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisENVConfig
-	JWT      JWTConfig
+	NACOS_HOST      string
+	NACOS_PORT      uint64
+	NACOS_NAMESPACE string
+	NACOS_GROUP     string
+	NACOS_USERNAME  string
+	NACOS_PASSWORD  string
 }
 
 type JWTConfig struct {
@@ -39,31 +43,13 @@ func LoadEnv() *EnvConfig {
 	}
 
 	config := &EnvConfig{
-		Server: ServerConfig{
-			Port: getEnv("PORT", "3000"),
-		},
-		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnvAsInt("DB_PORT", 5432),
-			Name:     getEnv("DB_NAME", "postgres"),
-			User:     getEnv("DB_USER", "postgres"),
-			Password: getEnv("DB_PASSWORD", ""),
-		},
-		Redis: RedisENVConfig{
-			Host:     getEnv("REDIS_HOST", "localhost"),
-			Port:     getEnv("REDIS_PORT", "6379"),
-			Username: getEnv("REDIS_USERNAME", "default"),
-			Password: getEnv("REDIS_PASSWORD", ""),
-			DB:       getIntEnv("REDIS_DB", 0),
-		},
-		JWT: JWTConfig{
-			Secret:    getEnv("JWT_SECRET", "default-secret-key"),
-			ExpiresIn: getEnvAsDuration("JWT_EXPIRES_IN", "24h"),
-		},
+		NACOS_HOST:      getEnv("NACOS_HOST", "127.0.0.1"),
+		NACOS_PORT:      uint64(getEnvAsInt("NACOS_PORT", 8488)),
+		NACOS_NAMESPACE: getEnv("NACOS_NAMESPACE", "public"),
+		NACOS_GROUP:     getEnv("NACOS_GROUP", "DEFAULT_GROUP"),
+		NACOS_USERNAME:  getEnv("NACOS_USERNAME", "username"),
+		NACOS_PASSWORD:  getEnv("NACOS_PASSWORD", "password"),
 	}
-
-	// 驗證必要的環境變數
-	validateEnvConfig(config)
 
 	return config
 }
@@ -102,16 +88,6 @@ func getEnvAsDuration(key, defaultValue string) time.Duration {
 		duration, _ = time.ParseDuration(defaultValue)
 	}
 	return duration
-}
-
-func validateEnvConfig(config *EnvConfig) {
-	// 檢查必要的配置
-	if config.Database.Password == "" {
-		log.Fatal("DB_PASSWORD is required")
-	}
-	if config.JWT.Secret == "default-secret-key" {
-		log.Print("Warning: using default JWT secret key, this is not recommended for production")
-	}
 }
 
 // GetEnv 獲取環境變數，如果不存在則返回默認值

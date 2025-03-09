@@ -1,10 +1,14 @@
 package handler
 
 import (
+	"fmt"
 	"passontw-slot-game/internal/config"
 	"passontw-slot-game/internal/middleware"
 	redis "passontw-slot-game/pkg/redisManager"
 
+	"time"
+
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -21,6 +25,15 @@ func NewRouter(
 	redisManager redis.RedisManager,
 ) *gin.Engine {
 	router := gin.Default()
+
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	router.Use(middleware.Logger())
 
@@ -50,5 +63,6 @@ func NewRouter(
 }
 
 func StartServer(router *gin.Engine, cfg *config.Config) {
-	router.Run(cfg.Server.Port)
+	Server_Port := fmt.Sprintf(":%s", cfg.Server.Port)
+	router.Run(Server_Port)
 }

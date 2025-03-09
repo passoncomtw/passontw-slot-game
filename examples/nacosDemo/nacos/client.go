@@ -52,7 +52,7 @@ func NewNacosClient(cfg *NacosConfig) (*NacosClient, error) {
 			Port:   8848, // Nacos 默認端口
 		})
 	}
-	fmt.Printf("cfg.Namespace: %v", cfg.Namespace)
+
 	// 創建 ClientConfig
 	clientConfig := constant.ClientConfig{
 		NamespaceId:         cfg.Namespace,

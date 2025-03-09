@@ -25,12 +25,14 @@ type CreateUserParams struct {
 }
 
 type userService struct {
-	db *gorm.DB
+	db     *gorm.DB
+	config *config.Config
 }
 
-func NewUserService(db *gorm.DB) UserService {
+func NewUserService(db *gorm.DB, config *config.Config) UserService {
 	return &userService{
-		db: db,
+		db:     db,
+		config: config,
 	}
 }
 
@@ -130,7 +132,7 @@ func (s *userService) Login(phone, password string) (*entity.User, string, error
 		"exp":  time.Now().Add(time.Hour * 24).Unix(), // 24小時過期
 	})
 
-	tokenString, err := token.SignedString([]byte(config.GetEnv("JWT_SECRET", "your-secret-key")))
+	tokenString, err := token.SignedString([]byte(s.config.JWT.Secret))
 	if err != nil {
 		return nil, "", err
 	}

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"passontw-slot-game/internal/interfaces"
 	"passontw-slot-game/internal/service"
+	redis "passontw-slot-game/pkg/redisManager"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -39,20 +40,22 @@ type Client struct {
 }
 
 type WebSocketHandler struct {
-	clients     map[*Client]bool
-	broadcast   chan []byte
-	register    chan *Client
-	unregister  chan *Client
-	authService service.AuthService
+	clients      map[*Client]bool
+	broadcast    chan []byte
+	register     chan *Client
+	unregister   chan *Client
+	authService  service.AuthService
+	redisManager redis.RedisManager
 }
 
-func NewWebSocketHandler(authService service.AuthService) *WebSocketHandler {
+func NewWebSocketHandler(authService service.AuthService, redisManager redis.RedisManager) *WebSocketHandler {
 	h := &WebSocketHandler{
-		clients:     make(map[*Client]bool),
-		broadcast:   make(chan []byte),
-		register:    make(chan *Client),
-		unregister:  make(chan *Client),
-		authService: authService,
+		clients:      make(map[*Client]bool),
+		broadcast:    make(chan []byte),
+		register:     make(chan *Client),
+		unregister:   make(chan *Client),
+		authService:  authService,
+		redisManager: redisManager,
 	}
 	// 啟動廣播處理
 	go h.run()
@@ -84,6 +87,7 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Printf("Failed to upgrade connection: %v", err)
+		conn.Close()
 		return
 	}
 
@@ -91,6 +95,17 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 	userName := fmt.Sprintf("%v", claims["name"])
 	log.Printf("User connected - ID: %s, Name: %s", userID, userName)
 
+	tokenKey := fmt.Sprintf("user:token:%s", userID)
+	redisToken, err := h.redisManager.Get(c, tokenKey)
+	fmt.Printf("tokenKey: %s", tokenKey)
+	fmt.Printf("redisToken: %s", redisToken)
+
+	if err != nil || token != redisToken {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization format"})
+		c.Abort()
+		conn.Close()
+		return
+	}
 	client := &Client{
 		conn:     conn,
 		handler:  h,

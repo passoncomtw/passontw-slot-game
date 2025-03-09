@@ -54,23 +54,6 @@ func LoadEnv() *EnvConfig {
 	return config
 }
 
-func getIntEnv(key string, defaultValue int) int {
-	if value := os.Getenv(key); value != "" {
-		n, err := strconv.Atoi(value)
-		if err != nil {
-			return 0
-		}
-		return n
-	}
-	return defaultValue
-}
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
 func getEnvAsInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.Atoi(value); err == nil {
@@ -80,18 +63,8 @@ func getEnvAsInt(key string, defaultValue int) int {
 	return defaultValue
 }
 
-func getEnvAsDuration(key, defaultValue string) time.Duration {
-	value := getEnv(key, defaultValue)
-	duration, err := time.ParseDuration(value)
-	if err != nil {
-		log.Printf("Warning: invalid duration for %s, using default value", key)
-		duration, _ = time.ParseDuration(defaultValue)
-	}
-	return duration
-}
-
 // GetEnv 獲取環境變數，如果不存在則返回默認值
-func GetEnv(key, defaultValue string) string {
+func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}

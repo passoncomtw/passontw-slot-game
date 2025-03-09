@@ -1,5 +1,37 @@
 # Swagger UI
 
+## HotReload
+
+```
+$ go install github.com/air-verse/air@latest
+```
+
+**.air.toml**
+
+```toml
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/app ./cmd/api/main.go"
+  bin = "./tmp/app"
+  delay = 1000
+  exclude_dir = ["assets", "tmp", "vendor", "redis_data"]
+  exclude_file = []
+  exclude_regex = ["_test.go"]
+  include_ext = ["go", "json", "yaml", "toml"]
+
+[log]
+  time = true
+
+[color]
+  app = ""
+  build = "yellow"
+  main = "magenta"
+  runner = "green"
+  watcher = "cyan"
+```
+
 ## Build
 
 ```

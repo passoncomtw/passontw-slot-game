@@ -1,7 +1,7 @@
 package service
 
 import (
-	"errors"
+	"fmt"
 	"passontw-slot-game/internal/config"
 	"passontw-slot-game/internal/domain/entity"
 	"time"
@@ -35,10 +35,16 @@ func (s *authService) GenerateToken(user *entity.User) (string, error) {
 }
 
 func (s *authService) ValidateToken(tokenString string) (*jwt.Token, error) {
-	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(s.config.JWT.Secret), nil
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
 }

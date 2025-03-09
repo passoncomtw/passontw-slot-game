@@ -1,0 +1,176 @@
+name: deploy-passontw-slot-game
+
+on:
+  push:
+    branches:
+      - develop
+  # pull_request:
+  #   types: 
+  #     - closed
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'apps/token-app-api/**'
+  #     - '.github/workflows/deploy-token-app-api.yaml'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: token-app-api
+  DOCKER_HUB_WORKSPACE: passon
+  SERVER_WORK_DIRECTORY: token-services
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+      - name: Lint
+        run: golangci-lint run ./...
+
+  # test:
+  #   name: Test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - name: Set up Go
+  #       uses: actions/setup-go@v4
+  #       with:
+  #         go-version: '1.23'
+  #         cache: true
+
+  #     - name: Install dependencies
+  #       run: go mod download
+
+  #     - name: Run tests with coverage
+  #       run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+  #     - name: Upload coverage report
+  #       uses: codecov/codecov-action@v3
+  #       with:
+  #         file: ./coverage.txt
+  #         fail_ci_if_error: false
+
+  build:
+    name: Build
+    needs: [lint]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.23']
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build
+        run: |
+          GOOS=linux GOARCH=amd64 go build -v -o bin/app-linux-amd64 ./cmd/api/main.go
+          # GOOS=darwin GOARCH=amd64 go build -v -o bin/app-darwin-amd64 ./cmd/api/main.go
+          # GOOS=windows GOARCH=amd64 go build -v -o bin/app-windows-amd64.exe ./cmd/api/main.go
+        if: matrix.platform == 'ubuntu-latest'
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: binaries
+          path: bin/
+        if: matrix.platform == 'ubuntu-latest'
+
+  # docker:
+  #   name: Docker Build and Push
+  #   needs: [build]
+  #   runs-on: ubuntu-latest
+  #   if: startsWith(github.ref, 'refs/tags/v') # 只在標籤推送時構建 Docker 映像
+    
+  #   steps:
+  #     - uses: actions/checkout@v3
+      
+  #     - name: Set up QEMU
+  #       uses: docker/setup-qemu-action@v2
+
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v2
+
+  #     - name: Login to DockerHub
+  #       uses: docker/login-action@v2
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
+  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  #     - name: Extract tag version
+  #       id: get_version
+  #       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+  #     - name: Build and push
+  #       uses: docker/build-push-action@v4
+  #       with:
+  #         context: .
+  #         platforms: linux/amd64,linux/arm64
+  #         push: true
+  #         tags: |
+  #           yourname/yourapp:latest
+  #           yourname/yourapp:${{ steps.get_version.outputs.VERSION }}
+
+  # release:
+  #   name: Create Release
+  #   needs: [build]
+  #   runs-on: ubuntu-latest
+  #   if: startsWith(github.ref, 'refs/tags/v') # 只在標籤推送時創建釋出
+    
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
+
+  #     - name: Download binaries
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: binaries
+  #         path: bin
+
+  #     - name: Generate changelog
+  #       id: changelog
+  #       run: |
+  #         PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+  #         if [ -z "$PREVIOUS_TAG" ]; then
+  #           CHANGELOG=$(git log --pretty=format:"* %s (%h)" ${{ github.ref_name }})
+  #         else
+  #           CHANGELOG=$(git log --pretty=format:"* %s (%h)" $PREVIOUS_TAG..${{ github.ref_name }})
+  #         fi
+  #         echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+  #         echo "$CHANGELOG" >> $GITHUB_OUTPUT
+  #         echo "EOF" >> $GITHUB_OUTPUT
+
+  #     - name: Create Release
+  #       uses: softprops/action-gh-release@v1
+  #       with:
+  #         files: |
+  #           bin/app-linux-amd64
+  #           bin/app-darwin-amd64
+  #           bin/app-windows-amd64.exe
+  #         body: |
+  #           ## Changelog
+  #           ${{ steps.changelog.outputs.CHANGELOG }}
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -36,7 +36,7 @@ jobs:
         run: go install github.com/swaggo/swag/cmd/swag@latest
 
       - name: Generate Swagger Docs
-        run: swag init -g cmd/api/main.go
+        run: swag init -g main.go -d cmd/api
 
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest

@@ -13,9 +13,17 @@ type ServerConfig struct {
 	Port string
 }
 
+type RedisENVConfig struct {
+	Host     string
+	Port     string
+	Username string
+	Password string
+	DB       int
+}
 type EnvConfig struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	Redis    RedisENVConfig
 	JWT      JWTConfig
 }
 
@@ -41,6 +49,13 @@ func LoadEnv() *EnvConfig {
 			User:     getEnv("DB_USER", "postgres"),
 			Password: getEnv("DB_PASSWORD", ""),
 		},
+		Redis: RedisENVConfig{
+			Host:     getEnv("REDIS_HOST", "localhost"),
+			Port:     getEnv("REDIS_PORT", "6379"),
+			Username: getEnv("REDIS_USERNAME", "default"),
+			Password: getEnv("REDIS_PASSWORD", ""),
+			DB:       getIntEnv("REDIS_DB", 0),
+		},
 		JWT: JWTConfig{
 			Secret:    getEnv("JWT_SECRET", "default-secret-key"),
 			ExpiresIn: getEnvAsDuration("JWT_EXPIRES_IN", "24h"),
@@ -53,6 +68,16 @@ func LoadEnv() *EnvConfig {
 	return config
 }
 
+func getIntEnv(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		n, err := strconv.Atoi(value)
+		if err != nil {
+			return 0
+		}
+		return n
+	}
+	return defaultValue
+}
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value

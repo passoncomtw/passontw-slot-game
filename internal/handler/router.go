@@ -3,6 +3,7 @@ package handler
 import (
 	"passontw-slot-game/internal/config"
 	"passontw-slot-game/internal/middleware"
+	redis "passontw-slot-game/pkg/redisManager"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -17,6 +18,7 @@ func NewRouter(
 	userHandler *UserHandler,
 	orderHandler *OrderHandler,
 	wsHandler *WebSocketHandler,
+	redisManager redis.RedisManager,
 ) *gin.Engine {
 	router := gin.Default()
 
@@ -26,6 +28,7 @@ func NewRouter(
 
 	router.GET("/hello", helloHandler.HelloWorld)
 	router.GET("/ws", wsHandler.HandleWebSocket)
+	router.POST("/game/spin", gameHandler.GetGameSpin)
 
 	// API 路由組
 	v1 := router.Group("/api/v1")
@@ -33,12 +36,13 @@ func NewRouter(
 		v1.POST("/auth", authHandler.userLogin)
 
 		authorized := v1.Group("")
-		authorized.Use(middleware.AuthMiddleware(cfg))
+		authorized.Use(middleware.AuthMiddleware(cfg, redisManager))
 		{
 			authorized.GET("/users", userHandler.GetUsers)
 			authorized.POST("/users", userHandler.CreateUser)
 			authorized.POST("/orders", orderHandler.CreateOrder)
-			router.POST("/game/spin", gameHandler.GetGameSpin)
+
+			authorized.POST("/auth/logout", authHandler.UserLogout)
 		}
 	}
 

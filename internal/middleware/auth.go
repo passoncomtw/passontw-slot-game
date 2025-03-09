@@ -6,11 +6,13 @@ import (
 	"passontw-slot-game/internal/config"
 	"strings"
 
+	redis "passontw-slot-game/pkg/redisManager"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
+func AuthMiddleware(cfg *config.Config, redisManager redis.RedisManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -44,6 +46,18 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 			userIDFloat, _ := claims["sub"].(float64)
 			userID := int(userIDFloat)
+
+			tokenKey := fmt.Sprintf("user:token:%d", userID)
+			redisToken, err := redisManager.Get(c, tokenKey)
+			fmt.Printf("tokenKey: %s", tokenKey)
+			fmt.Printf("redisToken: %s", redisToken)
+
+			if err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization format"})
+				c.Abort()
+				return
+			}
+
 			c.Set("userId", userID)
 			c.Set("userName", claims["name"])
 			c.Next()

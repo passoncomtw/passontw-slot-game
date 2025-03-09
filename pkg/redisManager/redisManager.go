@@ -3,9 +3,11 @@ package redis
 import (
 	"context"
 	"fmt"
+	"passontw-slot-game/internal/config"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/fx"
 )
 
 // 導出 redis.Nil 以便使用者可以處理找不到鍵的情況
@@ -16,6 +18,15 @@ func IsKeyNotExist(err error) bool {
 	return err == redis.Nil
 }
 
+// RedisConfig 存儲 Redis 連接的配置項
+type RedisConfig struct {
+	Addr     string
+	Username string
+	Password string
+	DB       int
+}
+
+// RedisManager 提供 Redis 操作的介面
 type RedisManager interface {
 	// 基本操作
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
@@ -60,27 +71,62 @@ type redisManagerImpl struct {
 	client *redis.Client
 }
 
-// NewRedisManager 創建並返回一個新的 RedisManager 實例
-func NewRedisManager(addr, username, password string, db int) (RedisManager, error) {
+// ProvideRedisConfig 提供 Redis 配置，用於 fx
+func ProvideRedisConfig(cfg *config.Config) *RedisConfig {
+	return &RedisConfig{
+		Addr:     cfg.Redis.Addr,
+		Username: cfg.Redis.Username,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	}
+}
+
+// ProvideRedisClient 提供 Redis 客戶端實例，用於 fx
+func ProvideRedisClient(lc fx.Lifecycle, config *RedisConfig) *redis.Client {
+	fmt.Printf("=========================\n")
+	fmt.Printf("config: %v\n", config)
+	fmt.Printf("=========================\n")
 	client := redis.NewClient(&redis.Options{
-		Addr:     addr,
-		Username: username,
-		Password: password,
-		DB:       db,
+		Addr:     config.Addr,
+		Username: config.Username,
+		Password: config.Password,
+		DB:       config.DB,
 	})
 
-	// 測試連接
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
 
-	if err := client.Ping(ctx).Err(); err != nil {
-		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
-	}
+			if err := client.Ping(ctx).Err(); err != nil {
+				return fmt.Errorf("failed to connect to Redis: %w", err)
+			}
+			fmt.Println("Redis connected successfully")
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			fmt.Println("Closing Redis connection...")
+			return client.Close()
+		},
+	})
 
+	return client
+}
+
+// ProvideRedisManager 提供 RedisManager 實例，用於 fx
+func ProvideRedisManager(client *redis.Client) RedisManager {
 	return &redisManagerImpl{
 		client: client,
-	}, nil
+	}
 }
+
+// 創建 fx 模組，包含所有 Redis 相關組件
+var Module = fx.Module("redis",
+	fx.Provide(
+		ProvideRedisClient,
+		ProvideRedisManager,
+	),
+)
 
 // 實作基本操作
 
@@ -105,6 +151,15 @@ func (r *redisManagerImpl) Exists(ctx context.Context, key string) (bool, error)
 	return result > 0, err
 }
 
+// 實作過期時間操作
+func (r *redisManagerImpl) Expire(ctx context.Context, key string, expiration time.Duration) (bool, error) {
+	return r.client.Expire(ctx, key, expiration).Result()
+}
+
+func (r *redisManagerImpl) TTL(ctx context.Context, key string) (time.Duration, error) {
+	return r.client.TTL(ctx, key).Result()
+}
+
 // 實作哈希操作
 func (r *redisManagerImpl) HSet(ctx context.Context, key string, field string, value interface{}) error {
 	return r.client.HSet(ctx, key, field, value).Err()
@@ -127,7 +182,6 @@ func (r *redisManagerImpl) HDel(ctx context.Context, key string, fields ...strin
 }
 
 // 實作列表操作
-
 func (r *redisManagerImpl) LPush(ctx context.Context, key string, values ...interface{}) error {
 	return r.client.LPush(ctx, key, values...).Err()
 }
@@ -141,7 +195,6 @@ func (r *redisManagerImpl) LRange(ctx context.Context, key string, start, stop i
 }
 
 // 實作集合操作
-
 func (r *redisManagerImpl) SAdd(ctx context.Context, key string, members ...interface{}) error {
 	return r.client.SAdd(ctx, key, members...).Err()
 }
@@ -155,7 +208,6 @@ func (r *redisManagerImpl) SRem(ctx context.Context, key string, members ...inte
 }
 
 // 實作有序集合操作
-
 func (r *redisManagerImpl) ZAdd(ctx context.Context, key string, score float64, member string) error {
 	z := redis.Z{
 		Score:  score,
@@ -169,26 +221,15 @@ func (r *redisManagerImpl) ZRange(ctx context.Context, key string, start, stop i
 }
 
 // 實作事務操作
-
 func (r *redisManagerImpl) Watch(ctx context.Context, fn func(*redis.Tx) error, keys ...string) error {
 	return r.client.Watch(ctx, fn, keys...)
 }
 
 // 實作連接管理
-
 func (r *redisManagerImpl) Close() error {
 	return r.client.Close()
 }
 
 func (r *redisManagerImpl) Ping(ctx context.Context) error {
 	return r.client.Ping(ctx).Err()
-}
-
-// 實作過期時間操作
-func (r *redisManagerImpl) Expire(ctx context.Context, key string, expiration time.Duration) (bool, error) {
-	return r.client.Expire(ctx, key, expiration).Result()
-}
-
-func (r *redisManagerImpl) TTL(ctx context.Context, key string) (time.Duration, error) {
-	return r.client.TTL(ctx, key).Result()
 }

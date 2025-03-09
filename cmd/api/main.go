@@ -8,6 +8,7 @@ import (
 	"passontw-slot-game/internal/pkg/database"
 	"passontw-slot-game/internal/pkg/logger"
 	"passontw-slot-game/internal/service"
+	redis "passontw-slot-game/pkg/redisManager"
 	"passontw-slot-game/pkg/utils"
 
 	_ "passontw-slot-game/docs" // 導入 swagger docs
@@ -49,6 +50,9 @@ func main() {
 		fx.Provide(
 			config.LoadEnv,
 			config.NewConfig,
+			redis.ProvideRedisConfig,
+			redis.ProvideRedisClient,
+			redis.ProvideRedisManager,
 			logger.NewLogger,
 			database.NewDatabase,
 			service.NewOrderService,

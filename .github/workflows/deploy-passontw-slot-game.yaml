@@ -75,7 +75,7 @@ jobs:
     strategy:
       matrix:
         go-version: ['1.23']
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        # platform: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v3
@@ -91,17 +91,15 @@ jobs:
 
       - name: Build
         run: |
+          swag init --dir ./cmd/api,./apps/slot-game1/handler,./apps/slot-game1/interfaces,./apps/slot-game1/domain --generalInfo main.go --output ./apps/slot-game1/docs --parseDependency --parseInternal
           GOOS=linux GOARCH=amd64 go build -v -o bin/app-linux-amd64 ./cmd/api/main.go
-          # GOOS=darwin GOARCH=amd64 go build -v -o bin/app-darwin-amd64 ./cmd/api/main.go
-          # GOOS=windows GOARCH=amd64 go build -v -o bin/app-windows-amd64.exe ./cmd/api/main.go
-        if: matrix.platform == 'ubuntu-latest'
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: binaries
-          path: bin/
-        if: matrix.platform == 'ubuntu-latest'
+      # - name: Upload artifacts
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: binaries
+      #     path: bin/
+      #   if: matrix.platform == 'ubuntu-latest'
 
   # docker:
   #   name: Docker Build and Push

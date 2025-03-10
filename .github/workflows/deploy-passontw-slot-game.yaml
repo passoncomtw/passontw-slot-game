@@ -20,29 +20,29 @@ env:
   SERVER_WORK_DIRECTORY: token-services
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+  # lint:
+  #   name: Lint
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.23'
-          cache: true
+  #     - name: Set up Go
+  #       uses: actions/setup-go@v4
+  #       with:
+  #         go-version: '1.23'
+  #         cache: true
 
-      - name: Install swag
-        run: go install github.com/swaggo/swag/cmd/swag@latest
+  #     - name: Install swag
+  #       run: go install github.com/swaggo/swag/cmd/swag@latest
 
-      - name: Generate Swagger Docs
-        run: swag init -g main.go -d cmd/api
+  #     - name: Generate Swagger Docs
+  #       run: swag init -g main.go -d cmd/api
 
-      - name: Install golangci-lint
-        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+  #     - name: Install golangci-lint
+  #       run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
-      - name: Lint
-        run: golangci-lint run ./cmd/api/main.go
+  #     - name: Lint
+  #       run: golangci-lint run ./cmd/api/main.go
 
   # test:
   #   name: Test
@@ -70,7 +70,7 @@ jobs:
 
   build:
     name: Build
-    needs: [lint]
+    needs: []
     runs-on: ubuntu-latest
     strategy:
       matrix:

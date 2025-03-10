@@ -1,5 +1,11 @@
 # Swagger UI
 
+## Build passontw-slot-game1
+
+```
+$ docker build -t passon/slot-game1-service:lastest . --platform linux/amd64,linux/arm64 -f ./deploy/slot-game1/Dockerfile
+```
+
 ## HotReload
 
 ```

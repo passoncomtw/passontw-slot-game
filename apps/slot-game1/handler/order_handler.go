@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"passontw-slot-game/internal/interfaces"
-	"passontw-slot-game/internal/interfaces/types"
-	"passontw-slot-game/internal/service"
+	"passontw-slot-game/apps/slot-game1/interfaces"
+	"passontw-slot-game/apps/slot-game1/interfaces/types"
+	"passontw-slot-game/apps/slot-game1/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -47,7 +47,7 @@ type CreateOrderResponse struct {
 // @Accept       json
 // @Produce      json
 // @Security     Bearer
-// @Param        request body SpinRequest true "Spin request with bet amount"
+// @Param        request body interfaces.SpinRequest true "Spin request with bet amount"
 // @Success      200  {object}  CreateOrderResponse
 // @Failure      400  {object}  types.ErrorResponse
 // @Router       /api/v1/orders [post]

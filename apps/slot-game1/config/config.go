@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"passontw-slot-game/internal/pkg/nacos"
+	"passontw-slot-game/apps/slot-game1/pkg/nacos"
 	"strings"
 	"time"
 )

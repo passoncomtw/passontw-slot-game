@@ -3,16 +3,17 @@ package main
 import (
 	"fmt"
 	"log"
-	"passontw-slot-game/docs"
-	"passontw-slot-game/internal/config"
-	"passontw-slot-game/internal/handler"
-	"passontw-slot-game/internal/pkg/database"
-	"passontw-slot-game/internal/pkg/logger"
-	"passontw-slot-game/internal/service"
+	"passontw-slot-game/apps/slot-game1/config"
+	"passontw-slot-game/apps/slot-game1/docs"
+	"passontw-slot-game/apps/slot-game1/handler"
+	"passontw-slot-game/apps/slot-game1/pkg/database"
+	"passontw-slot-game/apps/slot-game1/pkg/logger"
+	"passontw-slot-game/apps/slot-game1/service"
+
 	redis "passontw-slot-game/pkg/redisManager"
 	"passontw-slot-game/pkg/utils"
 
-	_ "passontw-slot-game/docs" // 導入 swagger docs
+	_ "passontw-slot-game/apps/slot-game1/docs" // 導入 swagger docs
 
 	"go.uber.org/fx"
 )

@@ -2,8 +2,8 @@ package service
 
 import (
 	"fmt"
-	"passontw-slot-game/internal/domain"
-	"passontw-slot-game/internal/domain/models"
+	"passontw-slot-game/apps/slot-game1/domain"
+	"passontw-slot-game/apps/slot-game1/domain/models"
 )
 
 // WinResult 代表一次遊戲的中獎結果

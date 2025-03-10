@@ -2,7 +2,7 @@ package database
 
 import (
 	"fmt"
-	"passontw-slot-game/internal/config"
+	"passontw-slot-game/apps/slot-game1/config"
 	"time"
 
 	"gorm.io/driver/postgres"

@@ -2,8 +2,8 @@ package handler
 
 import (
 	"fmt"
-	"passontw-slot-game/internal/config"
-	"passontw-slot-game/internal/middleware"
+	"passontw-slot-game/apps/slot-game1/config"
+	"passontw-slot-game/apps/slot-game1/middleware"
 	redis "passontw-slot-game/pkg/redisManager"
 
 	"time"

@@ -3,7 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"passontw-slot-game/internal/domain/entity"
+	"passontw-slot-game/apps/slot-game1/domain/entity"
 	"passontw-slot-game/pkg/utils"
 	"strconv"
 	"time"

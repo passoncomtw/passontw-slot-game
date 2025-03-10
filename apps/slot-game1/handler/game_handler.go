@@ -2,11 +2,11 @@ package handler
 
 import (
 	"net/http"
-	"passontw-slot-game/internal/domain"
-	"passontw-slot-game/internal/domain/models"
-	"passontw-slot-game/internal/interfaces"
-	"passontw-slot-game/internal/interfaces/types"
-	"passontw-slot-game/internal/service"
+	"passontw-slot-game/apps/slot-game1/domain"
+	"passontw-slot-game/apps/slot-game1/domain/models"
+	"passontw-slot-game/apps/slot-game1/interfaces"
+	"passontw-slot-game/apps/slot-game1/interfaces/types"
+	"passontw-slot-game/apps/slot-game1/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,7 +31,7 @@ func NewGameHandler(gameService service.GameService, checker *service.Checker) *
 // @Produce      json
 // @Security     Bearer
 // @Param        request body interfaces.SpinRequest true "Spin request with bet amount"
-// @Success      200  {object}  SpinResponse
+// @Success      200  {object}  interfaces.SpinResponse
 // @Failure      400  {object}  types.ErrorResponse
 // @Router       /api/v1/game/spin [post]
 func (h *GameHandler) GetGameSpin(c *gin.Context) {

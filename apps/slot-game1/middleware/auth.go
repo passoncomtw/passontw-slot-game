@@ -3,7 +3,7 @@ package middleware
 import (
 	"fmt"
 	"net/http"
-	"passontw-slot-game/internal/config"
+	"passontw-slot-game/apps/slot-game1/config"
 	"strings"
 
 	redis "passontw-slot-game/pkg/redisManager"

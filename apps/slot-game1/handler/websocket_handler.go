@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"passontw-slot-game/internal/interfaces"
-	"passontw-slot-game/internal/service"
+	"passontw-slot-game/apps/slot-game1/interfaces"
+	"passontw-slot-game/apps/slot-game1/service"
 	redis "passontw-slot-game/pkg/redisManager"
 	"time"
 

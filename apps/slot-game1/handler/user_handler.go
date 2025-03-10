@@ -2,9 +2,9 @@ package handler
 
 import (
 	"net/http"
-	"passontw-slot-game/internal/interfaces"
-	"passontw-slot-game/internal/interfaces/types"
-	"passontw-slot-game/internal/service"
+	"passontw-slot-game/apps/slot-game1/interfaces"
+	"passontw-slot-game/apps/slot-game1/interfaces/types"
+	"passontw-slot-game/apps/slot-game1/service"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -29,7 +29,7 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 // @Security     Bearer
 // @Param        page query     int false "Page number (default: 1)"
 // @Param        page_size query int false "Page size (default: 10)"
-// @Success      200  {object}  PaginatedResponse
+// @Success      200  {object}  interfaces.PaginatedResponse
 // @Router       /api/v1/users [get]
 func (h *UserHandler) GetUsers(c *gin.Context) {
 	// 獲取分頁參數

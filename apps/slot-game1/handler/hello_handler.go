@@ -2,7 +2,7 @@ package handler
 
 import (
 	"net/http"
-	"passontw-slot-game/internal/service"
+	"passontw-slot-game/apps/slot-game1/service"
 
 	"github.com/gin-gonic/gin"
 )

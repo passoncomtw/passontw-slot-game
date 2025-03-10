@@ -1,7 +1,7 @@
 package interfaces
 
 import (
-	"passontw-slot-game/internal/interfaces/types"
+	"passontw-slot-game/apps/slot-game1/interfaces/types"
 )
 
 type SpinRequest struct {

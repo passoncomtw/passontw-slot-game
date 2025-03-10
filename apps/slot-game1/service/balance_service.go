@@ -3,7 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
-	"passontw-slot-game/internal/domain/entity"
+	"passontw-slot-game/apps/slot-game1/domain/entity"
 	"time"
 
 	"gorm.io/gorm"

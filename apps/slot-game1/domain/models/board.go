@@ -2,7 +2,7 @@ package models
 
 import (
 	"fmt"
-	"passontw-slot-game/internal/domain"
+	"passontw-slot-game/apps/slot-game1/domain"
 )
 
 type Board [3][3]domain.Symbol

@@ -3,9 +3,11 @@ package handler
 import (
 	"fmt"
 	"net/http"
-	"passontw-slot-game/internal/interfaces"
-	"passontw-slot-game/internal/interfaces/types"
-	"passontw-slot-game/internal/service"
+
+	"passontw-slot-game/apps/slot-game1/interfaces"
+	"passontw-slot-game/apps/slot-game1/interfaces/types"
+	"passontw-slot-game/apps/slot-game1/service"
+
 	redis "passontw-slot-game/pkg/redisManager"
 	"time"
 
@@ -72,7 +74,7 @@ func (h *AuthHandler) userLogin(c *gin.Context) {
 // @Success      200  {object}  nil
 // @Failure      400  {object}  map[string]string
 // @Failure      401  {object}  map[string]string
-// @Router       /api/v1/auth [post]
+// @Router       /api/v1/auth/logout [post]
 func (h *AuthHandler) UserLogout(c *gin.Context) {
 	userID, ok := c.Get("userId")
 	if !ok {

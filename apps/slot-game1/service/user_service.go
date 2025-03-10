@@ -2,8 +2,8 @@ package service
 
 import (
 	"errors"
-	"passontw-slot-game/internal/config"
-	"passontw-slot-game/internal/domain/entity"
+	"passontw-slot-game/apps/slot-game1/config"
+	"passontw-slot-game/apps/slot-game1/domain/entity"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"

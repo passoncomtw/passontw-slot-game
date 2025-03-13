@@ -71,6 +71,20 @@ type redisManagerImpl struct {
 	client *redis.Client
 }
 
+// NewRedisManager 創建一個新的 Redis 管理器
+func NewRedisManager(config *RedisConfig) RedisManager {
+	client := redis.NewClient(&redis.Options{
+		Addr:     config.Addr,
+		Username: config.Username,
+		Password: config.Password,
+		DB:       config.DB,
+	})
+
+	return &redisManagerImpl{
+		client: client,
+	}
+}
+
 // ProvideRedisConfig 提供 Redis 配置，用於 fx
 func ProvideRedisConfig(cfg *config.Config) *RedisConfig {
 	return &RedisConfig{
@@ -120,6 +134,7 @@ func ProvideRedisManager(client *redis.Client) RedisManager {
 // 創建 fx 模組，包含所有 Redis 相關組件
 var Module = fx.Module("redis",
 	fx.Provide(
+		ProvideRedisConfig,
 		ProvideRedisClient,
 		ProvideRedisManager,
 	),

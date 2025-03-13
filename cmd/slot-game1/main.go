@@ -1,15 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"passontw-slot-game/apps/slot-game1/config"
-	"passontw-slot-game/apps/slot-game1/docs"
 	"passontw-slot-game/apps/slot-game1/handler"
-	"passontw-slot-game/apps/slot-game1/pkg/database"
-	"passontw-slot-game/apps/slot-game1/pkg/logger"
 	"passontw-slot-game/apps/slot-game1/service"
 
+	"passontw-slot-game/pkg/databaseManager"
+	"passontw-slot-game/pkg/logger"
+	"passontw-slot-game/pkg/nacosManager"
 	redis "passontw-slot-game/pkg/redisManager"
 	"passontw-slot-game/pkg/utils"
 
@@ -36,15 +35,9 @@ import (
 
 // @BasePath  /
 func main() {
-	cfg, cfgerror := config.LoadConfigFromNacos()
 
-	if cfgerror != nil {
-		fmt.Printf("get nacos config error: %v", cfgerror)
-		return
-	}
-
-	docs.SwaggerInfo.Host = cfg.Server.APIHost
-	docs.SwaggerInfo.Version = cfg.Server.Version
+	// docs.SwaggerInfo.Host = cfg.Server.APIHost
+	// docs.SwaggerInfo.Version = cfg.Server.Version
 
 	err := utils.InitSnowflake(1) // 使用一個合適的 worker ID
 	if err != nil {
@@ -52,15 +45,32 @@ func main() {
 	}
 
 	app := fx.New(
+		// 核心服务模块
+		nacosManager.Module, // 提供 Nacos 客戶端
+		config.Module,       // 提供配置管理
+		// 使用自定義的數據庫模組來傳遞 config
+		fx.Replace(databaseManager.Module),
 		fx.Provide(
-			func() *config.Config {
-				return cfg
-			},
-			redis.ProvideRedisConfig,
-			redis.ProvideRedisClient,
-			redis.ProvideRedisManager,
+			// 明確提供 ProvidePostgresConfig 和 ProvideDatabaseManager
+			fx.Annotate(
+				func(cfg *config.Config) *databaseManager.PostgresConfig {
+					return databaseManager.ProvidePostgresConfig(cfg)
+				},
+				fx.ResultTags(`name:"postgresConfig"`),
+			),
+			fx.Annotate(
+				func(lc fx.Lifecycle, config *databaseManager.PostgresConfig) (databaseManager.DatabaseManager, error) {
+					return databaseManager.ProvideDatabaseManager(lc, config)
+				},
+				fx.ParamTags(``, `name:"postgresConfig"`),
+			),
+		),
+		redis.Module, // 提供 Redis 管理
+
+		// 應用程序服務
+		fx.Provide(
 			logger.NewLogger,
-			database.NewDatabase,
+			service.ProvideGormDB, // 提供 gorm.DB 實例
 			service.NewOrderService,
 			service.NewGameService,
 			service.NewHelloService,

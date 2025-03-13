@@ -1,6 +1,7 @@
-package config
+package nacosManager
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -22,6 +23,7 @@ type RedisENVConfig struct {
 	Password string
 	DB       int
 }
+
 type EnvConfig struct {
 	NACOS_HOST      string
 	NACOS_PORT      uint64
@@ -29,11 +31,19 @@ type EnvConfig struct {
 	NACOS_GROUP     string
 	NACOS_USERNAME  string
 	NACOS_PASSWORD  string
+	NACOS_DATAID    string
 }
 
 type JWTConfig struct {
 	Secret    string
 	ExpiresIn time.Duration
+}
+
+// ConfigWithNacos 包含啟用 Nacos 的配置設定
+type ConfigWithNacos interface {
+	IsNacosEnabled() bool
+	GetNacosGroup() string
+	GetNacosDataId() string
 }
 
 func LoadEnv() *EnvConfig {
@@ -49,9 +59,41 @@ func LoadEnv() *EnvConfig {
 		NACOS_GROUP:     getEnv("NACOS_GROUP", "DEFAULT_GROUP"),
 		NACOS_USERNAME:  getEnv("NACOS_USERNAME", "username"),
 		NACOS_PASSWORD:  getEnv("NACOS_PASSWORD", "password"),
+		NACOS_DATAID:    getEnv("NACOS_DATAID", "dataid"),
 	}
 
 	return config
+}
+
+// LoadFromEnv 從環境變量加載配置
+func LoadFromEnv(cfg interface{}, nacosClient NacosClient) error {
+	// 嘗試加載 .env 文件
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Warning: .env file not found: %v", err)
+	}
+
+	// 這裡需要根據 cfg 的具體類型進行處理
+	// 由於原始代碼沒有完整實現，這裡提供一個簡單的實現
+
+	// 獲取環境變量的一般邏輯...
+
+	// 如果需要從 Nacos 獲取配置，則進行如下處理
+	configurable, ok := cfg.(ConfigWithNacos)
+	if ok && configurable.IsNacosEnabled() && nacosClient != nil {
+		content, err := nacosClient.GetConfig(
+			configurable.GetNacosDataId(),
+			configurable.GetNacosGroup(),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to get config from Nacos: %w", err)
+		}
+
+		// 解析配置內容並更新 cfg...
+		// 這裡需要根據實際配置格式進行處理
+		_ = content // 暫時不處理，避免未使用錯誤
+	}
+
+	return nil
 }
 
 func getEnvAsInt(key string, defaultValue int) int {

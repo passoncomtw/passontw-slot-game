@@ -18,8 +18,6 @@ func NewRouter(
 	cfg *config.Config,
 	helloHandler *HelloHandler,
 	gameHandler *GameHandler,
-	authHandler *AuthHandler,
-	userHandler *UserHandler,
 	orderHandler *OrderHandler,
 	wsHandler *WebSocketHandler,
 	redisManager redis.RedisManager,
@@ -46,16 +44,12 @@ func NewRouter(
 	// API 路由組
 	v1 := router.Group("/api/v1")
 	{
-		v1.POST("/auth", authHandler.userLogin)
+		// 認證相關路由已移至 auth-service
 
 		authorized := v1.Group("")
 		authorized.Use(middleware.AuthMiddleware(cfg, redisManager))
 		{
-			authorized.GET("/users", userHandler.GetUsers)
-			authorized.POST("/users", userHandler.CreateUser)
 			authorized.POST("/orders", orderHandler.CreateOrder)
-
-			authorized.POST("/auth/logout", authHandler.UserLogout)
 		}
 	}
 
@@ -63,6 +57,6 @@ func NewRouter(
 }
 
 func StartServer(router *gin.Engine, cfg *config.Config) {
-	Server_Port := fmt.Sprintf(":%s", cfg.Server.Port)
+	Server_Port := fmt.Sprintf(":%d", cfg.Server.Port)
 	router.Run(Server_Port)
 }

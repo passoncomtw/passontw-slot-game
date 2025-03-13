@@ -2,23 +2,22 @@ package main
 
 import (
 	"log"
-	"passontw-slot-game/apps/slot-game1/config"
-	"passontw-slot-game/apps/slot-game1/handler"
-	"passontw-slot-game/apps/slot-game1/service"
+	"passontw-slot-game/apps/auth-service/config"
+	"passontw-slot-game/apps/auth-service/handler"
+	"passontw-slot-game/apps/auth-service/service"
 
+	_ "passontw-slot-game/apps/auth-service/docs" // 導入 swagger docs
 	"passontw-slot-game/pkg/databaseManager"
 	"passontw-slot-game/pkg/logger"
 	"passontw-slot-game/pkg/nacosManager"
 	redis "passontw-slot-game/pkg/redisManager"
 	"passontw-slot-game/pkg/utils"
 
-	_ "passontw-slot-game/apps/slot-game1/docs" // 導入 swagger docs
-
 	"go.uber.org/fx"
 )
 
-// @title           Passontw Slot Game API
-// @description     Passontw Slot Game API.
+// @title           Passontw Auth Service API
+// @description     Passontw Auth Service API.
 // @termsOfService  http://swagger.io/terms/
 
 // @contact.name   API Support
@@ -35,11 +34,7 @@ import (
 
 // @BasePath  /
 func main() {
-
-	// docs.SwaggerInfo.Host = cfg.Server.APIHost
-	// docs.SwaggerInfo.Version = cfg.Server.Version
-
-	err := utils.InitSnowflake(1) // 使用一個合適的 worker ID
+	err := utils.InitSnowflake(2)
 	if err != nil {
 		log.Fatalf("Failed to initialize Snowflake: %v", err)
 	}
@@ -62,21 +57,33 @@ func main() {
 				fx.ParamTags(``, `name:"postgresConfig"`),
 			),
 		),
-		redis.Module,
+
+		// 不使用 fx.Replace，直接提供 Redis 所需的各個組件
+		fx.Provide(
+			// 提供 Redis 配置
+			func(cfg *config.Config) *redis.RedisConfig {
+				return &redis.RedisConfig{
+					Addr:     cfg.Redis.Addr,
+					Username: cfg.Redis.Username,
+					Password: cfg.Redis.Password,
+					DB:       cfg.Redis.DB,
+				}
+			},
+			// 剩餘的 Redis 組件由原始模塊提供
+			redis.ProvideRedisClient,
+			redis.ProvideRedisManager,
+		),
 
 		fx.Provide(
 			logger.NewLogger,
 			service.ProvideGormDB,
-			service.NewOrderService,
-			service.NewGameService,
-			service.NewHelloService,
 			service.NewAuthService,
-			service.NewCheckerService,
-			service.NewBalanceService,
-			handler.NewHelloHandler,
-			handler.NewOrderHandler,
-			handler.NewGameHandler,
-			handler.NewWebSocketHandler,
+			fx.Annotate(
+				service.NewUserService,
+				fx.As(new(service.UserService)),
+			),
+			handler.NewAuthHandler,
+			handler.NewUserHandler,
 			handler.NewRouter,
 		),
 		fx.Invoke(handler.StartServer),

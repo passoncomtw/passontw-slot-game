@@ -85,7 +85,6 @@ func NewRedisManager(config *RedisConfig) RedisManager {
 	}
 }
 
-// ProvideRedisConfig 提供 Redis 配置，用於 fx
 func ProvideRedisConfig(cfg *config.Config) *RedisConfig {
 	return &RedisConfig{
 		Addr:     cfg.Redis.Addr,

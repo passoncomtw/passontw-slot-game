@@ -40,8 +40,16 @@ tmp_dir = "tmp"
 
 ## Build
 
+### Auth Service
+
 ```
-$ swag init -g cmd/api/main.go -o docs
+$ swag init --dir ./cmd/auth-service,./apps/auth-service/handler,./apps/auth-service/interfaces,./apps/auth-service/domain --generalInfo main.go --output ./apps/auth-service/docs --parseDependency --parseInternal
+```
+
+### Slot Game1
+
+```
+$ swag init --dir ./cmd/slot-game1,./apps/slot-game1/handler,./apps/slot-game1/interfaces,./apps/slot-game1/domain --generalInfo main.go --output ./apps/slot-game1/docs --parseDependency --parseInternal
 ```
 
 [Swagger UI URL](http://localhost:3000/api-docs/index.html)

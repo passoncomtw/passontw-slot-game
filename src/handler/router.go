@@ -3,8 +3,8 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"passontw-slot-game/pkg/websocketManager"
 	"passontw-slot-game/src/config"
-	"passontw-slot-game/src/interfaces"
 	"passontw-slot-game/src/middleware"
 	"passontw-slot-game/src/service"
 
@@ -13,16 +13,44 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+type SuccessResponse struct {
+	Message string `json:"message"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+type UserResponse = service.User
+
 func NewRouter(
 	cfg *config.Config,
 	authHandler *AuthHandler,
 	userHandler *UserHandler,
 	authService service.AuthService,
+	wsHandler *websocketManager.WebSocketHandler,
 ) *gin.Engine {
 	r := gin.Default()
+	r.Use(configureCORS())
+	r.GET("/api-docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// 配置 CORS
-	r.Use(func(c *gin.Context) {
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, SuccessResponse{Message: "Service is healthy"})
+	})
+
+	r.GET("/ws", wsHandler.HandleConnection)
+
+	api := r.Group("/api/v1")
+	{
+		configurePublicRoutes(api, authHandler, userHandler)
+		configureAuthenticatedRoutes(api, authHandler, userHandler, authService)
+	}
+
+	return r
+}
+
+func configureCORS() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
@@ -34,35 +62,21 @@ func NewRouter(
 		}
 
 		c.Next()
-	})
-
-	// Swagger
-	r.GET("/api-docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	// 健康檢查
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, interfaces.SuccessResponse{Message: "Auth Service is healthy"})
-	})
-
-	// API 路由
-	api := r.Group("/api/v1")
-	{
-		// 認證路由 - 無需認證
-		api.POST("/auth", authHandler.UserLogin)
-
-		// 用戶創建 - 無需認證
-		api.POST("/users", userHandler.CreateUser)
-
-		// 認證需要的路由
-		authorized := api.Group("/")
-		authorized.Use(middleware.AuthMiddleware(authService))
-		{
-			authorized.POST("/auth/logout", authHandler.UserLogout)
-			authorized.GET("/users", userHandler.GetUsers)
-		}
 	}
+}
 
-	return r
+func configurePublicRoutes(api *gin.RouterGroup, authHandler *AuthHandler, userHandler *UserHandler) {
+	api.POST("/auth", authHandler.UserLogin)
+	api.POST("/users", userHandler.CreateUser)
+}
+
+func configureAuthenticatedRoutes(api *gin.RouterGroup, authHandler *AuthHandler, userHandler *UserHandler, authService service.AuthService) {
+	authorized := api.Group("/")
+	authorized.Use(middleware.AuthMiddleware(authService))
+
+	authorized.POST("/auth/logout", authHandler.UserLogout)
+	authorized.POST("/auth/token", authHandler.ValidateToken)
+	authorized.GET("/users", userHandler.GetUsers)
 }
 
 func StartServer(cfg *config.Config, router *gin.Engine) {

@@ -32,7 +32,6 @@ func NewAuthService(userService UserService, config *config.Config, redisClient 
 }
 
 func (s *authService) Login(username, password string) (string, error) {
-	// 使用用戶服務驗證憑據並獲取 JWT
 	token, err := s.userService.Login(username, password)
 	if err != nil {
 		return "", err
@@ -41,21 +40,16 @@ func (s *authService) Login(username, password string) (string, error) {
 }
 
 func (s *authService) Logout(token string) error {
-	// 添加令牌到黑名單（Redis）
-	// 解析令牌以獲取過期時間
 	claims := jwt.MapClaims{}
 	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.config.JWT.Secret), nil
 	})
 
 	if err != nil {
-		// 即使解析失敗，我們仍然可以將令牌添加到黑名單
-		// 使用默認的過期時間
 		err = s.redisClient.Set(context.Background(), "blacklist:"+token, "true", s.config.JWT.ExpiresIn)
 		return err
 	}
 
-	// 從聲明中獲取過期時間
 	if exp, ok := claims["exp"].(float64); ok {
 		expTime := time.Unix(int64(exp), 0)
 		ttl := time.Until(expTime)
@@ -65,13 +59,11 @@ func (s *authService) Logout(token string) error {
 		}
 	}
 
-	// 如果無法從聲明中獲取有效的過期時間，使用默認過期時間
 	err = s.redisClient.Set(context.Background(), "blacklist:"+token, "true", s.config.JWT.ExpiresIn)
 	return err
 }
 
 func (s *authService) ValidateToken(token string) (uint, error) {
-	// 檢查令牌是否在黑名單中
 	exists, err := s.redisClient.Exists(context.Background(), "blacklist:"+token)
 	if err != nil {
 		return 0, err
@@ -80,7 +72,6 @@ func (s *authService) ValidateToken(token string) (uint, error) {
 		return 0, errors.New("令牌已被撤銷")
 	}
 
-	// 解析令牌
 	claims := jwt.MapClaims{}
 	_, err = jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.config.JWT.Secret), nil
@@ -90,14 +81,12 @@ func (s *authService) ValidateToken(token string) (uint, error) {
 		return 0, err
 	}
 
-	// 檢查令牌是否過期
 	if exp, ok := claims["exp"].(float64); ok {
 		if float64(time.Now().Unix()) > exp {
 			return 0, errors.New("令牌已過期")
 		}
 	}
 
-	// 獲取用戶 ID
 	if sub, ok := claims["sub"].(float64); ok {
 		return uint(sub), nil
 	}

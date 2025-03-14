@@ -17,7 +17,6 @@ func AuthMiddleware(authService service.AuthService) gin.HandlerFunc {
 			return
 		}
 
-		// 從授權頭部提取令牌
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "授權格式無效"})
@@ -33,7 +32,6 @@ func AuthMiddleware(authService service.AuthService) gin.HandlerFunc {
 			return
 		}
 
-		// 將用戶 ID 存儲在上下文中
 		c.Set("userID", userID)
 		c.Next()
 	}

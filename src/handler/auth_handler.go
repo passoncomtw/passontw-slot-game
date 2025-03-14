@@ -65,7 +65,6 @@ func (h *AuthHandler) UserLogout(c *gin.Context) {
 		return
 	}
 
-	// 從授權頭部提取令牌
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "授權格式無效"})
@@ -80,4 +79,30 @@ func (h *AuthHandler) UserLogout(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "成功登出"})
+}
+
+// 驗證令牌
+// @Summary 驗證令牌並返回用戶信息
+// @Description 驗證當前 JWT 令牌並返回對應的用戶信息
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} UserResponse "用戶信息"
+// @Failure 401 {object} ErrorResponse "未授權"
+// @Router /api/v1/auth/token [post]
+func (h *AuthHandler) ValidateToken(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "未認證"})
+		return
+	}
+
+	user, err := h.userService.GetUserById(userID.(uint))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "無法獲取用戶信息"})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
 }

@@ -57,3 +57,11 @@
 依據 ./wireframes/ai-slot-game.html
 使用 react-native 實作 route 與所有功能
 檔案放在 game-app
+
+## 實作 App Database 
+
+1. 你是一個資深的 DBA 工程師
+2. 使用 PostrgreSQL 資料庫，依據 ./wireframes/ai-slot-game.html 建立初始化的 SQL 檔案，
+3. 依據 DBA 工程師來做資料庫的設定與資料表的正規化，盡量提升效率
+4. 我希望這些 SQL 可以直接使用來開發 API 服務，
+檔案存在 migrations/froentend/initial.sql

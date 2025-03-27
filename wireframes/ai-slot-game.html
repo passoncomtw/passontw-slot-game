@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 老虎機遊戲 - 原型設計</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #6200EA;
+            --secondary-color: #B388FF;
+            --accent-color: #FF9100;
+            --background-color: #121212;
+            --surface-color: #1E1E1E;
+            --success-color: #00C853;
+            --error-color: #F44336;
+            --text-primary: #FFFFFF;
+            --text-secondary: #B0B0B0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        h1, h2, h3 {
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        h1 {
+            font-size: 32px;
+            text-align: center;
+            margin: 30px 0;
+            color: var(--primary-color);
+        }
+        
+        .wireframes-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            justify-content: center;
+            margin-bottom: 50px;
+        }
+        
+        .wireframe {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 360px;
+            min-height: 640px;
+            position: relative;
+            border: 1px solid #ddd;
+        }
+        
+        .wireframe-title {
+            background: #f8f8f8;
+            padding: 15px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .status-bar {
+            background-color: var(--surface-color);
+            height: 30px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            font-size: 14px;
+        }
+        
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .back-button {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .menu-button {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .content {
+            padding: 20px;
+            height: calc(100% - 60px);
+        }
+        
+        .nav-bar {
+            background-color: var(--surface-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 0;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+        }
+        
+        .nav-item {
+            text-align: center;
+            color: white;
+            font-size: 12px;
+        }
+        
+        .nav-item i {
+            font-size: 20px;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .active {
+            color: var(--accent-color);
+        }
+        
+        .button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+            margin: 10px 0;
+            display: block;
+        }
+        
+        .button-secondary {
+            background-color: var(--secondary-color);
+        }
+        
+        .button-accent {
+            background-color: var(--accent-color);
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 5px;
+        }
+        
+        .badge-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .badge-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .slot-machine {
+            background-color: var(--surface-color);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            min-height: 250px;
+            position: relative;
+        }
+        
+        .slot-reels {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        
+        .slot-reel {
+            background-color: white;
+            border: 2px solid var(--accent-color);
+            border-radius: 5px;
+            height: 120px;
+            width: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+        }
+        
+        .slot-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+        
+        .balance-display {
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            color: white;
+            margin-bottom: 15px;
+        }
+        
+        .ai-suggestion {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        .jackpot-display {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin: 15px 0;
+        }
+        
+        .game-history {
+            max-height: 150px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .flex-row {
+            display: flex;
+            flex-direction: row;
+        }
+        
+        .flex-column {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .justify-between {
+            justify-content: space-between;
+        }
+        
+        .align-center {
+            align-items: center;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .mt-10 {
+            margin-top: 10px;
+        }
+        
+        .mb-10 {
+            margin-bottom: 10px;
+        }
+        
+        .mt-20 {
+            margin-top: 20px;
+        }
+        
+        .mb-20 {
+            margin-bottom: 20px;
+        }
+        
+        .p-10 {
+            padding: 10px;
+        }
+        
+        .p-20 {
+            padding: 20px;
+        }
+        
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+        }
+        
+        .avatar i {
+            font-size: 24px;
+            color: #666;
+        }
+        
+        .flex-1 {
+            flex: 1;
+        }
+        
+        .text-small {
+            font-size: 12px;
+        }
+        
+        .text-medium {
+            font-size: 16px;
+        }
+        
+        .text-large {
+            font-size: 20px;
+        }
+        
+        .font-bold {
+            font-weight: 700;
+        }
+        
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            width: 80%;
+            max-width: 300px;
+        }
+        
+        .modal-header {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+        }
+        
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+        
+        input:focus + .slider {
+            box-shadow: 0 0 1px var(--primary-color);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .slider.round {
+            border-radius: 34px;
+        }
+        
+        .slider.round:before {
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI 老虎機遊戲 - 原型設計</h1>
+    <div class="wireframes-container">
+        <!-- 啟動頁面 -->
+        <div class="wireframe">
+            <div class="wireframe-title">啟動頁面</div>
+            <div class="status-bar">
+                <span>10:30</span>
+                <div>
+                    <i class="fas fa-signal"></i>
+                    <i class="fas fa-wifi"></i>
+                    <i class="fas fa-battery-three-quarters"></i>
+                </div>
+            </div>
+            <div class="content" style="text-align: center; padding-top: 100px; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));">
+                <div style="margin-bottom: 50px;">
+                    <i class="fas fa-slot-machine" style="font-size: 80px; color: white;"></i>
+                    <h2 style="color: white; margin-top: 20px; font-size: 28px;">AI 幸運老虎機</h2>
+                    <p style="color: white; opacity: 0.8;">智能推薦，贏率提升</p>
+                </div>
+                <div style="position: absolute; bottom: 50px; left: 0; right: 0; padding: 0 20px;">
+                    <button class="button button-accent">登入</button>
+                    <button class="button" style="background-color: transparent; border: 2px solid white;">註冊</button>
+                    <p style="color: white; margin-top: 20px; font-size: 14px;">繼續即表示您同意我們的<br>服務條款和隱私政策</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 登入頁面 -->
+        <div class="wireframe">
+            <div class="wireframe-title">登入頁面</div>
+            <div class="status-bar">
+                <span>10:30</span>
+                <div>
+                    <i class="fas fa-signal"></i>
+                    <i class="fas fa-wifi"></i>
+                    <i class="fas fa-battery-three-quarters"></i>
+                </div>
+            </div>
+            <div class="header">
+                <div class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+                <div class="header-title">登入</div>
+            </div>
+            <div class="content">
+                <div style="margin: 30px 0; text-align: center;">
+                    <i class="fas fa-user-circle" style="font-size: 60px; color: var(--primary-color);"></i>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">電子郵件</label>
+                    <input type="email" class="input-field" placeholder="example@mail.com">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">密碼</label>
+                    <input type="password" class="input-field" placeholder="請輸入密碼">
+                </div>
+                <div style="text-align: right; margin-bottom: 20px;">
+                    <a href="#" style="color: var(--primary-color); text-decoration: none; font-size: 14px;">忘記密碼？</a>
+                </div>
+                <button class="button">登入</button>
+                <div style="margin-top: 30px; text-align: center;">
+                    <p>其他登入方式</p>
+                    <div style="display: flex; justify-content: center; margin-top: 15px;">
+                        <div style="width: 40px; height: 40px; background-color: #3b5998; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 10px;">
+                            <i class="fab fa-facebook-f" style="color: white;"></i>
+                        </div>
+                        <div style="width: 40px; height: 40px; background-color: #db4437; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 10px;">
+                            <i class="fab fa-google" style="color: white;"></i>
+                        </div>
+                        <div style="width: 40px; height: 40px; background-color: #000000; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 10px;">
+                            <i class="fab fa-apple" style="color: white;"></i>
+                        </div>
+                    </div>
+                </div>
+                <div style="position: absolute; bottom: 30px; width: 100%; text-align: center; left: 0;">
+                    <p>還沒有帳號？ <a href="#" style="color: var(--primary-color); text-decoration: none; font-weight: 600;">立即註冊</a></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 註冊頁面 -->
+        <div class="wireframe">
+            <div class="wireframe-title">註冊頁面</div>
+            <div class="status-bar">
+                <span>10:30</span>
+                <div>
+                    <i class="fas fa-signal"></i>
+                    <i class="fas fa-wifi"></i>
+                    <i class="fas fa-battery-three-quarters"></i>
+                </div>
+            </div>
+            <div class="header">
+                <div class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+                <div class="header-title">註冊</div>
+            </div>
+            <div class="content">
+                <div class="input-group">
+                    <label class="input-label">使用者名稱</label>
+                    <input type="text" class="input-field" placeholder="請輸入使用者名稱">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">電子郵件</label>
+                    <input type="email" class="input-field" placeholder="example@mail.com">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">密碼</label>
+                    <input type="password" class="input-field" placeholder="請設定密碼">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">確認密碼</label>
+                    <input type="password" class="input-field" placeholder="請再次輸入密碼">
+                </div>
+                <div style="margin: 20px 0;">
+                    <label style="display: flex; align-items: center;">
+                        <input type="checkbox" style="margin-right: 10px;">
+                        <span style="font-size: 14px;">我同意服務條款和隱私政策</span>
+                    </label>
+                </div>
+                <button class="button">註冊</button>
+                <div style="margin-top: 30px; text-align: center;">
+                    <p>其他註冊方式</p>
+                    <div style="display: flex; justify-content: center; margin-top: 15px;">
+                        <div style="width: 40px; height: 40px; background-color: #3b5998; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 10px;">
+                            <i class="fab fa-facebook-f" style="color: white;"></i>
+                        </div>
+                        <div style="width: 40px; height: 40px; background-color: #db4437; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 10px;">
+                            <i class="fab fa-google" style="color: white;"></i>
+                        </div>
+                        <div style="width: 40px; height: 40px; background-color: #000000; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 10px;">
+                            <i class="fab fa-apple" style="color: white;"></i>
+                        </div>
+                    </div>
+                </div>
+                <div style="position: absolute; bottom: 30px; width: 100%; text-align: center; left: 0;">
+                    <p>已有帳號？ <a href="#" style="color: var(--primary-color); text-decoration: none; font-weight: 600;">立即登入</a></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主頁 -->
+        <div class="wireframe">
+            <div class="wireframe-title">主頁</div>
+            <div class="status-bar">
+                <span>10:30</span>
+                <div>
+                    <i class="fas fa-signal"></i>
+                    <i class="fas fa-wifi"></i>
+                    <i class="fas fa-battery-three-quarters"></i>
+                </div>
+            </div>
+            <div class="header">
+                <div class="header-title">AI 幸運老虎機</div>
+                <div class="menu-button">
+                    <i class="fas fa-bell"></i>
+                </div>
+            </div>
+            <div class="content" style="padding-bottom: 70px;">
+                <div class="balance-display">
+                    <div class="text-small">我的餘額</div>
+                    <div class="text-large font-bold">$1,000</div>
+                </div>
+                
+                <div class="jackpot-display">
+                    <div>當前頭獎</div>
+                    <div style="font-size: 32px; color: var(--accent-color);">$10,000</div>
+                </div>
+                
+                <div class="ai-suggestion">
+                    <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                        <i class="fas fa-robot" style="margin-right: 5px;"></i>
+                        <span>AI 建議</span>
+                    </div>
+                    <p>根據您的遊戲風格，我建議您嘗試「幸運七」遊戲。它與您的偏好匹配度高達85%！</p>
+                </div>
+                
+                <h3 style="margin-top: 20px;">熱門遊戲</h3>
+                <div style="display: flex; overflow-x: auto; gap: 15px; padding: 5px 0;">
+                    <div class="card" style="min-width: 150px;">
+                        <div style="height: 80px; background-color: var(--primary-color); border-radius: 5px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                            <i class="fas fa-diamond" style="font-size: 30px; color: white;"></i>
+                        </div>
+                        <div class="text-medium font-bold">幸運七</div>
+                        <div class="text-small" style="color: var(--accent-color);">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                            (4.5)
+                        </div>
+                        <div class="badge badge-primary mt-10">熱門</div>
+                    </div>
+                    <div class="card" style="min-width: 150px;">
+                        <div style="height: 80px; background-color: var(--secondary-color); border-radius: 5px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                            <i class="fas fa-coins" style="font-size: 30px; color: white;"></i>
+                        </div>
+                        <div class="text-medium font-bold">金幣樂園</div>
+                        <div class="text-small" style="color: var(--accent-color);">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="far fa-star"></i>
+                            (4.0)
+                        </div>
+                        <div class="badge badge-secondary mt-10">新遊戲</div>
+                    </div>
+                    <div class="card" style="min-width: 150px;">
+                        <div style="height: 80px; background-color: #F44336; border-radius: 5px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                            <i class="fas fa-fire" style="font-size: 30px; color: white;"></i>
+                        </div>
+                        <div class="text-medium font-bold">水果派對</div>
+                        <div class="text-small" style="color: var(--accent-color);">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            (4.9)
+                        </div>
+                        <div class="badge badge-primary mt-10">高獎金</div>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 20px;">為您推薦</h3>
+                <div style="display: flex; overflow-x: auto; gap: 15px; padding: 5px 0;">
+                    <div class="card" style="min-width: 150px;">
+                        <div style="height: 80px; background-color: #009688; border-radius: 5px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                            <i class="fas fa-gem" style="font-size: 30px; color: white;"></i>
+                        </div>
+                        <div class="text-medium font-bold">翡翠寶石</div>
+                        <div class="text-small" style="color: var(--accent-color);">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="far fa-star"></i>
+                            (4.1)
+                        </div>
+                        <div class="badge badge-secondary mt-10">85% 匹配</div>
+                    </div>
+                    <div class="card" style="min-width: 150px;">
+                        <div style="height: 80px; background-color: #FF5722; border-radius: 5px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                            <i class="fas fa-dragon" style="font-size: 30px; color: white;"></i>
+                        </div>
+                        <div class="text-medium font-bold">龍之財富</div>
+                        <div class="text-small" style="color: var(--accent-color);">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                            <i class="far fa-star"></i>
+                            (3.5)
+                        </div>
+                        <div class="badge badge-secondary mt-10">70% 匹配</div>
+                    </div>
+                    <div class="card" style="min-width: 150px;">
+                        <div style="height: 80px; background-color: #3F51B5; border-radius: 5px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                            <i class="fas fa-moon" style="font-size: 30px; color: white;"></i>
+                        </div>
+                        <div class="text-medium font-bold">月光寶盒</div>
+                        <div class="text-small" style="color: var(--accent-color);">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="far fa-star"></i>
+                            (4.0)
+                        </div>
+                        <div class="badge badge-secondary mt-10">65% 匹配</div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <div class="nav-item active">
+                    <i class="fas fa-home"></i>
+                    <span>首頁</span>
+                </div>
+                <div class="nav-item">
+                    <i class="fas fa-gamepad"></i>
+                    <span>遊戲</span>
+                </div>
+                <div class="nav-item">
+                    <i class="fas fa-trophy"></i>
+                    <span>排行榜</span>
+                </div>
+                <div class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span>我的</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 遊戲頁面 -->
+        <div class="wireframe">
+            <div class="wireframe-title">遊戲頁面</div>
+            <div class="status-bar">
+                <span>10:30</span>
+                <div>
+                    <i class="fas fa-signal"></i>
+                    <i class="fas fa-wifi"></i>
+                    <i class="fas fa-battery-three-quarters"></i>
+                </div>
+            </div>
+            <div class="header">
+                <div class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+                <div class="header-title">幸運七</div>
+                <div class="menu-button">
+                    <i class="fas fa-question-circle"></i>
+                </div>
+            </div>
+            <div class="content" style="padding-bottom: 0;">
+                <div class="balance-display" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div class="text-small">餘額</div>
+                        <div class="text-medium font-bold">$1,000</div>
+                    </div>
+                    <div>
+                        <div class="text-small">贏得</div>
+                        <div class="text-medium font-bold" style="color: var(--success-color);">$0</div>
+                    </div>
+                </div>
+                
+                <div class="slot-machine">
+                    <div class="jackpot-display">
+                        <div style="font-size: 16px;">頭獎</div>
+                        <div style="font-size: 24px; color: var(--accent-color);">$10,000</div>
+                    </div>
+                    
+                    <div class="slot-reels">
+                        <div class="slot-reel">7</div>
+                        <div class="slot-reel">
+                            <i class="fas fa-cherry" style="color: red;"></i>
+                        </div>
+                        <div class="slot-reel">
+                            <i class="fas fa-lemon" style="color: gold;"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="ai-suggestion" style="margin-top: 20px; font-size: 14px;">
+                        <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                            <i class="fas fa-robot" style="margin-right: 5px;"></i>
+                            <span>AI 提示</span>
+                        </div>
+                        <p>根據歷史數據，目前有70%的機率獲得獎金，建議增加投注金額。</p>
+                    </div>
+                </div>
+                
+                <div class="slot-controls" style="margin-top: 15px;">
+                    <div>
+                        <label class="input-label">投注金額</label>
+                        <div style="display: flex; align-items: center;">
+                            <button style="width: 40px; height: 40px; border: none; background-color: var(--surface-color); color: white; border-radius: 5px 0 0 5px; font-size: 18px;">-</button>
+                            <input type="text" value="10" style="width: 60px; height: 40px; border: none; text-align: center; background-color: white; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd;">
+                            <button style="width: 40px; height: 40px; border: none; background-color: var(--surface-color); color: white; border-radius: 0 5px 5px 0; font-size: 18px;">+</button>
+                        </div>
+                    </div>
+                    <button class="button button-accent" style="width: 120px; height: 50px; font-size: 18px; margin: 0;">
+                        <i class="fas fa-play" style="margin-right: 5px;"></i>
+                        旋轉
+                    </button>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>歷史記錄</span>
+                        <span style="font-size: 14px; color: var(--primary-color); font-weight: normal;">查看全部</span>
+                    </h3>
+                    <div class="game-history">
+                        <div class="history-item" style="display: flex; justify-content: space-between;">
+                            <div>
+                                <div class="font-bold">贏得 $50</div>
+                                <div class="text-small" style="color: #666;">10:15 AM</div>
+                            </div>
+                            <div style="color: var(--success-color); font-weight: 600;">
+                                +$50
+                            </div>
+                        </div>
+                        <div class="history-item" style="display: flex; justify-content: space-between;">
+                            <div>
+                                <div class="font-bold">下注 $10</div>
+                                <div class="text-small" style="color: #666;">10:14 AM</div>
+                            </div>
+                            <div style="color: var(--error-color); font-weight: 600;">
+                                -$10
+                            </div>
+                        </div>
+                        <div class="history-item" style="display: flex; justify-content: space-between;">
+                            <div>
+                                <div class="font-bold">贏得 $20</div>
+                                <div class="text-small" style="color: #666;">10:10 AM</div>
+                            </div>
+                            <div style="color: var(--success-color); font-weight: 600;">
+                                +$20
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 個人資料頁面 -->
+        <div class="wireframe">
+            <div class="wireframe-title">個人資料頁面</div>
+            <div class="status-bar">
+                <span>10:30</span>
+                <div>
+                    <i class="fas fa-signal"></i>
+                    <i class="fas fa-wifi"></i>
+                    <i class="fas fa-battery-three-quarters"></i>
+                </div>
+            </div>
+            <div class="header">
+                <div class="header-title">個人資料</div>
+                <div class="menu-button">
+                    <i class="fas fa-cog"></i>
+                </div>
+            </div>
+            <div class="content" style="padding-bottom: 70px;">
+                <div style="background-color: var(--primary-color); padding: 20px; margin: -20px -20px 20px -20px; border-radius: 0 0 20px 20px; text-align: center; color: white;">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background-color: white; margin: 0 auto 15px auto; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-user" style="font-size: 40px; color: var(--primary-color);"></i>
+                    </div>
+                    <div class="text-large font-bold">張小明</div>
+                    <div class="text-small">VIP 2 級會員</div>
+                    <div style="display: flex; justify-content: center; margin-top: 15px; gap: 20px;">
+                        <div>
+                            <div class="text-medium font-bold">$1,000</div>
+                            <div class="text-small">餘額</div>
+                        </div>
+                        <div style="border-left: 1px solid rgba(255, 255, 255, 0.3); padding-left: 20px;">
+                            <div class="text-medium font-bold">250</div>
+                            <div class="text-small">積分</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3 style="margin-bottom: 10px;">我的數據</h3>
+                    <div style="display: flex; justify-content: space-between; text-align: center;">
+                        <div>
+                            <div class="text-large font-bold" style="color: var(--primary-color);">45</div>
+                            <div class="text-small">遊戲次數</div>
+                        </div>
+                        <div>
+                            <div class="text-large font-bold" style="color: var(--accent-color);">$350</div>
+                            <div class="text-small">總贏金</div>
+                        </div>
+                        <div>
+                            <div class="text-large font-bold" style="color: var(--success-color);">35%</div>
+                            <div class="text-small">中獎率</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin-bottom: 0;">我的收藏</h3>
+                        <span style="color: var(--primary-color); font-size: 14px;">查看全部</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <div style="text-align: center; width: 70px;">
+                            <div style="width: 50px; height: 50px; background-color: var(--primary-color); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                <i class="fas fa-diamond" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div class="text-small mt-10">幸運七</div>
+                        </div>
+                        <div style="text-align: center; width: 70px;">
+                            <div style="width: 50px; height: 50px; background-color: #F44336; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                <i class="fas fa-fire" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div class="text-small mt-10">水果派對</div>
+                        </div>
+                        <div style="text-align: center; width: 70px;">
+                            <div style="width: 50px; height: 50px; background-color: #009688; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                <i class="fas fa-gem" style="color: white; font-size: 20px;"></i>
+                            </div>
+                            <div class="text-small mt-10">翡翠寶石</div>
+                        </div>
+                        <div style="text-align: center; width: 70px;">
+                            <div style="width: 50px; height: 50px; background-color: #ddd; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                <i class="fas fa-plus" style="color: #666; font-size: 20px;"></i>
+                            </div>
+                            <div class="text-small mt-10">添加</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3 style="margin-bottom: 10px;">AI 分析</h3>
+                    <div style="background-color: rgba(98, 0, 234, 0.1); padding: 15px; border-radius: 10px;">
+                        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <i class="fas fa-robot" style="color: var(--primary-color); margin-right: 10px; font-size: 24px;"></i>
+                            <div>
+                                <div class="text-medium font-bold">個人遊戲風格分析</div>
+                                <div class="text-small">根據您的遊戲習慣分析</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; margin-top: 15px;">
+                            <div style="flex: 1;">
+                                <div class="text-small">風險偏好</div>
+                                <div style="height: 6px; background-color: #ddd; border-radius: 3px; margin-top: 5px;">
+                                    <div style="width: 70%; height: 100%; background-color: var(--primary-color); border-radius: 3px;"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 5px;">
+                                    <span>保守</span>
+                                    <span>適中</span>
+                                    <span>激進</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <div class="text-small">最適合您的遊戲：</div>
+                            <div class="badge badge-primary mt-10">幸運七</div>
+                            <div class="badge badge-primary">金幣樂園</div>
+                            <div class="badge badge-primary">翡翠寶石</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin-bottom: 0;">最近記錄</h3>
+                        <span style="color: var(--primary-color); font-size: 14px;">查看全部</span>
+                    </div>
+                    <div class="game-history" style="max-height: none;">
+                        <div class="history-item" style="display: flex; justify-content: space-between;">
+                            <div style="display: flex; align-items: center;">
+                                <div style="width: 40px; height: 40px; background-color: var(--primary-color); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                                    <i class="fas fa-diamond" style="color: white; font-size: 20px;"></i>
+                                </div>
+                                <div>
+                                    <div class="font-bold">幸運七</div>
+                                    <div class="text-small" style="color: #666;">10:15 AM</div>
+                                </div>
+                            </div>
+                            <div style="color: var(--success-color); font-weight: 600; align-self: center;">
+                                +$50
+                            </div>
+                        </div>
+                        <div class="history-item" style="display: flex; justify-content: space-between;">
+                            <div style="display: flex; align-items: center;">
+                                <div style="width: 40px; height: 40px; background-color: #F44336; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                                    <i class="fas fa-fire" style="color: white; font-size: 20px;"></i>
+                                </div>
+                                <div>
+                                    <div class="font-bold">水果派對</div>
+                                    <div class="text-small" style="color: #666;">昨天 15:30</div>
+                                </div>
+                            </div>
+                            <div style="color: var(--error-color); font-weight: 600; align-self: center;">
+                                -$20
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <div class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>首頁</span>
+                </div>
+                <div class="nav-item">
+                    <i class="fas fa-gamepad"></i>
+                    <span>遊戲</span>
+                </div>
+                <div class="nav-item">
+                    <i class="fas fa-trophy"></i>
+                    <span>排行榜</span>
+                </div>
+                <div class="nav-item active">
+                    <i class="fas fa-user"></i>
+                    <span>我的</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- AI 助手頁面 -->
+        <div class="wireframe">
+            <div class="wireframe-title">AI 助手頁面</div>
+            <div class="status-bar">
+                <span>10:30</span>
+                <div>
+                    <i class="fas fa-signal"></i>
+                    <i class="fas fa-wifi"></i>
+                    <i class="fas fa-battery-three-quarters"></i>
+                </div>
+            </div>
+            <div class="header">
+                <div class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+                <div class="header-title">AI 老虎機助手</div>
+            </div>
+            <div class="content" style="padding: 0; display: flex; flex-direction: column; height: calc(100% - 60px);">
+                <div style="flex: 1; padding: 20px; overflow-y: auto;">
+                    <div style="text-align: center; color: #999; font-size: 12px; margin-bottom: 20px;">
+                        今天 10:30 AM
+                    </div>
+                    
+                    <div style="display: flex; margin-bottom: 20px;">
+                        <div style="width: 40px; height: 40px; background-color: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                            <i class="fas fa-robot" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div style="background-color: #f0f0f0; padding: 10px 15px; border-radius: 18px; max-width: 80%;">
+                            <p>嗨，我是您的AI老虎機助手！我可以幫您分析遊戲趨勢、提供遊戲策略建議，以及根據您的遊戲風格推薦最適合的遊戲。有什麼我可以幫助您的嗎？</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+                        <div style="background-color: var(--primary-color); color: white; padding: 10px 15px; border-radius: 18px; max-width: 80%;">
+                            <p>我想知道什麼遊戲最適合我</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; margin-bottom: 20px;">
+                        <div style="width: 40px; height: 40px; background-color: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                            <i class="fas fa-robot" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div style="background-color: #f0f0f0; padding: 10px 15px; border-radius: 18px; max-width: 80%;">
+                            <p>根據您的遊戲記錄和偏好分析，我發現您偏好中等風險的遊戲，並且更喜歡有特殊功能的遊戲。以下是我為您推薦的遊戲：</p>
+                            <p style="margin-top: 10px;">1. 幸運七 - 匹配度：85%</p>
+                            <p>2. 翡翠寶石 - 匹配度：78%</p>
+                            <p>3. 金幣樂園 - 匹配度：75%</p>
+                            <p style="margin-top: 10px;">要了解更多關於這些遊戲的詳情嗎？</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+                        <div style="background-color: var(--primary-color); color: white; padding: 10px 15px; border-radius: 18px; max-width: 80%;">
+                            <p>請告訴我關於幸運七的更多信息</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; margin-bottom: 20px;">
+                        <div style="width: 40px; height: 40px; background-color: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                            <i class="fas fa-robot" style="color: white; font-size: 20px;"></i>
+                        </div>
+                        <div style="background-color: #f0f0f0; padding: 10px 15px; border-radius: 18px; max-width: 80%;">
+                            <p>幸運七是我們平台上最受歡迎的遊戲之一。這是一個傳統風格的老虎機遊戲，帶有現代特色：</p>
+                            <ul style="margin: 10px 0 10px 20px;">
+                                <li>5條支付線</li>
+                                <li>中等波動率</li>
+                                <li>RTP (返還率)：96.5%</li>
+                                <li>特色：免費旋轉、乘數和獎金遊戲</li>
+                            </ul>
+                            <p>根據您的遊戲風格，我建議您以中等投注額開始，並關注特殊符號的出現。特別是當您獲得免費旋轉時，您可以獲得更高的獎金。</p>
+                            <div style="margin-top: 10px; background-color: white; border-radius: 10px; padding: 10px;">
+                                <div style="display: flex; align-items: center;">
+                                    <div style="width: 40px; height: 40px; background-color: var(--primary-color); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                                        <i class="fas fa-diamond" style="color: white; font-size: 20px;"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold">幸運七</div>
+                                        <div style="color: var(--accent-color); font-size: 12px;">
+                                            <i class="fas fa-star"></i>
+                                            <i class="fas fa-star"></i>
+                                            <i class="fas fa-star"></i>
+                                            <i class="fas fa-star"></i>
+                                            <i class="fas fa-star-half-alt"></i>
+                                            (4.5)
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="button mt-10" style="margin-bottom: 0;">立即遊戲</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="padding: 15px; border-top: 1px solid #eee; background-color: white;">
+                    <div style="display: flex; align-items: center;">
+                        <input type="text" placeholder="輸入問題..." style="flex: 1; border: 1px solid #ddd; border-radius: 20px; padding: 12px 15px; margin-right: 10px;">
+                        <button style="width: 40px; height: 40px; background-color: var(--primary-color); border: none; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div style="display: flex; justify-content: space-around; margin-top: 10px;">
+                        <div style="background-color: #f0f0f0; border-radius: 15px; padding: 8px 12px; font-size: 12px;">
+                            遊戲推薦
+                        </div>
+                        <div style="background-color: #f0f0f0; border-radius: 15px; padding: 8px 12px; font-size: 12px;">
+                            贏率分析
+                        </div>
+                        <div style="background-color: #f0f0f0; border-radius: 15px; padding: 8px 12px; font-size: 12px;">
+                            遊戲規則
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 排行榜頁面 -->
+        <div class="wireframe">
+            <div class="wireframe-title">排行榜頁面</div>
+            <div class="status-bar">
+                <span>10:30</span>
+                <div>
+                    <i class="fas fa-signal"></i>
+                    <i class="fas fa-wifi"></i>
+                    <i class="fas fa-battery-three-quarters"></i>
+                </div>
+            </div>
+            <div class="header">
+                <div class="header-title">排行榜</div>
+            </div>
+            <div class="content" style="padding-bottom: 70px;">
+                <div class="card" style="padding: 0; overflow: hidden;">
+                    <div style="display: flex; background-color: #f8f8f8; border-bottom: 1px solid #eee;">
+                        <div class="tab-button active" style="flex: 1; text-align: center; padding: 15px; font-weight: 600; color: var(--primary-color); border-bottom: 2px solid var(--primary-color);">
+                            贏家榜
+                        </div>
+                        <div class="tab-button" style="flex: 1; text-align: center; padding: 15px; font-weight: 600; color: #666;">
+                            富豪榜
+                        </div>
+                        <div class="tab-button" style="flex: 1; text-align: center; padding: 15px; font-weight: 600; color: #666;">
+                            活躍榜
+                        </div>
+                    </div>
+                    
+                    <div style="padding: 20px;">
+                        <div style="display: flex; margin-bottom: 30px; position: relative;">
+                            <!-- 第二名 -->
+                            <div style="flex: 1; text-align: center; padding-top: 20px;">
+                                <div style="width: 25px; height: 25px; background-color: silver; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; position: absolute; top: 0; left: 50%; transform: translateX(-50%);">
+                                    2
+                                </div>
+                                <div style="width: 60px; height: 60px; background-color: #ddd; border-radius: 50%; margin: 0 auto; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-user" style="font-size: 30px; color: #666;"></i>
+                                </div>
+                                <div class="text-small font-bold mt-10">李小華</div>
+                                <div class="text-small" style="color: var(--accent-color);">$12,500</div>
+                            </div>
+                            
+                            <!-- 第一名 -->
+                            <div style="flex: 1; text-align: center; margin-top: -20px;">
+                                <div style="width: 30px; height: 30px; background-color: gold; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; position: absolute; top: 0; left: 50%; transform: translateX(-50%);">
+                                    1
+                                </div>
+                                <div style="width: 80px; height: 80px; background-color: #ddd; border-radius: 50%; margin: 0 auto; overflow: hidden; border: 2px solid gold; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-user" style="font-size: 40px; color: #666;"></i>
+                                </div>
+                                <div class="text-small font-bold mt-10">王大明</div>
+                                <div class="text-small" style="color: var(--accent-color);">$25,000</div>
+                                <div class="badge badge-primary mt-10">VIP 5</div>
+                            </div>
+                            
+                            <!-- 第三名 -->
+                            <div style="flex: 1; text-align: center; padding-top: 20px;">
+                                <div style="width: 25px; height: 25px; background-color: #cd7f32; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; position: absolute; top: 0; left: 50%; transform: translateX(-50%);">
+                                    3
+                                </div>
+                                <div style="width: 60px; height: 60px; background-color: #ddd; border-radius: 50%; margin: 0 auto; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-user" style="font-size: 30px; color: #666;"></i>
+                                </div>
+                                <div class="text-small font-bold mt-10">陳小紅</div>
+                                <div class="text-small" style="color: var(--accent-color);">$8,300</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 30px;">
+                            <!-- 第4名 -->
+                            <div class="history-item" style="display: flex; align-items: center; padding: 15px 0;">
+                                <div style="width: 25px; height: 25px; background-color: #f0f0f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 15px;">
+                                    4
+                                </div>
+                                <div style="width: 40px; height: 40px; background-color: #ddd; border-radius: 50%; margin-right: 15px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-user" style="font-size: 20px; color: #666;"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div class="font-bold">趙子龍</div>
+                                    <div class="text-small">VIP 3</div>
+                                </div>
+                                <div style="color: var(--accent-color); font-weight: 600;">
+                                    $5,200
+                                </div>
+                            </div>
+                            
+                            <!-- 第5名 -->
+                            <div class="history-item" style="display: flex; align-items: center; padding: 15px 0;">
+                                <div style="width: 25px; height: 25px; background-color: #f0f0f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 15px;">
+                                    5
+                                </div>
+                                <div style="width: 40px; height: 40px; background-color: #ddd; border-radius: 50%; margin-right: 15px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-user" style="font-size: 20px; color: #666;"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div class="font-bold">周小玲</div>
+                                    <div class="text-small">VIP 2</div>
+                                </div>
+                                <div style="color: var(--accent-color); font-weight: 600;">
+                                    $4,800
+                                </div>
+                            </div>
+                            
+                            <!-- 第6名 -->
+                            <div class="history-item" style="display: flex; align-items: center; padding: 15px 0;">
+                                <div style="width: 25px; height: 25px; background-color: #f0f0f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 15px;">
+                                    6
+                                </div>
+                                <div style="width: 40px; height: 40px; background-color: #ddd; border-radius: 50%; margin-right: 15px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-user" style="font-size: 20px; color: #666;"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div class="font-bold">張三豐</div>
+                                    <div class="text-small">VIP 3</div>
+                                </div>
+                                <div style="color: var(--accent-color); font-weight: 600;">
+                                    $3,900
+                                </div>
+                            </div>
+                            
+                            <!-- 第7名 -->
+                            <div class="history-item" style="display: flex; align-items: center; padding: 15px 0;">
+                                <div style="width: 25px; height: 25px; background-color: #f0f0f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 15px;">
+                                    7
+                                </div>
+                                <div style="width: 40px; height: 40px; background-color: #ddd; border-radius: 50%; margin-right: 15px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-user" style="font-size: 20px; color: #666;"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div class="font-bold">劉德華</div>
+                                    <div class="text-small">VIP 4</div>
+                                </div>
+                                <div style="color: var(--accent-color); font-weight: 600;">
+                                    $3,500
+                                </div>
+                            </div>
+                            
+                            <!-- 第8名 -->
+                            <div class="history-item" style="display: flex; align-items: center; padding: 15px 0; border-bottom: none;">
+                                <div style="width: 25px; height: 25px; background-color: #f0f0f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 15px;">
+                                    8
+                                </div>
+                                <div style="width: 40px; height: 40px; background-color: #ddd; border-radius: 50%; margin-right: 15px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-user" style="font-size: 20px; color: #666;"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div class="font-bold">張小明</div>
+                                    <div class="text-small">VIP 2</div>
+                                </div>
+                                <div style="color: var(--accent-color); font-weight: 600;">
+                                    $3,000
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-top: 20px;">
+                    <h3>您的排名</h3>
+                    <div style="display: flex; align-items: center; margin-top: 10px;">
+                        <div style="width: 25px; height: 25px; background-color: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; margin-right: 15px;">
+                            42
+                        </div>
+                        <div style="width: 40px; height: 40px; background-color: #ddd; border-radius: 50%; margin-right: 15px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-user" style="font-size: 20px; color: #666;"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <div class="font-bold">張小明 (您)</div>
+                            <div class="text-small">VIP 2</div>
+                        </div>
+                        <div style="color: var(--accent-color); font-weight: 600;">
+                            $1,000
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; background-color: #f8f8f8; padding: 10px; border-radius: 5px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>距離上一名還差：</span>
+                            <span style="color: var(--primary-color); font-weight: 600;">$120</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-top: 20px;">
+                    <div style="display: flex; align-items: center;">
+                        <i class="fas fa-trophy" style="color: gold; font-size: 24px; margin-right: 10px;"></i>
+                        <div>
+                            <h3 style="margin-bottom: 0;">排行榜獎勵</h3>
+                            <div class="text-small">每週更新</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span>第1名：</span>
+                            <span style="color: var(--accent-color); font-weight: 600;">$1,000 + 500積分</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span>第2名：</span>
+                            <span style="color: var(--accent-color); font-weight: 600;">$500 + 300積分</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span>第3名：</span>
+                            <span style="color: var(--accent-color); font-weight: 600;">$200 + 200積分</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>第4-10名：</span>
+                            <span style="color: var(--accent-color); font-weight: 600;">$100 + 100積分</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <div class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>首頁</span>
+                </div>
+                <div class="nav-item">
+                    <i class="fas fa-gamepad"></i>
+                    <span>遊戲</span>
+                </div>
+                <div class="nav-item active">
+                    <i class="fas fa-trophy"></i>
+                    <span>排行榜</span>
+                </div>
+                <div class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span>我的</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 設置頁面 -->
+        <div class="wireframe">
+            <div class="wireframe-title">設置頁面</div>
+            <div class="status-bar">
+                <span>10:30</span>
+                <div>
+                    <i class="fas fa-signal"></i>
+                    <i class="fas fa-wifi"></i>
+                    <i class="fas fa-battery-three-quarters"></i>
+                </div>
+            </div>
+            <div class="header">
+                <div class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+                <div class="header-title">設置</div>
+            </div>
+            <div class="content">
+                <div class="card">
+                    <h3>賬戶設置</h3>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>個人資料</span>
+                        <i class="fas fa-chevron-right" style="color: #999;"></i>
+                    </div>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>更改密碼</span>
+                        <i class="fas fa-chevron-right" style="color: #999;"></i>
+                    </div>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center; border-bottom: none;">
+                        <span>支付方式</span>
+                        <i class="fas fa-chevron-right" style="color: #999;"></i>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>遊戲設置</h3>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>音效</span>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>音樂</span>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>振動</span>
+                        <label class="switch">
+                            <input type="checkbox">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center; border-bottom: none;">
+                        <span>高畫質</span>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>AI 設置</h3>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>AI 助手</span>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>遊戲推薦</span>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>數據收集</span>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center; border-bottom: none;">
+                        <span>AI 分析報告</span>
+                        <i class="fas fa-chevron-right" style="color: #999;"></i>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>其他</h3>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>關於我們</span>
+                        <i class="fas fa-chevron-right" style="color: #999;"></i>
+                    </div>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>幫助中心</span>
+                        <i class="fas fa-chevron-right" style="color: #999;"></i>
+                    </div>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>隱私政策</span>
+                        <i class="fas fa-chevron-right" style="color: #999;"></i>
+                    </div>
+                    <div class="history-item" style="display: flex; justify-content: space-between; align-items: center; border-bottom: none;">
+                        <span>應用版本</span>
+                        <span style="color: #999;">1.0.0</span>
+                    </div>
+                </div>
+                
+                <button class="button" style="background-color: var(--error-color); margin-top: 30px;">登出</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

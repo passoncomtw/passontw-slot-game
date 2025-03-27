@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 老虎機遊戲 - 後台管理系統</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#6200EA',
+                            '50': '#F4EAFF',
+                            '100': '#E8D5FF',
+                            '200': '#D0ABFF',
+                            '300': '#B388FF',
+                            '400': '#9654FF',
+                            '500': '#7C3AED',
+                            '600': '#6200EA',
+                            '700': '#5700E3',
+                            '800': '#4D00DC',
+                            '900': '#4400D5'
+                        },
+                        accent: {
+                            DEFAULT: '#FF9100',
+                            '50': '#FFF8F0',
+                            '100': '#FFEBD0',
+                            '200': '#FFD699',
+                            '300': '#FFC166',
+                            '400': '#FFAC33',
+                            '500': '#FF9100',
+                            '600': '#F28000',
+                            '700': '#E56F00',
+                            '800': '#D85E00',
+                            '900': '#CB4D00'
+                        },
+                        success: '#00C853',
+                        error: '#F44336',
+                        warning: '#FFC107',
+                        info: '#2196F3',
+                        surface: {
+                            DEFAULT: '#1E1E1E',
+                            '50': '#F0F0F0',
+                            '100': '#E1E1E1',
+                            '200': '#C8C8C8',
+                            '300': '#ADADAD',
+                            '400': '#969696',
+                            '500': '#808080',
+                            '600': '#666666',
+                            '700': '#4D4D4D',
+                            '800': '#333333',
+                            '900': '#1E1E1E'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans TC', 'sans-serif']
+                    },
+                    screens: {
+                        'xs': '475px'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        
+        /* 自定義滾動條樣式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c5c5c5;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        .wireframe {
+            min-height: 768px;
+            max-height: 1000px;
+            overflow: hidden;
+        }
+        
+        .sidebar-active {
+            @apply bg-primary-600 text-white;
+        }
+        
+        .sidebar-item:hover:not(.sidebar-active) {
+            @apply bg-gray-100;
+        }
+        
+        .main-content {
+            height: calc(100% - 64px);
+            overflow-y: auto;
+        }
+        
+        .chart-placeholder {
+            background: linear-gradient(135deg, #f0f0f0 25%, #e6e6e6 25%, #e6e6e6 50%, #f0f0f0 50%, #f0f0f0 75%, #e6e6e6 75%, #e6e6e6 100%);
+            background-size: 20px 20px;
+        }
+        
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800">
+    <h1 class="text-4xl text-center font-bold text-primary-600 my-8">AI 老虎機遊戲 - 後台管理系統原型</h1>
+    <div class="wireframes-container flex flex-wrap justify-center gap-10 mb-16">
+        
+        <!-- 登入頁面 -->
+        <div class="wireframe bg-white rounded-xl shadow-lg overflow-hidden w-full md:w-[1024px] border border-gray-200">
+            <div class="wireframe-title bg-gray-50 py-4 px-6 text-center text-xl font-semibold border-b border-gray-200">
+                登入頁面
+            </div>
+            <div class="flex h-[700px]">
+                <!-- 左側圖片 -->
+                <div class="hidden md:flex md:w-1/2 bg-gradient-to-br from-primary-500 to-primary-800 text-white items-center justify-center p-8">
+                    <div class="text-center">
+                        <div class="text-5xl mb-4"><i class="fas fa-robot"></i></div>
+                        <h2 class="text-3xl font-bold mb-4">AI 老虎機後台管理</h2>
+                        <p class="text-lg opacity-80 mb-6">智能分析、高效管理、精準決策</p>
+                        <div class="flex justify-center space-x-4 mt-8">
+                            <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                                <i class="fas fa-chart-line text-xl"></i>
+                            </div>
+                            <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                                <i class="fas fa-users-cog text-xl"></i>
+                            </div>
+                            <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                                <i class="fas fa-brain text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 右側登入表單 -->
+                <div class="w-full md:w-1/2 flex items-center justify-center p-8">
+                    <div class="w-full max-w-md">
+                        <div class="text-center mb-10">
+                            <div class="inline-block p-4 rounded-full bg-primary-50 text-primary-600 mb-4">
+                                <i class="fas fa-user-shield text-3xl"></i>
+                            </div>
+                            <h2 class="text-2xl font-bold text-gray-800">管理員登入</h2>
+                            <p class="text-gray-500 mt-2">請輸入您的憑證以訪問後台管理系統</p>
+                        </div>
+                        
+                        <form class="space-y-6">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2" for="email">電子郵件</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                                        <i class="fas fa-envelope"></i>
+                                    </div>
+                                    <input type="email" id="email" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-300 focus:border-primary-500 outline-none transition-all" placeholder="admin@example.com">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <label class="block text-gray-700 font-medium" for="password">密碼</label>
+                                    <a href="#" class="text-sm text-primary-600 hover:text-primary-800">忘記密碼?</a>
+                                </div>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                                        <i class="fas fa-lock"></i>
+                                    </div>
+                                    <input type="password" id="password" class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-300 focus:border-primary-500 outline-none transition-all" placeholder="••••••••">
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer text-gray-400">
+                                        <i class="fas fa-eye"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <input type="checkbox" id="remember" class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
+                                <label for="remember" class="ml-2 text-gray-700">保持登入狀態</label>
+                            </div>
+                            
+                            <button type="submit" class="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-all focus:outline-none focus:ring-4 focus:ring-primary-300">
+                                登入
+                            </button>
+                        </form>
+                        
+                        <div class="text-center mt-6">
+                            <p class="text-gray-600 text-sm">登入遇到問題? <a href="#" class="text-primary-600 hover:text-primary-800 font-medium">聯繫支持</a></p>
+                        </div>
+                        
+                        <div class="mt-8 pt-6 border-t border-gray-200">
+                            <p class="text-center text-xs text-gray-500">
+                                © 2024 AI 老虎機管理系統. 版權所有.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 儀表板頁面 -->
+        <div class="wireframe bg-white rounded-xl shadow-lg overflow-hidden w-full md:w-[1024px] border border-gray-200">
+            <div class="wireframe-title bg-gray-50 py-4 px-6 text-center text-xl font-semibold border-b border-gray-200">
+                儀表板頁面
+            </div>
+            <div class="flex h-[700px]">
+                <!-- 側邊欄 -->
+                <div class="w-64 bg-white border-r border-gray-200 flex flex-col">
+                    <!-- Logo部分 -->
+                    <div class="p-4 border-b border-gray-200">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center text-white">
+                                <i class="fas fa-robot text-xl"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-gray-800">AI老虎機</div>
+                                <div class="text-xs text-gray-500">管理系統 v1.0</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 管理員資訊 -->
+                    <div class="p-4 border-b border-gray-200">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-800">陳管理員</div>
+                                <div class="text-xs text-gray-500">超級管理員</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 導航菜單 -->
+                    <div class="flex-grow py-4 overflow-y-auto">
+                        <div class="px-3 mb-6">
+                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">主要功能</div>
+                            <div class="space-y-1">
+                                <a href="#" class="sidebar-item sidebar-active flex items-center px-3 py-2 rounded-lg text-sm">
+                                    <i class="fas fa-tachometer-alt w-5 h-5 mr-2"></i>
+                                    <span>儀表板</span>
+                                </a>
+                                <a href="#" class="sidebar-item flex items-center px-3 py-2 rounded-lg text-sm text-gray-700 hover:text-gray-900">
+                                    <i class="fas fa-gamepad w-5 h-5 mr-2"></i>
+                                    <span>遊戲管理</span>
+                                </a>
+                                <a href="#" class="sidebar-item flex items-center px-3 py-2 rounded-lg text-sm text-gray-700 hover:text-gray-900">
+                                    <i class="fas fa-users w-5 h-5 mr-2"></i>
+                                    <span>用戶管理</span>
+                                </a>
+                                <a href="#" class="sidebar-item flex items-center px-3 py-2 rounded-lg text-sm text-gray-700 hover:text-gray-900">
+                                    <i class="fas fa-coins w-5 h-5 mr-2"></i>
+                                    <span>交易管理</span>
+                                </a>
+                                <a href="#" class="sidebar-item flex items-center px-3 py-2 rounded-lg text-sm text-gray-700 hover:text-gray-900">
+                                    <i class="fas fa-brain w-5 h-5 mr-2"></i>
+                                    <span>AI設定</span>
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="px-3 mb-6">
+                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">系統功能</div>
+                            <div class="space-y-1">
+                                <a href="#" class="sidebar-item flex items-center px-3 py-2 rounded-lg text-sm text-gray-700 hover:text-gray-900">
+                                    <i class="fas fa-chart-line w-5 h-5 mr-2"></i>
+                                    <span>數據分析</span>
+                                </a>
+                                <a href="#" class="sidebar-item flex items-center px-3 py-2 rounded-lg text-sm text-gray-700 hover:text-gray-900">
+                                    <i class="fas fa-cog w-5 h-5 mr-2"></i>
+                                    <span>系統設定</span>
+                                </a>
+                                <a href="#" class="sidebar-item flex items-center px-3 py-2 rounded-lg text-sm text-gray-700 hover:text-gray-900">
+                                    <i class="fas fa-shield-alt w-5 h-5 mr-2"></i>
+                                    <span>安全管理</span>
+                                </a>
+                                <a href="#" class="sidebar-item flex items-center px-3 py-2 rounded-lg text-sm text-gray-700 hover:text-gray-900">
+                                    <i class="fas fa-history w-5 h-5 mr-2"></i>
+                                    <span>操作日誌</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 登出 -->
+                    <div class="p-4 border-t border-gray-200">
+                        <a href="#" class="flex items-center text-gray-700 hover:text-gray-900">
+                            <i class="fas fa-sign-out-alt w-5 h-5 mr-2"></i>
+                            <span class="text-sm">登出系統</span>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 主內容區 -->
+                <div class="flex-1 flex flex-col bg-gray-50">
+                    <!-- 頂部導航欄 -->
+                    <div class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+                        <div class="flex items-center space-x-4">
+                            <button class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-bars text-xl"></i>
+                            </button>
+                            <div class="text-xl font-semibold text-gray-800">儀表板</div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="relative">
+                                <button class="text-gray-400 hover:text-gray-600 relative">
+                                    <i class="fas fa-bell text-xl"></i>
+                                    <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                                </button>
+                            </div>
+                            <div class="w-px h-6 bg-gray-200"></div>
+                            <div class="flex items-center">
+                                <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="管理員頭像" class="w-8 h-8 rounded-full border border-gray-200">
+                                <span class="ml-2 text-sm font-medium text-gray-700">陳管理員</span>
+                                <i class="fas fa-chevron-down ml-2 text-xs text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 主要內容 -->
+                    <div class="main-content p-6 overflow-y-auto">
+                        <!-- 歡迎區 -->
+                        <div class="mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800">您好，陳管理員！</h2>
+                            <p class="text-gray-600">歡迎回到 AI 老虎機遊戲管理系統，以下是今日概覽。</p>
+                        </div>
+                        
+                        <!-- 統計卡片區 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                            <!-- 總收入卡片 -->
+                            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                                <div class="flex justify-between items-center mb-4">
+                                    <div class="text-gray-500 text-sm font-medium">總收入</div>
+                                    <div class="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center">
+                                        <i class="fas fa-dollar-sign text-primary-600"></i>
+                                    </div>
+                                </div>
+                                <div class="text-2xl font-bold text-gray-800 mb-1">$128,430</div>
+                                <div class="flex items-center text-sm">
+                                    <span class="text-success font-medium mr-1">+12.5%</span>
+                                    <span class="text-gray-500">相較上月</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 活躍用戶卡片 -->
+                            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                                <div class="flex justify-between items-center mb-4">
+                                    <div class="text-gray-500 text-sm font-medium">活躍用戶</div>
+                                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                                        <i class="fas fa-users text-blue-600"></i>
+                                    </div>
+                                </div>
+                                <div class="text-2xl font-bold text-gray-800 mb-1">3,721</div>
+                                <div class="flex items-center text-sm">
+                                    <span class="text-success font-medium mr-1">+8.2%</span>
+                                    <span class="text-gray-500">相較上週</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 遊戲總數卡片 -->
+                            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                                <div class="flex justify-between items-center mb-4">
+                                    <div class="text-gray-500 text-sm font-medium">遊戲總數</div>
+                                    <div class="w-10 h-10 rounded-full bg-accent-50 flex items-center justify-center">
+                                        <i class="fas fa-gamepad text-accent"></i>
+                                    </div>
+                                </div>
+                                <div class="text-2xl font-bold text-gray-800 mb-1">47</div>
+                                <div class="flex items-center text-sm">
+                                    <span class="text-success font-medium mr-1">+3</span>
+                                    <span class="text-gray-500">本月新增</span>
+                                </div>
+                            </div>
+                            
+                            <!-- AI 推薦效果卡片 -->
+                            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                                <div class="flex justify-between items-center mb-4">
+                                    <div class="text-gray-500 text-sm font-medium">AI 推薦效果</div>
+                                    <div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center">
+                                        <i class="fas fa-brain text-green-600"></i>
+                                    </div>
+                                </div>
+                                <div class="text-2xl font-bold text-gray-800 mb-1">92.7%</div>
+                                <div class="flex items-center text-sm">
+                                    <span class="text-success font-medium mr-1">+5.3%</span>
+                                    <span class="text-gray-500">提升轉換率</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 圖表和分析區 -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                            <!-- 收入趨勢圖 -->
+                            <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200">
+                                <div class="p-6 border-b border-gray-200">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="font-bold text-gray-800">收入趨勢</h3>
+                                        <div class="flex space-x-2">
+                                            <button class="px-3 py-1 text-xs font-medium bg-primary-50 text-primary-600 rounded-full">今日</button>
+                                            <button class="px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-full">週</button>
+                                            <button class="px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-full">月</button>
+                                            <button class="px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-full">年</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-6">
+                                    <div class="chart-placeholder h-64 rounded-lg"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- 熱門遊戲 -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                                <div class="p-6 border-b border-gray-200">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="font-bold text-gray-800">熱門遊戲</h3>
+                                        <button class="text-primary-600 text-sm font-medium hover:text-primary-800">查看全部</button>
+                                    </div>
+                                </div>
+                                <div class="p-6">
+                                    <div class="space-y-6">
+                                        <!-- 遊戲項目 1 -->
+                                        <div class="flex items-center">
+                                            <div class="w-12 h-12 rounded-lg bg-primary-600 flex items-center justify-center text-white mr-4">
+                                                <i class="fas fa-dice"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="flex justify-between mb-1">
+                                                    <div class="font-medium text-gray-800">幸運七</div>
+                                                    <div class="text-sm font-bold text-gray-800">$42,580</div>
+                                                </div>
+                                                <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                    <div class="h-full bg-primary-600 rounded-full" style="width: 85%;"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 遊戲項目 2 -->
+                                        <div class="flex items-center">
+                                            <div class="w-12 h-12 rounded-lg bg-accent flex items-center justify-center text-white mr-4">
+                                                <i class="fas fa-coins"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="flex justify-between mb-1">
+                                                    <div class="font-medium text-gray-800">金幣樂園</div>
+                                                    <div class="text-sm font-bold text-gray-800">$35,210</div>
+                                                </div>
+                                                <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                    <div class="h-full bg-accent rounded-full" style="width: 70%;"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 遊戲項目 3 -->
+                                        <div class="flex items-center">
+                                            <div class="w-12 h-12 rounded-lg bg-red-500 flex items-center justify-center text-white mr-4">
+                                                <i class="fas fa-fire"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="flex justify-between mb-1">
+                                                    <div class="font-medium text-gray-800">水果派對</div>
+                                                    <div class="text-sm font-bold text-gray-800">$28,760</div>
+                                                </div>
+                                                <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                    <div class="h-full bg-red-500 rounded-full" style="width: 60%;"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 遊戲項目 4 -->
+                                        <div class="flex items-center">
+                                            <div class="w-12 h-12 rounded-lg bg-blue-500 flex items-center justify-center text-white mr-4">
+                                                <i class="fas fa-gem"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="flex justify-between mb-1">
+                                                    <div class="font-medium text-gray-800">寶石迷情</div>
+                                                    <div class="text-sm font-bold text-gray-800">$21,880</div>
+                                                </div>
+                                                <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                    <div class="h-full bg-blue-500 rounded-full" style="width: 45%;"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 最近活動和通知區 -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- 最近交易 -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                                <div class="p-6 border-b border-gray-200">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="font-bold text-gray-800">最近交易</h3>
+                                        <button class="text-primary-600 text-sm font-medium hover:text-primary-800">查看全部</button>
+                                    </div>
+                                </div>
+                                <div class="p-6">
+                                    <div class="space-y-4">
+                                        <!-- 交易項目 1 -->
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-4">
+                                                <i class="fas fa-arrow-down"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="flex justify-between">
+                                                    <div>
+                                                        <div class="font-medium text-gray-800">用戶充值</div>
+                                                        <div class="text-xs text-gray-500">王小明 • 10分鐘前</div>
+                                                    </div>
+                                                    <div class="text-sm font-bold text-success">+$200</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 交易項目 2 -->
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 mr-4">
+                                                <i class="fas fa-arrow-up"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="flex justify-between">
+                                                    <div>
+                                                        <div class="font-medium text-gray-800">用戶提現</div>
+                                                        <div class="text-xs text-gray-500">李小華 • 30分鐘前</div>
+                                                    </div>
+                                                    <div class="text-sm font-bold text-error">-$350</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 交易項目 3 -->
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-4">
+                                                <i class="fas fa-arrow-down"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="flex justify-between">
+                                                    <div>
+                                                        <div class="font-medium text-gray-800">用戶充值</div>
+                                                        <div class="text-xs text-gray-500">張三豐 • 1小時前</div>
+                                                    </div>
+                                                    <div class="text-sm font-bold text-success">+$500</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 交易項目 4 -->
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-4">
+                                                <i class="fas fa-arrow-down"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="flex justify-between">
+                                                    <div>
+                                                        <div class="font-medium text-gray-800">用戶充值</div>
+                                                        <div class="text-xs text-gray-500">趙小姐 • 2小時前</div>
+                                                    </div>
+                                                    <div class="text-sm font-bold text-success">+$100</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 系統通知 -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                                <div class="p-6 border-b border-gray-200">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="font-bold text-gray-800">系統通知</h3>
+                                        <button class="text-primary-600 text-sm font-medium hover:text-primary-800">全部標為已讀</button>
+                                    </div>
+                                </div>
+                                <div class="p-6">
+                                    <div class="space-y-4">
+                                        <!-- 通知項目 1 -->
+                                        <div class="flex">
+                                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4 flex-shrink-0">
+                                                <i class="fas fa-bell"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-medium text-gray-800 mb-1">系統更新通知</div>
+                                                <div class="text-sm text-gray-600 mb-1">系統將於明日凌晨2點進行維護更新，預計2小時完成。</div>
+                                                <div class="text-xs text-gray-500">5分鐘前</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 通知項目 2 -->
+                                        <div class="flex">
+                                            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 mr-4 flex-shrink-0">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-medium text-gray-800 mb-1">異常登入警告</div>
+                                                <div class="text-sm text-gray-600 mb-1">系統檢測到多次異常登入嘗試，請檢查安全設置。</div>
+                                                <div class="text-xs text-gray-500">20分鐘前</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 通知項目 3 -->
+                                        <div class="flex">
+                                            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-4 flex-shrink-0">
+                                                <i class="fas fa-check-circle"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-medium text-gray-800 mb-1">AI模型訓練完成</div>
+                                                <div class="text-sm text-gray-600 mb-1">新的AI推薦模型訓練已完成，準確率提升15%。</div>
+                                                <div class="text-xs text-gray-500">2小時前</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 通知項目 4 -->
+                                        <div class="flex">
+                                            <div class="w-10 h-10 rounded-full bg-accent-100 flex items-center justify-center text-accent mr-4 flex-shrink-0">
+                                                <i class="fas fa-star"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-medium text-gray-800 mb-1">新遊戲上線</div>
+                                                <div class="text-sm text-gray-600 mb-1">新遊戲「神龍寶藏」已上線，請檢查並設置相關參數。</div>
+                                                <div class="text-xs text-gray-500">1天前</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用戶列表 - AI 老虎機遊戲後台管理系統</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="common.css">
+    <style>
+        .user-status {
+            display: inline-flex;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background-color: rgba(0, 200, 83, 0.1);
+            color: var(--success-color);
+        }
+        
+        .status-inactive {
+            background-color: rgba(244, 67, 54, 0.1);
+            color: var(--error-color);
+        }
+        
+        .status-pending {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: var(--warning-color);
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .search-container {
+            position: relative;
+            max-width: 400px;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 10px 12px 10px 40px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(98, 0, 234, 0.1);
+        }
+        
+        .table-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: var(--gray-700);
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        
+        .table-action:hover {
+            background-color: var(--gray-100);
+        }
+        
+        .table-action i {
+            font-size: 14px;
+        }
+        
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-item {
+            padding: 6px 12px;
+            background-color: white;
+            border: 1px solid var(--gray-300);
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .filter-item.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .filter-item:hover:not(.active) {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 側邊欄 -->
+        <aside class="sidebar">
+            <!-- Logo部分 -->
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="logo-text">
+                    <div class="logo-name">AI老虎機</div>
+                    <div class="logo-version">管理系統 v1.0</div>
+                </div>
+            </div>
+            
+            <!-- 管理員資訊 -->
+            <div class="admin-info">
+                <div class="admin-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="admin-details">
+                    <div class="admin-name">陳管理員</div>
+                    <div class="admin-role">超級管理員</div>
+                </div>
+            </div>
+            
+            <!-- 導航菜單 -->
+            <div class="nav-section">
+                <div class="nav-section-title">主要功能</div>
+                <ul class="nav-items">
+                    <li class="nav-item" id="nav-dashboard">
+                        <a href="dashboard.html" class="nav-link">
+                            <i class="fas fa-chart-line"></i>
+                            <span>儀表板</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" id="nav-games">
+                        <a href="games.html" class="nav-link">
+                            <i class="fas fa-gamepad"></i>
+                            <span>遊戲列表</span>
+                        </a>
+                    </li>
+                    <li class="nav-item active" id="nav-users">
+                        <a href="users.html" class="nav-link">
+                            <i class="fas fa-users"></i>
+                            <span>用戶列表</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" id="nav-transactions">
+                        <a href="transactions.html" class="nav-link">
+                            <i class="fas fa-money-bill-transfer"></i>
+                            <span>交易列表</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="nav-section-title" style="margin-top: 24px;">系統管理</div>
+                <ul class="nav-items">
+                    <li class="nav-item" id="nav-logs">
+                        <a href="logs.html" class="nav-link">
+                            <i class="fas fa-clipboard-list"></i>
+                            <span>操作日誌</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-cog"></i>
+                            <span>系統設置</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- 登出按鈕 -->
+            <div class="logout-section">
+                <button class="logout-button">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>登出系統</span>
+                </button>
+            </div>
+        </aside>
+        
+        <!-- 主內容區域 -->
+        <main class="main-content">
+            <!-- 頂部工具欄 -->
+            <div class="top-bar">
+                <div class="page-title">用戶列表</div>
+                <div class="user-actions">
+                    <button class="btn btn-outline btn-icon">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <button class="btn btn-outline btn-icon">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 內容 -->
+            <div class="content-wrapper">
+                <!-- 搜尋和功能區 -->
+                <div class="card mb-3">
+                    <div class="d-flex justify-between align-center">
+                        <div class="search-container">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" class="search-input" placeholder="搜尋用戶名、ID、電子郵件...">
+                        </div>
+                        <div>
+                            <button class="btn btn-primary" id="add-user-btn">
+                                <i class="fas fa-user-plus"></i> 新增用戶
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 過濾選項 -->
+                <div class="filter-bar">
+                    <div class="filter-item active">所有用戶 (145)</div>
+                    <div class="filter-item">活躍用戶 (98)</div>
+                    <div class="filter-item">已凍結 (12)</div>
+                    <div class="filter-item">待驗證 (35)</div>
+                </div>
+                
+                <!-- 用戶列表 -->
+                <div class="card">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>用戶</th>
+                                    <th>註冊日期</th>
+                                    <th>餘額</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 用戶 1 -->
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-center gap-3">
+                                            <div class="user-avatar">WM</div>
+                                            <div>
+                                                <div style="font-weight: 500;">王小明</div>
+                                                <div style="font-size: 12px; color: var(--gray-500);">wangxiaoming@example.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>2024/04/15</td>
+                                    <td>$3,250</td>
+                                    <td><span class="user-status status-active">活躍</span></td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            <a href="#" class="table-action edit-user" data-id="1">
+                                                <i class="fas fa-edit"></i> 編輯
+                                            </a>
+                                            <a href="#" class="table-action deposit-user" data-id="1">
+                                                <i class="fas fa-wallet"></i> 儲值
+                                            </a>
+                                            <a href="#" class="table-action freeze-user" data-id="1">
+                                                <i class="fas fa-ban"></i> 凍結
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <!-- 用戶 2 -->
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-center gap-3">
+                                            <div class="user-avatar">ZS</div>
+                                            <div>
+                                                <div style="font-weight: 500;">張三</div>
+                                                <div style="font-size: 12px; color: var(--gray-500);">zhangsan@example.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>2024/05/02</td>
+                                    <td>$1,800</td>
+                                    <td><span class="user-status status-active">活躍</span></td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            <a href="#" class="table-action edit-user" data-id="2">
+                                                <i class="fas fa-edit"></i> 編輯
+                                            </a>
+                                            <a href="#" class="table-action deposit-user" data-id="2">
+                                                <i class="fas fa-wallet"></i> 儲值
+                                            </a>
+                                            <a href="#" class="table-action freeze-user" data-id="2">
+                                                <i class="fas fa-ban"></i> 凍結
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <!-- 用戶 3 -->
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-center gap-3">
+                                            <div class="user-avatar">LS</div>
+                                            <div>
+                                                <div style="font-weight: 500;">李四</div>
+                                                <div style="font-size: 12px; color: var(--gray-500);">lisi@example.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>2024/03/10</td>
+                                    <td>$5,680</td>
+                                    <td><span class="user-status status-inactive">已凍結</span></td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            <a href="#" class="table-action edit-user" data-id="3">
+                                                <i class="fas fa-edit"></i> 編輯
+                                            </a>
+                                            <a href="#" class="table-action deposit-user" data-id="3">
+                                                <i class="fas fa-wallet"></i> 儲值
+                                            </a>
+                                            <a href="#" class="table-action unfreeze-user" data-id="3">
+                                                <i class="fas fa-check"></i> 解凍
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <!-- 用戶 4 -->
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-center gap-3">
+                                            <div class="user-avatar">CL</div>
+                                            <div>
+                                                <div style="font-weight: 500;">陳麗</div>
+                                                <div style="font-size: 12px; color: var(--gray-500);">chenli@example.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>2024/06/01</td>
+                                    <td>$120</td>
+                                    <td><span class="user-status status-pending">待驗證</span></td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            <a href="#" class="table-action edit-user" data-id="4">
+                                                <i class="fas fa-edit"></i> 編輯
+                                            </a>
+                                            <a href="#" class="table-action verify-user" data-id="4">
+                                                <i class="fas fa-check-circle"></i> 驗證
+                                            </a>
+                                            <a href="#" class="table-action freeze-user" data-id="4">
+                                                <i class="fas fa-ban"></i> 凍結
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 分頁 -->
+                    <div class="pagination" style="margin-top: 24px;">
+                        <div class="pagination-item">
+                            <i class="fas fa-chevron-left"></i>
+                        </div>
+                        <div class="pagination-item active">1</div>
+                        <div class="pagination-item">2</div>
+                        <div class="pagination-item">3</div>
+                        <div class="pagination-item">...</div>
+                        <div class="pagination-item">10</div>
+                        <div class="pagination-item">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- 新增用戶模態框 -->
+    <div class="modal-backdrop" id="add-user-modal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">新增用戶</h3>
+                <button class="modal-close" id="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="add-user-form">
+                    <div class="form-group">
+                        <label class="form-label">用戶名</label>
+                        <input type="text" class="form-control" placeholder="請輸入用戶名">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">電子郵件</label>
+                        <input type="email" class="form-control" placeholder="請輸入電子郵件">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">密碼</label>
+                        <input type="password" class="form-control" placeholder="請輸入密碼">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">確認密碼</label>
+                        <input type="password" class="form-control" placeholder="請再次輸入密碼">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">初始餘額</label>
+                        <input type="number" class="form-control" placeholder="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">狀態</label>
+                        <select class="form-control">
+                            <option>活躍</option>
+                            <option>待驗證</option>
+                            <option>已凍結</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancel-add">取消</button>
+                <button class="btn btn-primary" id="confirm-add">確認新增</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 儲值模態框 -->
+    <div class="modal-backdrop" id="deposit-user-modal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">用戶儲值</h3>
+                <button class="modal-close" id="close-deposit-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="deposit-form">
+                    <div class="form-group">
+                        <label class="form-label">用戶資訊</label>
+                        <div class="d-flex align-center gap-3" style="margin-bottom: 16px;">
+                            <div class="user-avatar" id="deposit-user-avatar">WM</div>
+                            <div>
+                                <div style="font-weight: 500;" id="deposit-user-name">王小明</div>
+                                <div style="font-size: 12px; color: var(--gray-500);" id="deposit-user-email">wangxiaoming@example.com</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">當前餘額</label>
+                        <div style="font-size: 18px; font-weight: 600; color: var(--gray-800);" id="deposit-current-balance">$3,250</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">儲值金額</label>
+                        <input type="number" class="form-control" placeholder="請輸入儲值金額" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">付款方式</label>
+                        <select class="form-control">
+                            <option>信用卡</option>
+                            <option>銀行轉帳</option>
+                            <option>電子支付</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">備註</label>
+                        <textarea class="form-control" rows="2" placeholder="可選"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancel-deposit">取消</button>
+                <button class="btn btn-primary" id="confirm-deposit">確認儲值</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 新增用戶模態框控制
+        const addUserBtn = document.getElementById('add-user-btn');
+        const addUserModal = document.getElementById('add-user-modal');
+        const closeModal = document.getElementById('close-modal');
+        const cancelAdd = document.getElementById('cancel-add');
+        const confirmAdd = document.getElementById('confirm-add');
+        
+        // 儲值模態框控制
+        const depositUserModal = document.getElementById('deposit-user-modal');
+        const closeDepositModal = document.getElementById('close-deposit-modal');
+        const cancelDeposit = document.getElementById('cancel-deposit');
+        const confirmDeposit = document.getElementById('confirm-deposit');
+        const depositUserBtns = document.querySelectorAll('.deposit-user');
+        
+        // 顯示新增用戶模態框
+        addUserBtn.addEventListener('click', function() {
+            addUserModal.style.display = 'flex';
+        });
+        
+        // 隱藏新增用戶模態框
+        function hideAddModal() {
+            addUserModal.style.display = 'none';
+        }
+        
+        closeModal.addEventListener('click', hideAddModal);
+        cancelAdd.addEventListener('click', hideAddModal);
+        confirmAdd.addEventListener('click', function() {
+            // 這裡應該有表單處理邏輯
+            alert('已成功新增用戶！');
+            hideAddModal();
+        });
+        
+        // 顯示儲值模態框
+        depositUserBtns.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const userId = this.getAttribute('data-id');
+                // 這裡應該根據userId獲取用戶資訊
+                // 演示目的，直接顯示模態框
+                depositUserModal.style.display = 'flex';
+            });
+        });
+        
+        // 隱藏儲值模態框
+        function hideDepositModal() {
+            depositUserModal.style.display = 'none';
+        }
+        
+        closeDepositModal.addEventListener('click', hideDepositModal);
+        cancelDeposit.addEventListener('click', hideDepositModal);
+        confirmDeposit.addEventListener('click', function() {
+            // 這裡應該有儲值處理邏輯
+            alert('儲值成功！');
+            hideDepositModal();
+        });
+        
+        // 過濾選項控制
+        const filterItems = document.querySelectorAll('.filter-item');
+        filterItems.forEach(item => {
+            item.addEventListener('click', function() {
+                filterItems.forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+        
+        // 模擬登出功能
+        document.querySelector('.logout-button').addEventListener('click', function() {
+            if (confirm('確定要登出系統嗎？')) {
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+</body>
+</html> 

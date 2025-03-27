@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"game-api/internal/service"
+	"game-api/internal/interfaces"
 	"game-api/pkg/utils"
 	"net/http"
 	"strings"
@@ -10,7 +10,7 @@ import (
 )
 
 // AuthMiddleware JWT認證中間件
-func AuthMiddleware(authService service.AuthService) gin.HandlerFunc {
+func AuthMiddleware(authService interfaces.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {

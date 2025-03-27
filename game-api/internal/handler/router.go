@@ -7,7 +7,6 @@ import (
 	"game-api/internal/config"
 	"game-api/internal/interfaces"
 	"game-api/internal/middleware"
-	"game-api/internal/service"
 	"game-api/pkg/websocketManager"
 
 	"github.com/gin-gonic/gin"
@@ -29,7 +28,7 @@ func NewRouter(
 	cfg *config.Config,
 	authHandler *AuthHandler,
 	userHandler *UserHandler,
-	authService service.AuthService,
+	authService interfaces.AuthService,
 	wsHandler *websocketManager.WebSocketHandler,
 ) *gin.Engine {
 	r := gin.Default()
@@ -68,16 +67,16 @@ func configureCORS() gin.HandlerFunc {
 }
 
 func configurePublicRoutes(api *gin.RouterGroup, authHandler *AuthHandler, userHandler *UserHandler) {
-	api.POST("/auth", authHandler.UserLogin)
+	// api.POST("/auth", authHandler.UserLogin)
 	api.POST("/users", userHandler.CreateUser)
 }
 
-func configureAuthenticatedRoutes(api *gin.RouterGroup, authHandler *AuthHandler, userHandler *UserHandler, authService service.AuthService) {
+func configureAuthenticatedRoutes(api *gin.RouterGroup, authHandler *AuthHandler, userHandler *UserHandler, authService interfaces.AuthService) {
 	authorized := api.Group("/")
 	authorized.Use(middleware.AuthMiddleware(authService))
 
-	authorized.POST("/auth/logout", authHandler.UserLogout)
-	authorized.POST("/auth/token", authHandler.ValidateToken)
+	// authorized.POST("/auth/logout", authHandler.UserLogout)
+	// authorized.POST("/auth/token", authHandler.ValidateToken)
 	authorized.GET("/users", userHandler.GetUsers)
 }
 

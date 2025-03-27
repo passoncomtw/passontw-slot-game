@@ -20,7 +20,7 @@ func SetupRoutes(router *gin.Engine, authHandler *AuthHandler, userHandler *User
 
 	// 需要認證的管理員路由
 	adminAuth := admin.Group("")
-	adminAuth.Use(middleware.AuthMiddleware(userHandler.authService))
+	adminAuth.Use(middleware.AuthMiddleware(authHandler.authService))
 	{
 		adminAuth.GET("/users", userHandler.GetUsers)
 		adminAuth.GET("/users/:user_id", userHandler.GetUserByID)

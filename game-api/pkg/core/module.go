@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"game-api/internal/config"
 	"game-api/internal/service"
 	"game-api/pkg/databaseManager"
@@ -62,7 +63,21 @@ var WebSocketModule = fx.Options(
 	fx.Provide(
 		// 提供 WebSocket 管理器
 		func(authService service.AuthService) *websocketManager.Manager {
-			return websocketManager.NewManager(authService.ValidateToken)
+			// 創建適配器函數，將 string 轉換為 uint
+			authAdapter := func(token string) (uint, error) {
+				userID, err := authService.ValidateToken(token)
+				if err != nil {
+					return 0, err
+				}
+				// 轉換字符串ID為uint
+				var userIDUint uint
+				_, err = fmt.Sscanf(userID, "%d", &userIDUint)
+				if err != nil {
+					return 0, fmt.Errorf("用戶ID格式無效: %v", err)
+				}
+				return userIDUint, nil
+			}
+			return websocketManager.NewManager(authAdapter)
 		},
 		// 提供 WebSocket 處理程序
 		websocketManager.NewWebSocketHandler,

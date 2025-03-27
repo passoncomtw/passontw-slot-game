@@ -52,3 +52,8 @@
 我希望這些界面是需要能直接拿去進行開發的
 檔案存在wireframes/backend/
 
+##  實作 app ui
+
+依據 ./wireframes/ai-slot-game.html
+使用 react-native 實作 route 與所有功能
+檔案放在 game-app

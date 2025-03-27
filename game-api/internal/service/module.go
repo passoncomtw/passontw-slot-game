@@ -4,13 +4,8 @@ import (
 	"go.uber.org/fx"
 )
 
+// Module 服務模組
 var Module = fx.Options(
-	fx.Provide(
-		ProvideGormDB,
-		fx.Annotate(
-			NewUserService,
-			fx.As(new(UserService)),
-		),
-		NewAuthService,
-	),
+	fx.Provide(NewAuthService),
+	fx.Provide(NewUserService),
 )

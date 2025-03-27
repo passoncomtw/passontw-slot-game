@@ -1,109 +1,79 @@
 package handler
 
 import (
-	"net/http"
-	"strings"
-
+	"game-api/internal/domain/models"
 	"game-api/internal/interfaces"
-	"game-api/internal/service"
+	"game-api/pkg/utils"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
+// AuthHandler 認證處理程序
 type AuthHandler struct {
-	authService service.AuthService
-	userService service.UserService
+	authService interfaces.AuthService
+	logger      *zap.Logger
 }
 
-func NewAuthHandler(authService service.AuthService, userService service.UserService) *AuthHandler {
-	return &AuthHandler{
-		authService: authService,
-		userService: userService,
-	}
-}
-
-// 用戶登入
-// @Summary 用戶登入
-// @Description 驗證用戶憑據並返回 JWT 令牌
-// @Tags auth
+// AppLogin App用戶登入
+// @Summary App用戶登入
+// @Description App用戶使用用戶名和密碼登入
+// @Tags 認證
 // @Accept json
 // @Produce json
-// @Param data body interfaces.LoginRequest true "登入信息"
-// @Success 200 {object} interfaces.LoginResponse "登入成功"
-// @Failure 400 {object} interfaces.ErrorResponse "請求錯誤"
-// @Failure 401 {object} interfaces.ErrorResponse "登入失敗"
-// @Router /api/v1/auth [post]
-func (h *AuthHandler) UserLogin(c *gin.Context) {
-	var req interfaces.LoginRequest
+// @Param request body models.AppLoginRequest true "登入請求"
+// @Success 200 {object} models.LoginResponse "登入成功"
+// @Failure 400 {object} utils.ErrorResponse "請求錯誤"
+// @Failure 401 {object} utils.ErrorResponse "認證失敗"
+// @Failure 500 {object} utils.ErrorResponse "伺服器錯誤"
+// @Router /api/auth/login [post]
+func (h *AuthHandler) AppLogin(c *gin.Context) {
+	var req models.AppLoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "無效的請求格式: " + err.Error()})
 		return
 	}
 
-	token, user, err := h.authService.Login(req.Phone, req.Password)
+	// 調用服務進行登入
+	response, err := h.authService.AppLogin(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		h.logger.Error("App用戶登入失敗", zap.Error(err), zap.String("username", req.Username))
+		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, interfaces.LoginResponse{Token: token, User: user})
+	h.logger.Info("App用戶登入成功", zap.String("username", req.Username))
+	c.JSON(http.StatusOK, response)
 }
 
-// 用戶登出
-// @Summary 用戶登出
-// @Description 使當前 JWT 令牌無效
-// @Tags auth
+// AdminLogin 管理員登入
+// @Summary 管理員登入
+// @Description 管理員使用電子郵件和密碼登入
+// @Tags 管理員
 // @Accept json
 // @Produce json
-// @Security Bearer
-// @Success 200 {object} interfaces.SuccessResponse "登出成功"
-// @Failure 401 {object} interfaces.ErrorResponse "未授權"
-// @Router /api/v1/auth/logout [post]
-func (h *AuthHandler) UserLogout(c *gin.Context) {
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "未提供授權令牌"})
+// @Param request body models.AdminLoginRequest true "登入請求"
+// @Success 200 {object} models.LoginResponse "登入成功"
+// @Failure 400 {object} utils.ErrorResponse "請求錯誤"
+// @Failure 401 {object} utils.ErrorResponse "認證失敗"
+// @Failure 500 {object} utils.ErrorResponse "伺服器錯誤"
+// @Router /api/admin/auth/login [post]
+func (h *AuthHandler) AdminLogin(c *gin.Context) {
+	var req models.AdminLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "無效的請求格式: " + err.Error()})
 		return
 	}
 
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "授權格式無效"})
-		return
-	}
-
-	token := parts[1]
-	err := h.authService.Logout(token)
+	// 調用服務進行登入
+	response, err := h.authService.AdminLogin(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.logger.Error("管理員登入失敗", zap.Error(err), zap.String("email", req.Email))
+		c.JSON(http.StatusUnauthorized, utils.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "成功登出"})
-}
-
-// 驗證令牌
-// @Summary 驗證令牌並返回用戶信息
-// @Description 驗證當前 JWT 令牌並返回對應的用戶信息
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Security Bearer
-// @Success 200 {object} UserResponse "用戶信息"
-// @Failure 401 {object} ErrorResponse "未授權"
-// @Router /api/v1/auth/token [post]
-func (h *AuthHandler) ValidateToken(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "未認證"})
-		return
-	}
-
-	user, err := h.userService.GetUserById(userID.(uint))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "無法獲取用戶信息"})
-		return
-	}
-
-	c.JSON(http.StatusOK, user)
+	h.logger.Info("管理員登入成功", zap.String("email", req.Email))
+	c.JSON(http.StatusOK, response)
 }

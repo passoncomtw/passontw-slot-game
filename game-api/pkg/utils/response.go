@@ -21,6 +21,16 @@ type PageResponse struct {
 	TotalPages int         `json:"total_pages"`
 }
 
+// ErrorResponse 錯誤響應
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+// SuccessResponse 成功響應
+type SuccessResponse struct {
+	Message string `json:"message"`
+}
+
 func Success(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusOK, Response{
 		Code:    http.StatusOK,

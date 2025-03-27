@@ -65,3 +65,20 @@
 3. 依據 DBA 工程師來做資料庫的設定與資料表的正規化，盡量提升效率
 4. 我希望這些 SQL 可以直接使用來開發 API 服務，
 檔案存在 migrations/froentend/initial.sql
+
+## 實作 App 與 Admin 登入和後台會員的 CRUD
+
+### STEP 1
+
+1. 你是資深的Golang 後端工程師, 參照 sql 的格式和 Wireframe 設計API並且實作
+2. game-api 是 Golang 的 api 服務，新增 API 規則與架構都以這個架構為主
+3. 依照 froentend/initial.sql 和 backend/initial.sql做資料庫
+建立 API
+* App 登入的 API
+* 後端登入的 api
+* 登入後使用 JWT 
+* 使用者列表的api 包含分頁系統(header 需要帶authorization: Bearer token)
+* 新增用戶 API(header 需要帶authorization: Bearer token)
+* 用戶儲值 API(header 需要帶authorization: Bearer token)
+* 用戶凍結和解凍 API(header 需要帶authorization: Bearer token)
+

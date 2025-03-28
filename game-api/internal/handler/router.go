@@ -30,6 +30,7 @@ func NewRouter(
 	adminHandler *AdminHandler,
 	gameHandler *GameHandler,
 	transactionHandler *TransactionHandler,
+	logHandler *AdminLogHandler,
 	authService interfaces.AuthService,
 	wsHandler *websocketManager.WebSocketHandler,
 ) *gin.Engine {
@@ -92,6 +93,9 @@ func NewRouter(
 
 		// 交易管理
 		transactionHandler.RegisterRoutes(admin, adminAuth)
+
+		// 操作日誌管理
+		logHandler.RegisterRoutes(admin, adminAuth)
 	}
 
 	return r
@@ -122,6 +126,7 @@ func StartServer(
 	adminHandler *AdminHandler,
 	gameHandler *GameHandler,
 	transactionHandler *TransactionHandler,
+	logHandler *AdminLogHandler,
 	wsHandler *websocketManager.WebSocketHandler,
 	authService interfaces.AuthService,
 ) {
@@ -184,6 +189,9 @@ func StartServer(
 
 		// 交易管理
 		transactionHandler.RegisterRoutes(admin, adminAuth)
+
+		// 操作日誌管理
+		logHandler.RegisterRoutes(admin, adminAuth)
 	}
 
 	// 服務已設置，但不在這裡啟動，而是讓RouterModule負責啟動

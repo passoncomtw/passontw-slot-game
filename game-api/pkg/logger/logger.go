@@ -18,6 +18,7 @@ type Logger interface {
 	Error(msg string, fields ...zap.Field)
 	Fatal(msg string, fields ...zap.Field)
 	With(fields ...zap.Field) Logger
+	GetZapLogger() *zap.Logger
 }
 
 // loggerImpl 是 Logger 介面的實作
@@ -47,6 +48,10 @@ func (l *loggerImpl) Fatal(msg string, fields ...zap.Field) {
 
 func (l *loggerImpl) With(fields ...zap.Field) Logger {
 	return &loggerImpl{logger: l.logger.With(fields...)}
+}
+
+func (l *loggerImpl) GetZapLogger() *zap.Logger {
+	return l.logger
 }
 
 // NewLogger 創建一個新的日誌記錄器

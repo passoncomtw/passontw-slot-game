@@ -14,7 +14,7 @@ var Module = fx.Options(
 		provideAuthHandler,
 		provideUserHandler,
 	),
-	fx.Invoke(setupRouters),
+	fx.Invoke(registerRoutes),
 )
 
 // provideAuthHandler 提供認證處理程序
@@ -34,7 +34,33 @@ func provideUserHandler(userService interfaces.UserService, authService interfac
 	}
 }
 
-// setupRouters 設置路由
-func setupRouters(router *gin.Engine, authHandler *AuthHandler, userHandler *UserHandler) {
-	SetupRoutes(router, authHandler, userHandler)
+// registerRoutes 註冊路由到 Gin Engine
+func registerRoutes(router *gin.Engine, authHandler *AuthHandler, userHandler *UserHandler) {
+	// API 路由群組
+	api := router.Group("/api")
+	{
+		// 認證相關路由
+		auth := api.Group("/auth")
+		{
+			auth.POST("/login", authHandler.AppLogin)
+			// auth.POST("/register", authHandler.Register) // 待實現
+		}
+
+		// 管理員路由群組
+		admin := api.Group("/admin")
+		{
+			// 管理員認證
+			admin.POST("/auth/login", authHandler.AdminLogin)
+		}
+	}
+
+	// 健康檢查
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
+
+	// Swagger API 文檔
+	// router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }

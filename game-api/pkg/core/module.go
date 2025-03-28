@@ -4,14 +4,18 @@ import (
 	"context"
 	"fmt"
 	"game-api/internal/config"
-	"game-api/internal/service"
+	"game-api/internal/interfaces"
 	"game-api/pkg/databaseManager"
 	"game-api/pkg/logger"
 	"game-api/pkg/nacosManager"
 	redis "game-api/pkg/redisManager"
 	"game-api/pkg/websocketManager"
 
+	"time"
+
+	"github.com/gin-gonic/gin"
 	"go.uber.org/fx"
+	"go.uber.org/zap"
 )
 
 // DatabaseModule 數據庫模組
@@ -40,6 +44,48 @@ var DatabaseModule = fx.Options(
 	),
 )
 
+// RouterModule Gin路由模組
+var RouterModule = fx.Options(
+	fx.Provide(
+		// 提供 Gin Engine
+		func(cfg *config.Config, logger *zap.Logger) *gin.Engine {
+			// 預設為調試模式，如果是生產環境，可以透過環境變數設置
+			gin.SetMode(gin.DebugMode)
+
+			// 創建 Gin 引擎
+			r := gin.New()
+
+			// 使用自定義中間件
+			r.Use(
+				gin.Recovery(),
+				// 日誌中間件
+				func(c *gin.Context) {
+					start := time.Now()
+					path := c.Request.URL.Path
+
+					// 處理請求
+					c.Next()
+
+					// 請求完成後記錄日誌
+					latency := time.Since(start)
+					statusCode := c.Writer.Status()
+					clientIP := c.ClientIP()
+
+					logger.Info("HTTP Request",
+						zap.String("method", c.Request.Method),
+						zap.String("path", path),
+						zap.Int("status", statusCode),
+						zap.String("ip", clientIP),
+						zap.Duration("latency", latency),
+					)
+				},
+			)
+
+			return r
+		},
+	),
+)
+
 // RedisModule Redis 模組
 var RedisModule = fx.Options(
 	fx.Provide(
@@ -62,23 +108,26 @@ var RedisModule = fx.Options(
 var WebSocketModule = fx.Options(
 	fx.Provide(
 		// 提供 WebSocket 管理器
-		func(authService service.AuthService) *websocketManager.Manager {
-			// 創建適配器函數，將 string 轉換為 uint
-			authAdapter := func(token string) (uint, error) {
-				userID, err := authService.ValidateToken(token)
-				if err != nil {
-					return 0, err
+		fx.Annotate(
+			func(authService interfaces.AuthService) *websocketManager.Manager {
+				// 創建適配器函數，將 string 轉換為 uint
+				authAdapter := func(token string) (uint, error) {
+					userID, err := authService.ValidateToken(token)
+					if err != nil {
+						return 0, err
+					}
+					// 轉換字符串ID為uint
+					var userIDUint uint
+					_, err = fmt.Sscanf(userID, "%d", &userIDUint)
+					if err != nil {
+						return 0, fmt.Errorf("用戶ID格式無效: %v", err)
+					}
+					return userIDUint, nil
 				}
-				// 轉換字符串ID為uint
-				var userIDUint uint
-				_, err = fmt.Sscanf(userID, "%d", &userIDUint)
-				if err != nil {
-					return 0, fmt.Errorf("用戶ID格式無效: %v", err)
-				}
-				return userIDUint, nil
-			}
-			return websocketManager.NewManager(authAdapter)
-		},
+				return websocketManager.NewManager(authAdapter)
+			},
+			fx.ParamTags(``),
+		),
 		// 提供 WebSocket 處理程序
 		websocketManager.NewWebSocketHandler,
 	),
@@ -100,7 +149,16 @@ var WebSocketModule = fx.Options(
 )
 
 // LoggerModule 日誌模組
-var LoggerModule = fx.Provide(logger.NewLogger)
+var LoggerModule = fx.Options(
+	fx.Provide(
+		// 提供 Logger 實例
+		logger.NewLogger,
+		// 從 logger.Logger 轉換為 *zap.Logger
+		func(l logger.Logger) *zap.Logger {
+			return l.GetZapLogger()
+		},
+	),
+)
 
 // 整合的核心模組，包含所有基礎設施
 var Module = fx.Options(
@@ -109,4 +167,5 @@ var Module = fx.Options(
 	RedisModule,
 	WebSocketModule,
 	LoggerModule,
+	RouterModule,
 )

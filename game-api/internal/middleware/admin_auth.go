@@ -30,7 +30,7 @@ func AdminAuthMiddleware(authService interfaces.AuthService) gin.HandlerFunc {
 		token := parts[1]
 
 		// 解析 token 以獲取數據
-		tokenData, err := authService.ParseToken(token)
+		tokenData, err := authService.ParseAdminToken(token)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "無效的 token"})
 			c.Abort()
@@ -45,7 +45,7 @@ func AdminAuthMiddleware(authService interfaces.AuthService) gin.HandlerFunc {
 		}
 
 		// 驗證 token 有效性
-		userID, err := authService.ValidateToken(token)
+		userID, err := authService.ValidateAdminToken(token)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "無效的 token"})
 			c.Abort()

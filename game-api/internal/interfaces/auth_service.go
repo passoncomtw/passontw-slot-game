@@ -19,8 +19,14 @@ type AuthService interface {
 	// 驗證JWT令牌
 	ValidateToken(token string) (string, error)
 
+	// 驗證管理員JWT令牌
+	ValidateAdminToken(token string) (string, error)
+
 	// 解析JWT令牌數據
 	ParseToken(token string) (*models.TokenData, error)
+
+	// 解析管理員JWT令牌數據
+	ParseAdminToken(token string) (*models.TokenData, error)
 
 	// 撤銷令牌
 	RevokeToken(token string) error

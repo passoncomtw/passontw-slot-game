@@ -29,7 +29,7 @@ func NewBetHandler(betService interfaces.BetService, logger *zap.Logger) *BetHan
 // @Tags bets
 // @Accept json
 // @Produce json
-// @Security ApiKeyAuth
+// @Security Bearer
 // @Param page query int false "頁碼" default(1)
 // @Param page_size query int false "每頁數量" default(10)
 // @Param start_date query string false "開始日期" format(date)
@@ -76,7 +76,7 @@ func (h *BetHandler) GetBetHistory(c *gin.Context) {
 // @Tags bets
 // @Accept json
 // @Produce json
-// @Security ApiKeyAuth
+// @Security Bearer
 // @Param session_id path string true "遊戲Session ID" format(uuid)
 // @Success 200 {array} models.GameRound
 // @Failure 400 {object} ErrorResponse

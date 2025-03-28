@@ -33,6 +33,7 @@ type RedisConfig struct {
 
 type JWTConfig struct {
 	SecretKey       string
+	AdminSecretKey  string
 	TokenExpiration int64 // 秒
 }
 
@@ -47,21 +48,22 @@ type NacosConfig struct {
 }
 
 type NacosAppConfig struct {
-	Port          string `json:"PORT" yaml:"PORT"`
-	DBHost        string `json:"DB_HOST" yaml:"DB_HOST"`
-	DBPort        int    `json:"DB_PORT" yaml:"DB_PORT"`
-	DBName        string `json:"DB_NAME" yaml:"DB_NAME"`
-	DBUser        string `json:"DB_USER" yaml:"DB_USER"`
-	DBPassword    string `json:"DB_PASSWORD" yaml:"DB_PASSWORD"`
-	JWTSecret     string `json:"JWT_SECRET" yaml:"JWT_SECRET"`
-	JWTExpiresIn  string `json:"JWT_EXPIRES_IN" yaml:"JWT_EXPIRES_IN"`
-	APIHost       string `json:"API_HOST" yaml:"API_HOST"`
-	Version       string `json:"VERSION" yaml:"VERSION"`
-	RedisHost     string `json:"REDIS_HOST" yaml:"REDIS_HOST"`
-	RedisPort     string `json:"REDIS_PORT" yaml:"REDIS_PORT"`
-	RedisUsername string `json:"REDIS_USERNAME" yaml:"REDIS_USERNAME"`
-	RedisPassword string `json:"REDIS_PASSWORD" yaml:"REDIS_PASSWORD"`
-	RedisDB       int    `json:"REDIS_DB" yaml:"REDIS_DB"`
+	Port           string `json:"PORT" yaml:"PORT"`
+	DBHost         string `json:"DB_HOST" yaml:"DB_HOST"`
+	DBPort         int    `json:"DB_PORT" yaml:"DB_PORT"`
+	DBName         string `json:"DB_NAME" yaml:"DB_NAME"`
+	DBUser         string `json:"DB_USER" yaml:"DB_USER"`
+	DBPassword     string `json:"DB_PASSWORD" yaml:"DB_PASSWORD"`
+	AdminJWTSecret string `json:"ADMIN_JWT_SECRET" yaml:"ADMIN_JWT_SECRET"`
+	JWTSecret      string `json:"JWT_SECRET" yaml:"JWT_SECRET"`
+	JWTExpiresIn   string `json:"JWT_EXPIRES_IN" yaml:"JWT_EXPIRES_IN"`
+	APIHost        string `json:"API_HOST" yaml:"API_HOST"`
+	Version        string `json:"VERSION" yaml:"VERSION"`
+	RedisHost      string `json:"REDIS_HOST" yaml:"REDIS_HOST"`
+	RedisPort      string `json:"REDIS_PORT" yaml:"REDIS_PORT"`
+	RedisUsername  string `json:"REDIS_USERNAME" yaml:"REDIS_USERNAME"`
+	RedisPassword  string `json:"REDIS_PASSWORD" yaml:"REDIS_PASSWORD"`
+	RedisDB        int    `json:"REDIS_DB" yaml:"REDIS_DB"`
 }
 
 func (c *Config) GetDatabaseHost() string {

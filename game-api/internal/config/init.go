@@ -49,6 +49,7 @@ func initializeConfig() *Config {
 
 	// JWT 設置
 	cfg.JWT.SecretKey = getEnv("JWT_SECRET", "your-secret-key-here")
+	cfg.JWT.AdminSecretKey = getEnv("JWT_SECRET", "your-secret-key-here-admin")
 	cfg.JWT.TokenExpiration = int64(getEnvAsInt("JWT_EXPIRES_IN", 86400))
 
 	// Redis 設置

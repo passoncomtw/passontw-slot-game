@@ -95,6 +95,27 @@ func (s *AuthService) ValidateToken(token string) (string, error) {
 	return claims.UserID, nil
 }
 
+// ValidateAdminToken 驗證管理員 JWT 令牌
+func (s *AuthService) ValidateAdminToken(token string) (string, error) {
+	claims := &Claims{}
+	parsedToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("意外的簽名方法: %v", token.Header["alg"])
+		}
+		return []byte(s.config.JWT.AdminSecretKey), nil
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	if !parsedToken.Valid {
+		return "", errors.New("無效的令牌")
+	}
+
+	return claims.UserID, nil
+}
+
 // ParseToken 解析 JWT 令牌數據
 func (s *AuthService) ParseToken(token string) (*models.TokenData, error) {
 	claims := &Claims{}
@@ -103,6 +124,26 @@ func (s *AuthService) ParseToken(token string) (*models.TokenData, error) {
 			return nil, fmt.Errorf("意外的簽名方法: %v", token.Header["alg"])
 		}
 		return []byte(s.config.JWT.SecretKey), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.TokenData{
+		UserID: claims.UserID,
+		Role:   claims.Role,
+	}, nil
+}
+
+// ParseAdminToken 解析管理員 JWT 令牌數據
+func (s *AuthService) ParseAdminToken(token string) (*models.TokenData, error) {
+	claims := &Claims{}
+	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("意外的簽名方法: %v", token.Header["alg"])
+		}
+		return []byte(s.config.JWT.AdminSecretKey), nil
 	})
 
 	if err != nil {

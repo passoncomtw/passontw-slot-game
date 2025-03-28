@@ -82,6 +82,9 @@ func updateConfigFromNacos(cfg *Config, nacosConfig *NacosAppConfig) {
 	if nacosConfig.JWTSecret != "" {
 		cfg.JWT.SecretKey = nacosConfig.JWTSecret
 	}
+	if nacosConfig.AdminJWTSecret != "" {
+		cfg.JWT.AdminSecretKey = nacosConfig.AdminJWTSecret
+	}
 	if nacosConfig.JWTExpiresIn != "" {
 		duration, err := time.ParseDuration(nacosConfig.JWTExpiresIn)
 		if err == nil {

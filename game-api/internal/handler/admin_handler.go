@@ -70,7 +70,7 @@ func (h *AdminHandler) AdminLogin(c *gin.Context) {
 // @Failure 401 {object} interfaces.ErrorResponse "未授權"
 // @Failure 403 {object} interfaces.ErrorResponse "禁止訪問"
 // @Failure 500 {object} interfaces.ErrorResponse "服務器錯誤"
-// @Security BearerAuth
+// @Security Bearer
 // @Router /api/admin/users [get]
 func (h *AdminHandler) GetUserList(c *gin.Context) {
 	var req models.AdminUserListRequest
@@ -113,7 +113,7 @@ func (h *AdminHandler) GetUserList(c *gin.Context) {
 // @Failure 403 {object} interfaces.ErrorResponse "禁止訪問"
 // @Failure 404 {object} interfaces.ErrorResponse "用戶不存在"
 // @Failure 500 {object} interfaces.ErrorResponse "服務器錯誤"
-// @Security BearerAuth
+// @Security Bearer
 // @Router /api/admin/users/status [put]
 func (h *AdminHandler) ChangeUserStatus(c *gin.Context) {
 	var req models.AdminChangeUserStatusRequest
@@ -146,7 +146,7 @@ func (h *AdminHandler) ChangeUserStatus(c *gin.Context) {
 // @Failure 403 {object} interfaces.ErrorResponse "禁止訪問"
 // @Failure 404 {object} interfaces.ErrorResponse "用戶不存在"
 // @Failure 500 {object} interfaces.ErrorResponse "服務器錯誤"
-// @Security BearerAuth
+// @Security Bearer
 // @Router /api/admin/users/deposit [post]
 func (h *AdminHandler) DepositForUser(c *gin.Context) {
 	var req models.AdminDepositRequest

@@ -83,7 +83,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 // @Tags users
 // @Accept json
 // @Produce json
-// @Security ApiKeyAuth
+// @Security Bearer
 // @Success 200 {object} models.UserProfileResponse
 // @Failure 401 {object} interfaces.ErrorResponse
 // @Failure 500 {object} interfaces.ErrorResponse
@@ -110,7 +110,7 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 // @Tags users
 // @Accept json
 // @Produce json
-// @Security ApiKeyAuth
+// @Security Bearer
 // @Param request body models.UpdateProfileRequest true "更新信息"
 // @Success 200 {object} SuccessResponse
 // @Failure 400 {object} interfaces.ErrorResponse
@@ -145,7 +145,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 // @Tags users
 // @Accept json
 // @Produce json
-// @Security ApiKeyAuth
+// @Security Bearer
 // @Param request body models.UpdateSettingsRequest true "設定信息"
 // @Success 200 {object} SuccessResponse
 // @Failure 400 {object} interfaces.ErrorResponse

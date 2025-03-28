@@ -15,11 +15,15 @@ import (
 	"game-api/internal/interfaces"
 	"game-api/pkg/databaseManager"
 	"game-api/pkg/logger"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 )
 
 type AdminServiceImpl struct {
 	db             *gorm.DB
 	jwtSecret      []byte
+	adminJwtSecret []byte
 	accessTokenExp time.Duration
 	logger         logger.Logger
 }
@@ -33,6 +37,7 @@ func NewAdminService(
 	return &AdminServiceImpl{
 		db:             db.GetDB(),
 		jwtSecret:      []byte(cfg.JWT.SecretKey),
+		adminJwtSecret: []byte(cfg.JWT.AdminSecretKey),
 		accessTokenExp: time.Duration(cfg.JWT.TokenExpiration) * time.Second,
 		logger:         logger,
 	}
@@ -58,17 +63,36 @@ func (s *AdminServiceImpl) AdminLogin(ctx context.Context, req models.AdminLogin
 	// 3. 更新最後登錄時間
 	now := time.Now()
 	// 使用數據庫直接更新，避免結構體類型不匹配問題
-	if err := s.db.Model(&admin).Update("last_login", now).Error; err != nil {
+	if err := s.db.Model(&admin).Update("last_login_at", now).Error; err != nil {
 		return nil, fmt.Errorf("更新登錄時間失敗: %w", err)
 	}
 
-	// 4. 生成JWT令牌 (使用應用已有的方式生成)
-	// 這裡假設我們使用一個簡單的令牌生成方式
-	token := "admin_token_" + admin.Email // 實際應用中應使用JWT等安全方式
+	// 4. 生成JWT令牌
+	expirationTime := time.Now().Add(s.accessTokenExp)
+	expiresAt := expirationTime.Unix()
+
+	// 創建 JWT Claims
+	claims := jwt.MapClaims{
+		"admin_id": admin.ID,
+		"email":    admin.Email,
+		"role":     admin.Role,
+		"exp":      expiresAt,
+		"iat":      time.Now().Unix(),
+		"jti":      uuid.New().String(),
+	}
+
+	// 創建 token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// 簽名生成 token 字符串
+	tokenString, err := token.SignedString(s.adminJwtSecret)
+	if err != nil {
+		return nil, fmt.Errorf("生成JWT令牌失敗: %w", err)
+	}
 
 	// 5. 構建響應
 	response := &models.LoginResponse{
-		Token:     token,
+		Token:     tokenString,
 		TokenType: "Bearer",
 		ExpiresIn: int64(s.accessTokenExp.Seconds()),
 	}

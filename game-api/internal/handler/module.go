@@ -12,6 +12,7 @@ var Module = fx.Options(
 		NewBetHandler,
 		NewAdminHandler,
 		NewGameHandler,
+		NewTransactionHandler,
 	),
 	fx.Invoke(StartServer),
 )

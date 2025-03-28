@@ -19,4 +19,9 @@ var Module = fx.Options(
 			return NewGameService(db.GetDB(), logger)
 		},
 	),
+	fx.Provide(
+		func(db databaseManager.DatabaseManager, logger logger.Logger) interfaces.TransactionService {
+			return NewTransactionService(db.GetDB(), logger)
+		},
+	),
 )

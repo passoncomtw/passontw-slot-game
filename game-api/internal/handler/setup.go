@@ -2,10 +2,15 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // SetupRoutes 設置所有API路由
 func SetupRoutes(router *gin.Engine, authHandler *AuthHandler, userHandler *UserHandler, betHandler *BetHandler) {
+	// Swagger UI
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// 健康檢查
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{

@@ -69,7 +69,8 @@ var RouterModule = fx.Options(
 			logger.Info("Gin HTTP 服務已啟動",
 				zap.String("host", hostIP),
 				zap.Uint64("port", cfg.Server.Port),
-				zap.String("url", fmt.Sprintf("http://%s:%d", hostIP, cfg.Server.Port)))
+				zap.String("url", fmt.Sprintf("http://%s:%d", hostIP, cfg.Server.Port)),
+				zap.String("swagger_url", fmt.Sprintf("http://%s:%d/swagger/index.html", hostIP, cfg.Server.Port)))
 
 			// 創建 Gin 引擎
 			r := gin.New()
@@ -111,6 +112,10 @@ var RouterModule = fx.Options(
 					// 在 goroutine 中啟動服務器
 					go func() {
 						addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+						logger.Info("正在啟動 HTTP 服務器...",
+							zap.String("address", addr),
+							zap.String("swagger_url", fmt.Sprintf("http://%s:%d/swagger/index.html", cfg.Server.Host, cfg.Server.Port)))
+
 						if err := r.Run(addr); err != nil {
 							logger.Error("服務器啟動失敗", zap.Error(err))
 						}

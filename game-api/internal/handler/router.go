@@ -29,7 +29,7 @@ func NewRouter(
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(configureCORS())
-	r.GET("/api-docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, SuccessResponse{Message: "Service is healthy"})
@@ -82,7 +82,50 @@ func configureCORS() gin.HandlerFunc {
 	}
 }
 
-func StartServer(cfg *config.Config, router *gin.Engine) {
-	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	router.Run(addr)
+func StartServer(
+	cfg *config.Config,
+	router *gin.Engine,
+	authHandler *AuthHandler,
+	userHandler *UserHandler,
+	betHandler *BetHandler,
+	wsHandler *websocketManager.WebSocketHandler,
+) {
+	// 配置路由
+	router.Use(configureCORS())
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, SuccessResponse{Message: "Service is healthy"})
+	})
+
+	router.GET("/ws", wsHandler.HandleConnection)
+
+	api := router.Group("/api/v1")
+	{
+		// 公開路由
+		auth := api.Group("/auth")
+		{
+			auth.POST("/login", authHandler.Login)
+		}
+
+		// 用戶公開路由
+		api.POST("/users", userHandler.Register)
+
+		// 需要認證的路由
+		authorized := api.Group("/")
+		authorized.Use(authHandler.AuthMiddleware())
+		{
+			// 用戶相關
+			authorized.GET("/users/profile", userHandler.GetProfile)
+			authorized.PUT("/users/profile", userHandler.UpdateProfile)
+			authorized.PUT("/users/settings", userHandler.UpdateSettings)
+
+			// 投注相關
+			authorized.GET("/bets/history", betHandler.GetBetHistory)
+			authorized.GET("/bets/:session_id", betHandler.GetBetDetail)
+		}
+	}
+
+	// 服務已設置，但不在這裡啟動，而是讓RouterModule負責啟動
+	fmt.Printf("服務器已配置，包括Swagger UI (http://%s:%d/swagger/index.html)\n", cfg.Server.Host, cfg.Server.Port)
 }

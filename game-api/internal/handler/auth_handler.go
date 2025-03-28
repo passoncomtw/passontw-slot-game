@@ -33,9 +33,9 @@ func NewAuthHandler(authService interfaces.AuthService, log logger.Logger) *Auth
 // @Produce json
 // @Param login body models.LoginRequest true "登入信息"
 // @Success 200 {object} models.LoginResponse "成功"
-// @Failure 400 {object} models.ErrorResponse "請求錯誤"
-// @Failure 401 {object} models.ErrorResponse "未授權"
-// @Failure 500 {object} models.ErrorResponse "服務器錯誤"
+// @Failure 400 {object} interfaces.ErrorResponse "請求錯誤"
+// @Failure 401 {object} interfaces.ErrorResponse "未授權"
+// @Failure 500 {object} interfaces.ErrorResponse "服務器錯誤"
 // @Router /api/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req models.LoginRequest

@@ -3,10 +3,12 @@ package config
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"game-api/pkg/logger"
 	"game-api/pkg/nacosManager"
 
+	"github.com/nacos-group/nacos-sdk-go/vo"
 	"go.uber.org/fx"
 	"gopkg.in/yaml.v3"
 )
@@ -90,12 +92,78 @@ func setupConfigListener(nacosClient nacosManager.NacosClient, logger logger.Log
 }
 
 func registerServiceToNacos(nacosClient nacosManager.NacosClient, logger logger.Logger, cfg *Config) {
+	// 檢查 Nacos 客戶端是否有效
+	if nacosClient == nil {
+		logger.Info("Nacos 客戶端為空，無法註冊服務")
+		return
+	}
+
+	// 創建註冊參數
 	param := createServiceRegistrationParam(cfg)
 
-	success, err := nacosClient.RegisterInstance(param)
-	if err != nil {
-		logger.Info(fmt.Sprintf("註冊服務到Nacos失敗: %v", err))
-	} else if success {
-		logger.Info("服務已成功註冊到Nacos")
+	// 輸出詳細的註冊信息
+	logger.Info(fmt.Sprintf("正在嘗試註冊服務到 Nacos: ServiceName=%s, IP=%s, Port=%d, Group=%s, Version=%s",
+		param.ServiceName, param.Ip, param.Port, param.GroupName, param.Metadata["version"]))
+
+	// 嘗試多次註冊
+	maxRetries := 3
+	retryCount := 0
+	registerSuccess := false
+	var lastError error
+
+	for retryCount < maxRetries && !registerSuccess {
+		if retryCount > 0 {
+			logger.Info(fmt.Sprintf("重試註冊服務到 Nacos (第 %d 次嘗試)", retryCount+1))
+			time.Sleep(time.Duration(retryCount) * time.Second) // 增加重試間隔
+		}
+
+		success, err := nacosClient.RegisterInstance(param)
+		if err != nil {
+			lastError = err
+			logger.Info(fmt.Sprintf("第 %d 次註冊服務到 Nacos 失敗: %v", retryCount+1, err))
+			retryCount++
+			continue
+		}
+
+		if success {
+			registerSuccess = true
+			logger.Info("服務已成功註冊到 Nacos")
+
+			// 註冊成功後，檢查服務是否可被發現
+			checkParam := vo.GetServiceParam{
+				ServiceName: param.ServiceName,
+				GroupName:   param.GroupName,
+			}
+
+			// 不阻塞主流程，使用 goroutine 進行檢查
+			go func() {
+				time.Sleep(1 * time.Second) // 等待註冊生效
+
+				service, err := nacosClient.GetService(checkParam)
+				if err != nil {
+					logger.Info(fmt.Sprintf("無法獲取已註冊的服務信息: %v", err))
+					return
+				}
+
+				logger.Info(fmt.Sprintf("服務註冊確認: 服務名=%s, 實例數=%d",
+					service.Name, len(service.Hosts)))
+
+				for i, host := range service.Hosts {
+					if i < 5 { // 只顯示前 5 個實例
+						logger.Info(fmt.Sprintf("實例 #%d: IP=%s, Port=%d, Healthy=%t",
+							i+1, host.Ip, host.Port, host.Healthy))
+					}
+				}
+			}()
+
+			break
+		} else {
+			logger.Info(fmt.Sprintf("第 %d 次註冊服務到 Nacos 返回失敗", retryCount+1))
+			retryCount++
+		}
+	}
+
+	if !registerSuccess {
+		logger.Info(fmt.Sprintf("在 %d 次嘗試後，註冊服務到 Nacos 失敗: %v", maxRetries, lastError))
 	}
 }

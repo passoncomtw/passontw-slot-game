@@ -15,6 +15,7 @@ func initializeConfig() *Config {
 
 	cfg := &Config{}
 
+	// Nacos 設置
 	cfg.EnableNacos = getEnvAsBool("ENABLE_NACOS", false)
 	cfg.Nacos.Host = getEnv("NACOS_HOST", "localhost")
 	nacosPort := getEnvAsInt("NACOS_PORT", 8848)

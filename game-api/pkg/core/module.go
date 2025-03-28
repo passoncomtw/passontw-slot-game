@@ -11,6 +11,7 @@ import (
 	redis "game-api/pkg/redisManager"
 	"game-api/pkg/websocketManager"
 
+	"net"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -52,6 +53,24 @@ var RouterModule = fx.Options(
 			// 預設為調試模式，如果是生產環境，可以透過環境變數設置
 			gin.SetMode(gin.DebugMode)
 
+			// 記錄服務啟動信息
+			hostIP := cfg.Server.Host
+			if hostIP == "localhost" || hostIP == "127.0.0.1" {
+				// 嘗試獲取實際 IP 顯示給使用者
+				if externalIP, err := getOutboundIP(); err == nil {
+					logger.Info("服務將在多個 IP 地址上可訪問",
+						zap.String("external_ip", externalIP),
+						zap.Uint64("port", cfg.Server.Port),
+						zap.String("url", fmt.Sprintf("http://%s:%d", externalIP, cfg.Server.Port)))
+				}
+			}
+
+			// 打印標準的訪問地址
+			logger.Info("Gin HTTP 服務已啟動",
+				zap.String("host", hostIP),
+				zap.Uint64("port", cfg.Server.Port),
+				zap.String("url", fmt.Sprintf("http://%s:%d", hostIP, cfg.Server.Port)))
+
 			// 創建 Gin 引擎
 			r := gin.New()
 
@@ -82,6 +101,26 @@ var RouterModule = fx.Options(
 			)
 
 			return r
+		},
+	),
+	// 啟動 HTTP 服務器
+	fx.Invoke(
+		func(lc fx.Lifecycle, cfg *config.Config, r *gin.Engine, logger *zap.Logger) {
+			lc.Append(fx.Hook{
+				OnStart: func(ctx context.Context) error {
+					// 在 goroutine 中啟動服務器
+					go func() {
+						addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+						if err := r.Run(addr); err != nil {
+							logger.Error("服務器啟動失敗", zap.Error(err))
+						}
+					}()
+					return nil
+				},
+				OnStop: func(ctx context.Context) error {
+					return nil
+				},
+			})
 		},
 	),
 )
@@ -197,3 +236,15 @@ var Module = fx.Options(
 	LoggerModule,
 	RouterModule,
 )
+
+// 獲取本機對外 IP 地址
+func getOutboundIP() (string, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP.String(), nil
+}

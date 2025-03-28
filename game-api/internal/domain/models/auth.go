@@ -24,3 +24,8 @@ type TokenData struct {
 	UserID string `json:"user_id"`
 	Role   string `json:"role"`
 }
+
+// TokenResponse 代表認證 token 的回應
+type TokenResponse struct {
+	Token string `json:"token"`
+}

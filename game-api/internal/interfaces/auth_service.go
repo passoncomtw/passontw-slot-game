@@ -21,4 +21,7 @@ type AuthService interface {
 
 	// 解析JWT令牌數據
 	ParseToken(token string) (*models.TokenData, error)
+
+	// 撤銷令牌
+	RevokeToken(token string) error
 }

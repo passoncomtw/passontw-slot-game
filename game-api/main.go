@@ -36,10 +36,9 @@ func main() {
 	}
 
 	app := fx.New(
-		core.Module,
-
 		config.Module,
 		service.Module,
+		core.Module,
 		handler.Module,
 	)
 

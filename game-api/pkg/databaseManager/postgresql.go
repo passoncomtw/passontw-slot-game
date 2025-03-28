@@ -19,14 +19,6 @@ type PostgresConfig struct {
 	Name     string
 }
 
-// DatabaseManager 提供數據庫操作的介面
-type DatabaseManager interface {
-	// 獲取 GORM DB 實例
-	GetDB() *gorm.DB
-	// 關閉數據庫連接
-	Close() error
-}
-
 // postgresManagerImpl 是 DatabaseManager 介面的實作
 type postgresManagerImpl struct {
 	db *gorm.DB
@@ -44,6 +36,76 @@ func (p *postgresManagerImpl) Close() error {
 		return fmt.Errorf("failed to get database instance: %w", err)
 	}
 	return sqlDB.Close()
+}
+
+// Transaction 實現事務操作
+func (p *postgresManagerImpl) Transaction(ctx context.Context, fc func(tx *gorm.DB) error) error {
+	return p.db.WithContext(ctx).Transaction(fc)
+}
+
+// Create 創建一個記錄
+func (p *postgresManagerImpl) Create(ctx context.Context, value interface{}) error {
+	return p.db.WithContext(ctx).Create(value).Error
+}
+
+// Save 更新一個記錄
+func (p *postgresManagerImpl) Save(ctx context.Context, value interface{}) error {
+	return p.db.WithContext(ctx).Save(value).Error
+}
+
+// Updates 更新多個字段
+func (p *postgresManagerImpl) Updates(ctx context.Context, model interface{}, values interface{}) error {
+	return p.db.WithContext(ctx).Model(model).Updates(values).Error
+}
+
+// Delete 刪除一個記錄
+func (p *postgresManagerImpl) Delete(ctx context.Context, value interface{}) error {
+	return p.db.WithContext(ctx).Delete(value).Error
+}
+
+// Find 查詢多個記錄
+func (p *postgresManagerImpl) Find(ctx context.Context, dest interface{}, conds ...interface{}) error {
+	return p.db.WithContext(ctx).Find(dest, conds...).Error
+}
+
+// First 查詢單個記錄
+func (p *postgresManagerImpl) First(ctx context.Context, dest interface{}, conds ...interface{}) error {
+	return p.db.WithContext(ctx).First(dest, conds...).Error
+}
+
+// Where 使用條件查詢
+func (p *postgresManagerImpl) Where(query interface{}, args ...interface{}) *gorm.DB {
+	return p.db.Where(query, args...)
+}
+
+// Order 排序
+func (p *postgresManagerImpl) Order(value string) *gorm.DB {
+	return p.db.Order(value)
+}
+
+// Limit 限制結果數量
+func (p *postgresManagerImpl) Limit(limit int) *gorm.DB {
+	return p.db.Limit(limit)
+}
+
+// Offset 設置結果偏移量
+func (p *postgresManagerImpl) Offset(offset int) *gorm.DB {
+	return p.db.Offset(offset)
+}
+
+// Count 計算記錄數量
+func (p *postgresManagerImpl) Count(ctx context.Context, model interface{}, count *int64) error {
+	return p.db.WithContext(ctx).Model(model).Count(count).Error
+}
+
+// Model 設置操作的模型
+func (p *postgresManagerImpl) Model(value interface{}) *gorm.DB {
+	return p.db.Model(value)
+}
+
+// Preload 預加載關聯
+func (p *postgresManagerImpl) Preload(query string, args ...interface{}) *gorm.DB {
+	return p.db.Preload(query, args...)
 }
 
 // NewPostgresManager 創建一個新的 PostgreSQL 數據庫管理器

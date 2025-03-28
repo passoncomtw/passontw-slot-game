@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"game-api/internal/config"
-	"game-api/internal/interfaces"
+	"game-api/internal/domain/interfaces"
 	"game-api/pkg/databaseManager"
 	"game-api/pkg/logger"
 	"game-api/pkg/nacosManager"
@@ -149,9 +149,11 @@ var WebSocketModule = fx.Options(
 		// 提供 WebSocket 管理器
 		fx.Annotate(
 			func(authService interfaces.AuthService) *websocketManager.Manager {
-				// 創建適配器函數，將 string 轉換為 uint
+				// 創建適配器函數，將 AuthService.ValidateToken 轉換為 websocketManager 所需的格式
 				authAdapter := func(token string) (uint, error) {
-					userID, err := authService.ValidateToken(token)
+					// 使用背景上下文調用 ValidateToken
+					ctx := context.Background()
+					userID, err := authService.ValidateToken(ctx, token)
 					if err != nil {
 						return 0, err
 					}
@@ -165,7 +167,6 @@ var WebSocketModule = fx.Options(
 				}
 				return websocketManager.NewManager(authAdapter)
 			},
-			fx.ParamTags(``),
 		),
 		// 提供 WebSocket 處理程序
 		websocketManager.NewWebSocketHandler,

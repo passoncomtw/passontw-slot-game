@@ -1,9 +1,5 @@
 package config
 
-import (
-	"time"
-)
-
 type Config struct {
 	Server      ServerConfig
 	Database    DatabaseConfig
@@ -36,8 +32,8 @@ type RedisConfig struct {
 }
 
 type JWTConfig struct {
-	Secret    string
-	ExpiresIn time.Duration
+	SecretKey       string
+	TokenExpiration int64 // 秒
 }
 
 type NacosConfig struct {

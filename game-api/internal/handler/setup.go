@@ -1,31 +1,41 @@
 package handler
 
 import (
-	"game-api/internal/middleware"
-
 	"github.com/gin-gonic/gin"
 )
 
 // SetupRoutes 設置所有API路由
-func SetupRoutes(router *gin.Engine, authHandler *AuthHandler, userHandler *UserHandler) {
-	// 註冊認證路由
-	api := router.Group("/api")
+func SetupRoutes(router *gin.Engine, authHandler *AuthHandler, userHandler *UserHandler, betHandler *BetHandler) {
+	// 健康檢查
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
 
-	// App用戶認證
-	api.POST("/auth/login", authHandler.AppLogin)
-
-	// 管理員認證
-	admin := api.Group("/admin")
-	admin.POST("/auth/login", authHandler.AdminLogin)
-
-	// 需要認證的管理員路由
-	adminAuth := admin.Group("")
-	adminAuth.Use(middleware.AuthMiddleware(authHandler.authService))
+	// API 路由群組
+	api := router.Group("/api/v1")
 	{
-		adminAuth.GET("/users", userHandler.GetUsers)
-		adminAuth.GET("/users/:user_id", userHandler.GetUserByID)
-		adminAuth.POST("/users", userHandler.CreateUser)
-		adminAuth.POST("/users/deposit", userHandler.DepositToUser)
-		adminAuth.PUT("/users/status", userHandler.ChangeUserStatus)
+		// 公開路由
+		auth := api.Group("/auth")
+		{
+			auth.POST("/login", authHandler.Login)
+		}
+
+		api.POST("/users", userHandler.Register)
+
+		// 需要認證的路由
+		authorized := api.Group("/")
+		authorized.Use(authHandler.AuthMiddleware())
+		{
+			// 用戶相關
+			authorized.GET("/users/profile", userHandler.GetProfile)
+			authorized.PUT("/users/profile", userHandler.UpdateProfile)
+			authorized.PUT("/users/settings", userHandler.UpdateSettings)
+
+			// 投注相關
+			authorized.GET("/bets/history", betHandler.GetBetHistory)
+			authorized.GET("/bets/:session_id", betHandler.GetBetDetail)
+		}
 	}
 }

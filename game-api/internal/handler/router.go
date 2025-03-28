@@ -5,8 +5,6 @@ import (
 	"net/http"
 
 	"game-api/internal/config"
-	"game-api/internal/interfaces"
-	"game-api/internal/middleware"
 	"game-api/pkg/websocketManager"
 
 	"github.com/gin-gonic/gin"
@@ -22,13 +20,11 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-type UserResponse = interfaces.User
-
 func NewRouter(
 	cfg *config.Config,
 	authHandler *AuthHandler,
 	userHandler *UserHandler,
-	authService interfaces.AuthService,
+	betHandler *BetHandler,
 	wsHandler *websocketManager.WebSocketHandler,
 ) *gin.Engine {
 	r := gin.Default()
@@ -43,8 +39,28 @@ func NewRouter(
 
 	api := r.Group("/api/v1")
 	{
-		configurePublicRoutes(api, authHandler, userHandler)
-		configureAuthenticatedRoutes(api, authHandler, userHandler, authService)
+		// 公開路由
+		auth := api.Group("/auth")
+		{
+			auth.POST("/login", authHandler.Login)
+		}
+
+		// 用戶公開路由
+		api.POST("/users", userHandler.Register)
+
+		// 需要認證的路由
+		authorized := api.Group("/")
+		authorized.Use(authHandler.AuthMiddleware())
+		{
+			// 用戶相關
+			authorized.GET("/users/profile", userHandler.GetProfile)
+			authorized.PUT("/users/profile", userHandler.UpdateProfile)
+			authorized.PUT("/users/settings", userHandler.UpdateSettings)
+
+			// 投注相關
+			authorized.GET("/bets/history", betHandler.GetBetHistory)
+			authorized.GET("/bets/:session_id", betHandler.GetBetDetail)
+		}
 	}
 
 	return r
@@ -66,21 +82,7 @@ func configureCORS() gin.HandlerFunc {
 	}
 }
 
-func configurePublicRoutes(api *gin.RouterGroup, authHandler *AuthHandler, userHandler *UserHandler) {
-	// api.POST("/auth", authHandler.UserLogin)
-	api.POST("/users", userHandler.CreateUser)
-}
-
-func configureAuthenticatedRoutes(api *gin.RouterGroup, authHandler *AuthHandler, userHandler *UserHandler, authService interfaces.AuthService) {
-	authorized := api.Group("/")
-	authorized.Use(middleware.AuthMiddleware(authService))
-
-	// authorized.POST("/auth/logout", authHandler.UserLogout)
-	// authorized.POST("/auth/token", authHandler.ValidateToken)
-	authorized.GET("/users", userHandler.GetUsers)
-}
-
 func StartServer(cfg *config.Config, router *gin.Engine) {
-	addr := fmt.Sprintf(":%d", cfg.Server.Port)
+	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	router.Run(addr)
 }

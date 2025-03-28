@@ -3,170 +3,87 @@ package service
 import (
 	"context"
 	"errors"
-	"game-api/internal/config"
-	"game-api/internal/domain/entity"
-	"game-api/internal/domain/models"
-	"game-api/internal/interfaces"
+	"fmt"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
+	"game-api/internal/config"
+	"game-api/internal/domain/interfaces"
+	"game-api/pkg/logger"
+
+	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
-// AuthService 認證服務實現
+// AuthService 提供身份驗證功能
 type AuthService struct {
 	config *config.Config
+	log    logger.Logger
 }
 
-// NewAuthService 創建認證服務
-func NewAuthService(cfg *config.Config) interfaces.AuthService {
+// NewAuthService 創建一個新的 AuthService 實例
+func NewAuthService(config *config.Config, log logger.Logger) interfaces.AuthService {
 	return &AuthService{
-		config: cfg,
+		config: config,
+		log:    log,
 	}
 }
 
-// AppLogin App用戶登入
-func (s *AuthService) AppLogin(ctx context.Context, req models.AppLoginRequest) (*models.LoginResponse, error) {
-	// 簡化實現，僅作為測試
-	// 在正式環境中，應該從數據庫查詢用戶並驗證密碼
-
-	// 模擬一個用戶
-	user := &entity.AppUser{
-		ID:       "1",
-		Username: req.Username,
-		Role:     entity.RoleUser,
-	}
-
-	// 生成令牌
-	tokenData := models.TokenData{
-		UserID: user.ID,
-		Role:   string(user.Role),
-	}
-
-	token, expiresIn, err := s.GenerateToken(tokenData)
-	if err != nil {
-		return nil, err
-	}
-
-	return &models.LoginResponse{
-		Token:     token,
-		TokenType: "Bearer",
-		ExpiresIn: expiresIn,
-	}, nil
+// Claims 是 JWT 的標準聲明
+type Claims struct {
+	UserID string `json:"user_id"`
+	Role   string `json:"role"`
+	jwt.StandardClaims
 }
 
-// AdminLogin 管理員登入
-func (s *AuthService) AdminLogin(ctx context.Context, req models.AdminLoginRequest) (*models.LoginResponse, error) {
-	// 簡化實現，僅作為測試
-	// 在正式環境中，應該從數據庫查詢管理員並驗證密碼
-
-	// 模擬一個管理員
-	admin := &entity.Admin{
-		ID:    "2",
-		Email: req.Email,
-		Role:  "admin",
-	}
-
-	// 生成令牌
-	tokenData := models.TokenData{
-		UserID: admin.ID,
-		Role:   admin.Role,
-	}
-
-	token, expiresIn, err := s.GenerateToken(tokenData)
-	if err != nil {
-		return nil, err
-	}
-
-	return &models.LoginResponse{
-		Token:     token,
-		TokenType: "Bearer",
-		ExpiresIn: expiresIn,
-	}, nil
-}
-
-// GenerateToken 生成JWT令牌
-func (s *AuthService) GenerateToken(data models.TokenData) (string, int64, error) {
-	expirationTime := time.Now().Add(time.Hour * 24) // 默認24小時過期
-	claims := jwt.MapClaims{
-		"user_id": data.UserID,
-		"role":    data.Role,
-		"exp":     expirationTime.Unix(),
-		"iat":     time.Now().Unix(),
-		"jti":     uuid.New().String(),
+// GenerateToken 為用戶創建一個新的 JWT 令牌
+func (s *AuthService) GenerateToken(ctx context.Context, userID string) (string, error) {
+	expirationTime := time.Now().Add(time.Duration(s.config.JWT.TokenExpiration) * time.Second)
+	claims := &Claims{
+		UserID: userID,
+		Role:   "user", // 預設角色
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expirationTime.Unix(),
+			IssuedAt:  time.Now().Unix(),
+			Id:        uuid.New().String(),
+		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(s.config.JWT.Secret))
+	tokenString, err := token.SignedString([]byte(s.config.JWT.SecretKey))
 	if err != nil {
-		return "", 0, errors.New("無法生成令牌")
+		s.log.Error("生成令牌失敗", zap.Error(err))
+		return "", err
 	}
 
-	expiresIn := int64(expirationTime.Sub(time.Now()).Seconds())
-	return tokenString, expiresIn, nil
+	return tokenString, nil
 }
 
-// ValidateToken 驗證JWT令牌
-func (s *AuthService) ValidateToken(tokenString string) (string, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// 驗證簽名方法
+// ValidateToken 驗證並解析 JWT 令牌
+func (s *AuthService) ValidateToken(ctx context.Context, tokenString string) (string, error) {
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("無效的簽名方法")
+			return nil, fmt.Errorf("意外的簽名方法: %v", token.Header["alg"])
 		}
-
-		return []byte(s.config.JWT.Secret), nil
+		return []byte(s.config.JWT.SecretKey), nil
 	})
 
 	if err != nil {
-		return "", errors.New("無效的令牌")
+		return "", err
 	}
 
-	// 驗證令牌格式和簽名
 	if !token.Valid {
 		return "", errors.New("無效的令牌")
 	}
 
-	// 獲取用戶ID
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return "", errors.New("無效的令牌聲明")
-	}
-
-	userID, ok := claims["user_id"].(string)
-	if !ok {
-		return "", errors.New("無效的用戶ID")
-	}
-
-	return userID, nil
+	return claims.UserID, nil
 }
 
-// ParseToken 解析JWT令牌數據
-func (s *AuthService) ParseToken(tokenString string) (*models.TokenData, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return []byte(s.config.JWT.Secret), nil
-	})
-
-	if err != nil || !token.Valid {
-		return nil, errors.New("無效的令牌")
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, errors.New("無效的令牌聲明")
-	}
-
-	userID, ok := claims["user_id"].(string)
-	if !ok {
-		return nil, errors.New("無效的用戶ID")
-	}
-
-	role, ok := claims["role"].(string)
-	if !ok {
-		return nil, errors.New("無效的角色")
-	}
-
-	return &models.TokenData{
-		UserID: userID,
-		Role:   role,
-	}, nil
+// RevokeToken 撤銷 JWT 令牌
+func (s *AuthService) RevokeToken(ctx context.Context, token string) error {
+	// 實現撤銷令牌的邏輯，可能需要將令牌添加到黑名單中
+	// 這裡只是一個示例，實際實現可能需要使用 Redis 或數據庫來存儲已撤銷的令牌
+	s.log.Info("令牌撤銷", zap.String("token", token))
+	return nil
 }

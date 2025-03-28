@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // 分頁請求
 type PaginationRequest struct {
@@ -73,4 +77,79 @@ type UserResponse struct {
 type OperationResponse struct {
 	Success bool   `json:"success" example:"true"`
 	Message string `json:"message" example:"操作成功"`
+}
+
+type User struct {
+	UserID         uuid.UUID `json:"user_id"`
+	Username       string    `json:"username"`
+	Email          string    `json:"email"`
+	PasswordHash   string    `json:"-"`
+	AuthProvider   string    `json:"auth_provider"`
+	AuthProviderID string    `json:"auth_provider_id"`
+	Role           string    `json:"role"`
+	VipLevel       int       `json:"vip_level"`
+	Points         int       `json:"points"`
+	AvatarURL      string    `json:"avatar_url"`
+	IsVerified     bool      `json:"is_verified"`
+	IsActive       bool      `json:"is_active"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+	LastLoginAt    time.Time `json:"last_login_at"`
+}
+
+type UserSettings struct {
+	UserID             uuid.UUID `json:"user_id"`
+	Sound              bool      `json:"sound"`
+	Music              bool      `json:"music"`
+	Vibration          bool      `json:"vibration"`
+	HighQuality        bool      `json:"high_quality"`
+	AIAssistant        bool      `json:"ai_assistant"`
+	GameRecommendation bool      `json:"game_recommendation"`
+	DataCollection     bool      `json:"data_collection"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+type UserWallet struct {
+	WalletID      uuid.UUID `json:"wallet_id"`
+	UserID        uuid.UUID `json:"user_id"`
+	Balance       float64   `json:"balance"`
+	TotalDeposit  float64   `json:"total_deposit"`
+	TotalWithdraw float64   `json:"total_withdraw"`
+	TotalBet      float64   `json:"total_bet"`
+	TotalWin      float64   `json:"total_win"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// API 請求/響應結構
+type RegisterRequest struct {
+	Username string `json:"username" binding:"required,min=3,max=50"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=8"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}
+
+type UserProfileResponse struct {
+	User     User         `json:"user"`
+	Settings UserSettings `json:"settings"`
+	Wallet   UserWallet   `json:"wallet"`
+}
+
+type UpdateProfileRequest struct {
+	Username  string `json:"username" binding:"omitempty,min=3,max=50"`
+	AvatarURL string `json:"avatar_url" binding:"omitempty,url"`
+}
+
+type UpdateSettingsRequest struct {
+	Sound              *bool `json:"sound"`
+	Music              *bool `json:"music"`
+	Vibration          *bool `json:"vibration"`
+	HighQuality        *bool `json:"high_quality"`
+	AIAssistant        *bool `json:"ai_assistant"`
+	GameRecommendation *bool `json:"game_recommendation"`
+	DataCollection     *bool `json:"data_collection"`
 }

@@ -133,14 +133,42 @@ var WebSocketModule = fx.Options(
 	),
 	// 啟動 WebSocket 管理器
 	fx.Invoke(
-		func(lc fx.Lifecycle, manager *websocketManager.Manager) {
+		func(lc fx.Lifecycle, manager *websocketManager.Manager, logger *zap.Logger) {
+			// 使用獨立的 background context 而不是應用的 context
+			bgCtx, cancel := context.WithCancel(context.Background())
+
 			lc.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {
-					go manager.Start(ctx)
+					logger.Info("Starting WebSocket Manager with independent background context")
+
+					// 使用 goroutine 啟動管理器
+					go func() {
+						// 添加恢復機制
+						defer func() {
+							if r := recover(); r != nil {
+								logger.Error("WebSocket Manager panicked",
+									zap.Any("error", r))
+
+								// 嘗試重新啟動
+								logger.Info("Attempting to restart WebSocket Manager")
+								go manager.Start(bgCtx)
+							}
+						}()
+
+						manager.Start(bgCtx)
+					}()
+
 					return nil
 				},
 				OnStop: func(ctx context.Context) error {
+					logger.Info("Stopping WebSocket Manager")
+
+					// 先取消 context
+					cancel()
+
+					// 然後執行正常關閉程序
 					manager.Shutdown()
+
 					return nil
 				},
 			})

@@ -422,8 +422,19 @@ func (client *Client) ReadPump() {
 	client.closeChan = make(chan struct{})
 
 	defer func() {
-		client.manager.unregister <- client
-		client.Conn.Close()
+		// 確保發生錯誤時正確清理資源
+		log.Printf("WebSocket Client: ReadPump ending for client %s\n", client.ID)
+
+		// 使用 select 避免在通道已滿或已關閉時阻塞
+		select {
+		case client.manager.unregister <- client:
+			log.Printf("WebSocket Client: Client %s queued for unregistration\n", client.ID)
+		default:
+			log.Printf("WebSocket Client: Unregister channel full or closed for client %s, forcing cleanup\n", client.ID)
+
+			// 手動清理
+			client.Conn.Close()
+		}
 	}()
 
 	// 設置讀取參數
@@ -433,9 +444,10 @@ func (client *Client) ReadPump() {
 	// 設置Pong處理器，更新最後活動時間
 	client.Conn.SetPongHandler(func(string) error {
 		client.connMutex.Lock()
+		defer client.connMutex.Unlock()
+
 		client.Conn.SetReadDeadline(time.Now().Add(readTimeout))
 		client.LastActivity = time.Now()
-		client.connMutex.Unlock()
 		return nil
 	})
 
@@ -445,12 +457,15 @@ func (client *Client) ReadPump() {
 	for {
 		select {
 		case <-client.closeChan:
+			log.Printf("WebSocket Client: Client %s received close signal\n", client.ID)
 			return
 		default:
 			_, message, err := client.Conn.ReadMessage()
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					log.Printf("WebSocket Manager: Client %s unexpected close: %v\n", client.ID, err)
+					log.Printf("WebSocket Client: Unexpected close for client %s: %v\n", client.ID, err)
+				} else {
+					log.Printf("WebSocket Client: Normal close or read error for client %s: %v\n", client.ID, err)
 				}
 				return
 			}
@@ -463,7 +478,7 @@ func (client *Client) ReadPump() {
 			// 處理接收到的訊息
 			var msg Message
 			if err := json.Unmarshal(message, &msg); err != nil {
-				log.Printf("WebSocket Manager: Error unmarshaling message from client %s: %v\n", client.ID, err)
+				log.Printf("WebSocket Client: Error unmarshaling message from client %s: %v\n", client.ID, err)
 				continue
 			}
 
@@ -475,59 +490,128 @@ func (client *Client) ReadPump() {
 					Timestamp: time.Now().UnixNano() / int64(time.Millisecond),
 				}
 				responseBytes, _ := json.Marshal(heartbeatResponse)
-				client.Send <- responseBytes
+
+				// 使用 select 避免在通道已滿或已關閉時阻塞
+				select {
+				case client.Send <- responseBytes:
+				default:
+					log.Printf("WebSocket Client: Failed to send heartbeat response to client %s (channel full or closed)\n", client.ID)
+				}
+				continue
+			}
+
+			// 處理認證訊息
+			if msg.Type == "auth" && !client.IsAuthed {
+				if tokenStr, ok := msg.Content.(string); ok {
+					if err := client.manager.AuthenticateClient(client, tokenStr); err != nil {
+						log.Printf("WebSocket Client: Authentication failed for client %s: %v\n", client.ID, err)
+
+						// 發送認證失敗訊息
+						authFailMsg := Message{
+							Type:    "auth_failed",
+							Content: err.Error(),
+						}
+						authFailBytes, _ := json.Marshal(authFailMsg)
+
+						select {
+						case client.Send <- authFailBytes:
+						default:
+							log.Printf("WebSocket Client: Failed to send auth failure message (channel full or closed)\n")
+						}
+					} else {
+						log.Printf("WebSocket Client: Authentication successful for client %s\n", client.ID)
+
+						// 發送認證成功訊息
+						authSuccessMsg := Message{
+							Type:    "auth_success",
+							Content: "Authentication successful",
+						}
+						authSuccessBytes, _ := json.Marshal(authSuccessMsg)
+
+						select {
+						case client.Send <- authSuccessBytes:
+						default:
+							log.Printf("WebSocket Client: Failed to send auth success message (channel full or closed)\n")
+						}
+					}
+				} else {
+					log.Printf("WebSocket Client: Invalid token format from client %s\n", client.ID)
+				}
 				continue
 			}
 
 			// 處理其他訊息...
-			log.Printf("WebSocket Manager: Received message from client %s: %s\n", client.ID, message)
+			log.Printf("WebSocket Client: Received message from client %s: %s\n", client.ID, message)
 		}
 	}
 }
 
 // 客戶端寫入訊息
 func (client *Client) WritePump() {
+	// 確保在發生錯誤時正確清理
 	defer func() {
+		log.Printf("WebSocket Client: WritePump ending for client %s\n", client.ID)
 		client.Conn.Close()
 	}()
 
 	for {
 		select {
 		case <-client.closeChan:
+			log.Printf("WebSocket Client: Client %s received close signal in WritePump\n", client.ID)
+
+			// 嘗試優雅地關閉連接
+			client.connMutex.Lock()
+			err := client.Conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+			client.connMutex.Unlock()
+
+			if err != nil {
+				log.Printf("WebSocket Client: Error sending close message to client %s: %v\n", client.ID, err)
+			}
 			return
+
 		case message, ok := <-client.Send:
 			client.connMutex.Lock()
 			client.Conn.SetWriteDeadline(time.Now().Add(writeTimeout))
-			client.connMutex.Unlock()
 
 			if !ok {
 				// 通道已關閉
-				client.connMutex.Lock()
-				client.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				log.Printf("WebSocket Client: Send channel closed for client %s\n", client.ID)
 				client.connMutex.Unlock()
 				return
 			}
 
-			client.connMutex.Lock()
 			w, err := client.Conn.NextWriter(websocket.TextMessage)
 			if err != nil {
+				log.Printf("WebSocket Client: Failed to get writer for client %s: %v\n", client.ID, err)
 				client.connMutex.Unlock()
 				return
 			}
 
-			w.Write(message)
+			_, err = w.Write(message)
+			if err != nil {
+				log.Printf("WebSocket Client: Error writing message to client %s: %v\n", client.ID, err)
+				client.connMutex.Unlock()
+				return
+			}
 
 			// 將佇列中的其他訊息也一起發送
 			n := len(client.Send)
 			for i := 0; i < n; i++ {
 				w.Write([]byte{'\n'})
-				w.Write(<-client.Send)
+				nextMsg, ok := <-client.Send
+				if !ok {
+					log.Printf("WebSocket Client: Send channel unexpectedly closed during batch send for client %s\n", client.ID)
+					break
+				}
+				w.Write(nextMsg)
 			}
 
 			if err := w.Close(); err != nil {
+				log.Printf("WebSocket Client: Error closing writer for client %s: %v\n", client.ID, err)
 				client.connMutex.Unlock()
 				return
 			}
+
 			client.connMutex.Unlock()
 		}
 	}

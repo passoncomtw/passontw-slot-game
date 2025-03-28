@@ -4,6 +4,8 @@ import (
 	"game-api/internal/interfaces"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -62,5 +64,5 @@ func registerRoutes(router *gin.Engine, authHandler *AuthHandler, userHandler *U
 	})
 
 	// Swagger API 文檔
-	// router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }

@@ -50,6 +50,7 @@ func (h *WebSocketHandler) HandleConnection(c *gin.Context) {
 
 	// 生成客戶端 ID
 	clientID := uuid.New().String()
+	log.Printf("WebSocket Handler: Generated new client ID: %s\n", clientID)
 
 	// 創建新的客戶端
 	client := &Client{
@@ -62,12 +63,34 @@ func (h *WebSocketHandler) HandleConnection(c *gin.Context) {
 		closeChan:    make(chan struct{}),
 	}
 
-	// 註冊客戶端
-	h.manager.register <- client
+	// 安全地發送到註冊通道
+	select {
+	case h.manager.register <- client:
+		log.Printf("WebSocket Handler: Client %s queued for registration\n", clientID)
+	default:
+		log.Printf("WebSocket Handler: Registration channel full, closing connection for client %s\n", clientID)
+		conn.Close()
+		return
+	}
 
-	// 啟動訊息讀取和寫入
-	go client.ReadPump()
-	go client.WritePump()
+	// 啟動訊息讀取和寫入，使用 goroutine 避免阻塞
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("WebSocket Handler: Recovered from panic in ReadPump for client %s: %v\n", clientID, r)
+			}
+		}()
+		client.ReadPump()
+	}()
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("WebSocket Handler: Recovered from panic in WritePump for client %s: %v\n", clientID, r)
+			}
+		}()
+		client.WritePump()
+	}()
 
 	log.Printf("WebSocket Handler: New connection established for client %s\n", clientID)
 }

@@ -1,10 +1,10 @@
 package main
 
 import (
-	"log"
 	"game-api/internal/config"
 	"game-api/internal/handler"
 	"game-api/internal/service"
+	"log"
 
 	_ "game-api/docs"
 	"game-api/pkg/core"

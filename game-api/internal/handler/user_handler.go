@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"game-api/internal/domain/interfaces"
 	"game-api/internal/domain/models"
+	"game-api/internal/interfaces"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -31,19 +31,19 @@ func NewUserHandler(userService interfaces.UserService, logger *zap.Logger) *Use
 // @Produce json
 // @Param request body models.RegisterRequest true "註冊信息"
 // @Success 200 {object} models.User
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 400 {object} interfaces.ErrorResponse
+// @Failure 500 {object} interfaces.ErrorResponse
 // @Router /api/v1/users [post]
 func (h *UserHandler) Register(c *gin.Context) {
 	var req models.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, interfaces.ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	user, err := h.userService.Register(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, interfaces.ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -58,19 +58,19 @@ func (h *UserHandler) Register(c *gin.Context) {
 // @Produce json
 // @Param request body models.LoginRequest true "登入信息"
 // @Success 200 {object} models.TokenResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 401 {object} interfaces.ErrorResponse
+// @Failure 500 {object} interfaces.ErrorResponse
 // @Router /api/v1/users/login [post]
 func (h *UserHandler) Login(c *gin.Context) {
 	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, interfaces.ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	token, err := h.userService.Login(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusUnauthorized, interfaces.ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -85,19 +85,19 @@ func (h *UserHandler) Login(c *gin.Context) {
 // @Produce json
 // @Security ApiKeyAuth
 // @Success 200 {object} models.UserProfileResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 401 {object} interfaces.ErrorResponse
+// @Failure 500 {object} interfaces.ErrorResponse
 // @Router /api/v1/users/profile [get]
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "未授權訪問"})
+		c.JSON(http.StatusUnauthorized, interfaces.ErrorResponse{Error: "未授權訪問"})
 		return
 	}
 
 	profile, err := h.userService.GetProfile(c.Request.Context(), userID.(string))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusInternalServerError, interfaces.ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -113,26 +113,26 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 // @Security ApiKeyAuth
 // @Param request body models.UpdateProfileRequest true "更新信息"
 // @Success 200 {object} SuccessResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 400 {object} interfaces.ErrorResponse
+// @Failure 401 {object} interfaces.ErrorResponse
+// @Failure 500 {object} interfaces.ErrorResponse
 // @Router /api/v1/users/profile [put]
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "未授權訪問"})
+		c.JSON(http.StatusUnauthorized, interfaces.ErrorResponse{Error: "未授權訪問"})
 		return
 	}
 
 	var req models.UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, interfaces.ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	err := h.userService.UpdateProfile(c.Request.Context(), userID.(string), &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusInternalServerError, interfaces.ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -148,26 +148,26 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 // @Security ApiKeyAuth
 // @Param request body models.UpdateSettingsRequest true "設定信息"
 // @Success 200 {object} SuccessResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 400 {object} interfaces.ErrorResponse
+// @Failure 401 {object} interfaces.ErrorResponse
+// @Failure 500 {object} interfaces.ErrorResponse
 // @Router /api/v1/users/settings [put]
 func (h *UserHandler) UpdateSettings(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "未授權訪問"})
+		c.JSON(http.StatusUnauthorized, interfaces.ErrorResponse{Error: "未授權訪問"})
 		return
 	}
 
 	var req models.UpdateSettingsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, interfaces.ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	err := h.userService.UpdateSettings(c.Request.Context(), userID.(string), &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusInternalServerError, interfaces.ErrorResponse{Error: err.Error()})
 		return
 	}
 

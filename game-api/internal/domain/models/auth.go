@@ -6,12 +6,6 @@ type AppLoginRequest struct {
 	Password string `json:"password" binding:"required" example:"password123"`
 }
 
-// AdminLoginRequest 管理員登入請求
-type AdminLoginRequest struct {
-	Email    string `json:"email" binding:"required,email" example:"admin@example.com"`
-	Password string `json:"password" binding:"required" example:"admin123"`
-}
-
 // LoginResponse 登入響應
 type LoginResponse struct {
 	Token     string `json:"token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`

@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"game-api/internal/config"
+	"game-api/internal/interfaces"
+	"game-api/internal/middleware"
 	"game-api/pkg/websocketManager"
 
 	"github.com/gin-gonic/gin"
@@ -25,6 +27,8 @@ func NewRouter(
 	authHandler *AuthHandler,
 	userHandler *UserHandler,
 	betHandler *BetHandler,
+	adminHandler *AdminHandler,
+	authService interfaces.AuthService,
 	wsHandler *websocketManager.WebSocketHandler,
 ) *gin.Engine {
 	r := gin.Default()
@@ -63,6 +67,31 @@ func NewRouter(
 		}
 	}
 
+	adminGroup := r.Group("/api/admin")
+	{
+		// 公開路由
+		adminGroup.POST("/login", adminHandler.AdminLogin)
+
+		// 需要認證的路由
+		authorized := adminGroup.Group("/")
+		authorized.Use(middleware.AdminAuthMiddleware(authService))
+		{
+			// 用戶管理
+			userGroup := authorized.Group("/users")
+			{
+				userGroup.GET("/", adminHandler.GetUserList)
+				userGroup.POST("/status", adminHandler.ChangeUserStatus)
+				userGroup.POST("/deposit", adminHandler.DepositForUser)
+			}
+
+			// 可以添加更多後台管理功能路由，例如：
+			// - 遊戲管理
+			// - 活動管理
+			// - 數據統計
+			// - 系統設置
+		}
+	}
+
 	return r
 }
 
@@ -88,6 +117,7 @@ func StartServer(
 	authHandler *AuthHandler,
 	userHandler *UserHandler,
 	betHandler *BetHandler,
+	adminHandler *AdminHandler,
 	wsHandler *websocketManager.WebSocketHandler,
 ) {
 	// 配置路由
@@ -123,6 +153,26 @@ func StartServer(
 			// 投注相關
 			authorized.GET("/bets/history", betHandler.GetBetHistory)
 			authorized.GET("/bets/:session_id", betHandler.GetBetDetail)
+		}
+	}
+
+	// 添加管理員路由
+	admin := router.Group("/api/admin")
+	{
+		// 公開路由
+		admin.POST("/login", adminHandler.AdminLogin)
+
+		// 需要認證的路由
+		authorized := admin.Group("/")
+		authorized.Use(authHandler.AuthMiddleware()) // 使用現有的 AuthHandler 中間件
+		{
+			// 用戶管理
+			userGroup := authorized.Group("/users")
+			{
+				userGroup.GET("/", adminHandler.GetUserList)
+				userGroup.POST("/status", adminHandler.ChangeUserStatus)
+				userGroup.POST("/deposit", adminHandler.DepositForUser)
+			}
 		}
 	}
 

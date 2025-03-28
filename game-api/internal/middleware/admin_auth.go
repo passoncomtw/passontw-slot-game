@@ -8,8 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AuthMiddleware 認證中間件
-func AuthMiddleware(authService interfaces.AuthService) gin.HandlerFunc {
+// AdminAuthMiddleware 管理員認證中間件
+func AdminAuthMiddleware(authService interfaces.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 從 Authorization 頭部獲取 token
 		authHeader := c.GetHeader("Authorization")
@@ -29,7 +29,22 @@ func AuthMiddleware(authService interfaces.AuthService) gin.HandlerFunc {
 
 		token := parts[1]
 
-		// 驗證 token
+		// 解析 token 以獲取數據
+		tokenData, err := authService.ParseToken(token)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "無效的 token"})
+			c.Abort()
+			return
+		}
+
+		// 檢查是否有管理員角色
+		if tokenData.Role == "" || !strings.HasPrefix(tokenData.Role, "admin") {
+			c.JSON(http.StatusForbidden, gin.H{"error": "權限不足"})
+			c.Abort()
+			return
+		}
+
+		// 驗證 token 有效性
 		userID, err := authService.ValidateToken(token)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "無效的 token"})
@@ -37,8 +52,9 @@ func AuthMiddleware(authService interfaces.AuthService) gin.HandlerFunc {
 			return
 		}
 
-		// 將用戶 ID 保存到上下文中
-		c.Set("userID", userID)
+		// 將管理員 ID 和角色保存到上下文中
+		c.Set("adminID", userID)
+		c.Set("adminRole", tokenData.Role)
 		c.Next()
 	}
 }

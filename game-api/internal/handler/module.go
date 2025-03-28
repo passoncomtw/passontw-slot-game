@@ -10,6 +10,7 @@ var Module = fx.Options(
 		NewAuthHandler,
 		NewUserHandler,
 		NewBetHandler,
+		NewAdminHandler,
 	),
 	fx.Invoke(StartServer),
 )

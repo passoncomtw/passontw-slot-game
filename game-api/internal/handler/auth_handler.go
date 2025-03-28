@@ -1,11 +1,10 @@
 package handler
 
 import (
-	"net/http"
-
-	"game-api/internal/domain/interfaces"
 	"game-api/internal/domain/models"
+	"game-api/internal/interfaces"
 	"game-api/pkg/logger"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -49,7 +48,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// 此處僅為示例，實際實現需要查詢數據庫
 	userID := "user123" // 示例用戶 ID
 
-	token, err := h.authService.GenerateToken(c.Request.Context(), userID)
+	tokenData := models.TokenData{
+		UserID: userID,
+		Role:   "user",
+	}
+	token, expiresAt, err := h.authService.GenerateToken(tokenData)
 	if err != nil {
 		h.log.Error("生成令牌失敗", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "登入失敗"})
@@ -59,7 +62,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"token":      token,
 		"token_type": "Bearer",
-		"expires_in": 3600, // 示例過期時間
+		"expires_in": expiresAt,
 	})
 }
 
@@ -77,7 +80,7 @@ func (h *AuthHandler) AuthMiddleware() gin.HandlerFunc {
 			token = token[7:]
 		}
 
-		userID, err := h.authService.ValidateToken(c.Request.Context(), token)
+		userID, err := h.authService.ValidateToken(token)
 		if err != nil {
 			h.log.Error("無效的令牌", zap.Error(err))
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "未授權"})

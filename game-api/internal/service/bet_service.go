@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"game-api/internal/domain/interfaces"
 	"game-api/internal/domain/models"
+	"game-api/internal/interfaces"
 	"game-api/pkg/databaseManager"
 	"game-api/pkg/logger"
 

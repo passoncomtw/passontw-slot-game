@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"game-api/internal/domain/interfaces"
 	"game-api/internal/domain/models"
+	"game-api/internal/interfaces"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

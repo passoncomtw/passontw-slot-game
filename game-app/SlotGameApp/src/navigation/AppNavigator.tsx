@@ -1,142 +1,127 @@
 import React, { useEffect, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ROUTES } from '../utils/constants';
-import { useAuth } from '../context/AuthContext';
-import { GameProvider } from '../context/GameContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-
-// 導入所有頁面
-import SplashScreen from '../screens/SplashScreen';
+import { useAppSelector } from '../store/hooks';
+import { ROUTES } from '../utils/constants';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import HomeScreen from '../screens/main/HomeScreen';
-import GameScreen from '../screens/main/GameScreen';
-import LeaderboardScreen from '../screens/main/LeaderboardScreen';
-import ProfileScreen from '../screens/main/ProfileScreen';
-import SettingsScreen from '../screens/main/SettingsScreen';
-import AIAssistantScreen from '../screens/main/AIAssistantScreen';
+import ReduxDebugScreen from '../screens/debug/ReduxDebugScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// 調試模式存儲鍵
+const DEBUG_MODE_KEY = '@SlotGame:debug_mode';
+
+// 創建導航器
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const AuthStack = createNativeStackNavigator();
+const DebugStack = createNativeStackNavigator();
 
-/**
- * 主頁標籤導航器
- */
-const MainTabNavigator = () => {
-  return (
-    <GameProvider>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          tabBarIcon: ({ focused, color, size }) => {
-            let iconName = '';
-            
-            switch (route.name) {
-              case ROUTES.HOME:
-                iconName = focused ? 'home' : 'home-outline';
-                break;
-              case ROUTES.GAME:
-                iconName = focused ? 'game-controller' : 'game-controller-outline';
-                break;
-              case ROUTES.LEADERBOARD:
-                iconName = focused ? 'trophy' : 'trophy-outline';
-                break;
-              case ROUTES.PROFILE:
-                iconName = focused ? 'person' : 'person-outline';
-                break;
-              default:
-                iconName = 'help-circle';
-            }
-            
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-          tabBarActiveTintColor: '#6200EA',
-          tabBarInactiveTintColor: '#B0B0B0',
-          tabBarStyle: {
-            backgroundColor: '#1E1E1E',
-            borderTopColor: '#333',
-          },
-          tabBarLabelStyle: {
-            fontSize: 12,
-          },
-          headerShown: false,
-        })}
-      >
-        <Tab.Screen
-          name={ROUTES.HOME}
-          component={HomeScreen}
-          options={{ title: '首頁' }}
-        />
-        <Tab.Screen
-          name={ROUTES.GAME}
-          component={GameScreen}
-          options={{ title: '遊戲' }}
-        />
-        <Tab.Screen
-          name={ROUTES.LEADERBOARD}
-          component={LeaderboardScreen}
-          options={{ title: '排行榜' }}
-        />
-        <Tab.Screen
-          name={ROUTES.PROFILE}
-          component={ProfileScreen}
-          options={{ title: '我的' }}
-        />
-      </Tab.Navigator>
-    </GameProvider>
-  );
+const screenOptions = {
+  headerShown: false,
 };
 
-/**
- * 身份驗證堆疊導航器
- */
-const AuthStackNavigator = () => {
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
-      <Stack.Screen name={ROUTES.REGISTER} component={RegisterScreen} />
-    </Stack.Navigator>
-  );
-};
+const AppNavigator: React.FC = () => {
+  const { isAuthenticated, loading } = useAppSelector((state) => state.auth);
+  const [showDebug, setShowDebug] = useState(false);
 
-/**
- * 應用程序主導航器
- */
-const AppNavigator = () => {
-  const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
-  
+  // 從 AsyncStorage 加載調試設置
   useEffect(() => {
-    // 模擬啟動加載
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
-    
-    return () => clearTimeout(timer);
+    const loadDebugSettings = async () => {
+      try {
+        const debugMode = await AsyncStorage.getItem(DEBUG_MODE_KEY);
+        // 僅在開發模式下或存儲的設置為 true 時啟用調試
+        setShowDebug(__DEV__ && (debugMode === 'true'));
+      } catch (error) {
+        console.error('加載調試設置錯誤:', error);
+        // 在出錯時，如果是開發模式，啟用調試功能
+        if (__DEV__) {
+          setShowDebug(true);
+        }
+      }
+    };
+
+    loadDebugSettings();
   }, []);
-  
-  if (isLoading) {
-    return (
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name={ROUTES.SPLASH} component={SplashScreen} />
-      </Stack.Navigator>
-    );
+
+  // 身份驗證堆疊導航器
+  const AuthStackNavigator = () => (
+    <AuthStack.Navigator screenOptions={screenOptions}>
+      <AuthStack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
+      <AuthStack.Screen name={ROUTES.REGISTER} component={RegisterScreen} />
+    </AuthStack.Navigator>
+  );
+
+  // 調試堆疊導航器
+  const DebugStackNavigator = () => (
+    <DebugStack.Navigator screenOptions={screenOptions}>
+      <DebugStack.Screen name={ROUTES.REDUX_DEBUG} component={ReduxDebugScreen} />
+    </DebugStack.Navigator>
+  );
+
+  // 主標籤導航器
+  const MainTabNavigator = () => (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName = '';
+
+          if (route.name === ROUTES.HOME) {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === ROUTES.GAME) {
+            iconName = focused ? 'game-controller' : 'game-controller-outline';
+          } else if (route.name === ROUTES.PROFILE) {
+            iconName = focused ? 'person' : 'person-outline';
+          } else if (route.name === ROUTES.DEBUG) {
+            iconName = focused ? 'bug' : 'bug-outline';
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#6200EA',
+        tabBarInactiveTintColor: 'gray',
+        tabBarStyle: {
+          backgroundColor: '#1A1A1A',
+          borderTopColor: '#444',
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+        },
+      })}
+    >
+      <Tab.Screen name={ROUTES.HOME} component={HomeScreen} />
+      {__DEV__ && showDebug && (
+        <Tab.Screen 
+          name={ROUTES.DEBUG} 
+          component={ReduxDebugScreen}
+          options={{
+            tabBarLabel: '調試',
+          }}
+        />
+      )}
+    </Tab.Navigator>
+  );
+
+  if (loading) {
+    // 在載入狀態時，返回空元素或載入指示器
+    return null;
   }
-  
+
+  // 移除 NavigationContainer，直接返回 Stack.Navigator
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {user ? (
-        <>
-          <Stack.Screen name={ROUTES.MAIN} component={MainTabNavigator} />
-          <Stack.Screen name={ROUTES.SETTINGS} component={SettingsScreen} />
-          <Stack.Screen name={ROUTES.AI_ASSISTANT} component={AIAssistantScreen} />
-        </>
+    <Stack.Navigator screenOptions={screenOptions}>
+      {showDebug && __DEV__ && !isAuthenticated ? (
+        // 如果啟用了調試模式且用戶未登入，顯示調試頁面作為初始畫面
+        <Stack.Screen name="DebugRoot" component={DebugStackNavigator} />
+      ) : isAuthenticated ? (
+        // 如果用戶已登入，顯示主應用
+        <Stack.Screen name="MainRoot" component={MainTabNavigator} />
       ) : (
-        <Stack.Screen name="Auth" component={AuthStackNavigator} />
+        // 如果用戶未登入且未啟用調試，顯示身份驗證頁面
+        <Stack.Screen name="AuthRoot" component={AuthStackNavigator} />
       )}
     </Stack.Navigator>
   );

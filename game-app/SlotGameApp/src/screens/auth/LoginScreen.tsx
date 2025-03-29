@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -6,16 +6,16 @@ import {
   TouchableOpacity, 
   ScrollView, 
   StatusBar, 
-  Alert, 
-  Image 
+  Alert 
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, ROUTES } from '../../utils/constants';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
-import { useAuth } from '../../context/AuthContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { loginRequest } from '../../store/slices/authSlice';
 
 /**
  * 登入頁面
@@ -23,22 +23,46 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
-  const { login, isLoading } = useAuth();
+  const [rememberMe, setRememberMe] = useState<boolean>(false);
+  
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const dispatch = useAppDispatch();
+  
+  // 從 Redux 獲取驗證狀態
+  const { isLoading, isAuthenticated, error } = useAppSelector(state => state.auth);
+
+  // 當用戶成功登入後，isAuthenticated 會變為 true
+  useEffect(() => {
+    if (isAuthenticated) {
+      // 登入成功後導航至主頁
+      navigation.reset({
+        index: 0,
+        routes: [{ name: ROUTES.MAIN }],
+      });
+    }
+  }, [isAuthenticated, navigation]);
+
+  // 處理登入錯誤
+  useEffect(() => {
+    if (error) {
+      Alert.alert('登入失敗', error);
+    }
+  }, [error]);
 
   /**
    * 處理登入
    */
-  const handleLogin = async () => {
+  const handleLogin = () => {
     if (!email || !password) {
-      Alert.alert('錯誤', '請填寫所有欄位');
+      Alert.alert('錯誤', '請填寫電子郵件和密碼');
       return;
     }
 
-    const success = await login(email, password);
-    if (!success) {
-      Alert.alert('登入失敗', '電子郵件或密碼不正確');
-    }
+    // 調用 Redux action 處理登入
+    dispatch(loginRequest({ 
+      email, 
+      password 
+    }));
   };
 
   /**
@@ -52,14 +76,11 @@ const LoginScreen: React.FC = () => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>登入</Text>
+      <View style={styles.headerContainer}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>AI 老虎機</Text>
+          <Text style={styles.headerSubtitle}>登入您的帳號以繼續</Text>
+        </View>
       </View>
       
       <ScrollView 
@@ -67,10 +88,6 @@ const LoginScreen: React.FC = () => {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.logoContainer}>
-          <Ionicons name="person-circle" size={60} color={COLORS.primary} />
-        </View>
-        
         <Input
           label="電子郵件"
           value={email}
@@ -89,9 +106,21 @@ const LoginScreen: React.FC = () => {
           icon={<Ionicons name="lock-closed-outline" size={20} color="#999" />}
         />
         
-        <TouchableOpacity style={styles.forgotPassword}>
-          <Text style={styles.forgotPasswordText}>忘記密碼？</Text>
-        </TouchableOpacity>
+        <View style={styles.optionsContainer}>
+          <TouchableOpacity 
+            style={styles.checkboxContainer}
+            onPress={() => setRememberMe(!rememberMe)}
+          >
+            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+              {rememberMe && <Ionicons name="checkmark" size={16} color="white" />}
+            </View>
+            <Text style={styles.rememberText}>記住我</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity>
+            <Text style={styles.forgotText}>忘記密碼？</Text>
+          </TouchableOpacity>
+        </View>
         
         <Button
           title="登入"
@@ -101,7 +130,7 @@ const LoginScreen: React.FC = () => {
         
         <View style={styles.dividerContainer}>
           <View style={styles.divider} />
-          <Text style={styles.dividerText}>其他登入方式</Text>
+          <Text style={styles.dividerText}>或使用其他方式登入</Text>
           <View style={styles.divider} />
         </View>
         
@@ -124,7 +153,7 @@ const LoginScreen: React.FC = () => {
         <Text style={styles.footerText}>
           還沒有帳號？
           <Text 
-            style={styles.signupText} 
+            style={styles.registerText} 
             onPress={navigateToRegister}
           > 立即註冊
           </Text>
@@ -139,22 +168,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  header: {
+  headerContainer: {
     backgroundColor: COLORS.primary,
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
+    paddingTop: 60,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  backButton: {
-    position: 'absolute',
-    left: 16,
-    top: 18,
+  headerContent: {
+    paddingHorizontal: 20,
   },
   headerTitle: {
     color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 16,
   },
   content: {
     flex: 1,
@@ -164,22 +196,42 @@ const styles = StyleSheet.create({
     paddingTop: 30,
     paddingBottom: 20,
   },
-  logoContainer: {
+  optionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 25,
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 20,
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  forgotPasswordText: {
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    borderRadius: 4,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.primary,
+  },
+  rememberText: {
+    color: '#333',
+    fontSize: 14,
+  },
+  forgotText: {
     color: COLORS.primary,
     fontSize: 14,
+    fontWeight: '600',
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: 25,
   },
   divider: {
     flex: 1,
@@ -197,9 +249,9 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   socialButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 10,
@@ -211,19 +263,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#db4437',
   },
   appleButton: {
-    backgroundColor: '#000',
+    backgroundColor: '#000000',
   },
   footer: {
     padding: 20,
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
   },
   footerText: {
-    fontSize: 14,
     color: '#666',
+    fontSize: 14,
   },
-  signupText: {
+  registerText: {
     color: COLORS.primary,
     fontWeight: '600',
   },

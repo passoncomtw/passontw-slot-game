@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -13,8 +13,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, ROUTES } from '../../utils/constants';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
-import { useAuth } from '../../context/AuthContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { registerRequest } from '../../store/slices/authSlice';
 
 /**
  * 註冊頁面
@@ -25,13 +26,35 @@ const RegisterScreen: React.FC = () => {
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [agreeTerms, setAgreeTerms] = useState<boolean>(false);
-  const { register, isLoading } = useAuth();
+  
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const dispatch = useAppDispatch();
+  
+  // 從 Redux 獲取驗證狀態
+  const { isLoading, isAuthenticated, error } = useAppSelector(state => state.auth);
+
+  // 當用戶成功註冊後，isAuthenticated 會變為 true
+  useEffect(() => {
+    if (isAuthenticated) {
+      // 註冊成功後導航至主頁
+      navigation.reset({
+        index: 0,
+        routes: [{ name: ROUTES.MAIN }],
+      });
+    }
+  }, [isAuthenticated, navigation]);
+
+  // 處理註冊錯誤
+  useEffect(() => {
+    if (error) {
+      Alert.alert('註冊失敗', error);
+    }
+  }, [error]);
 
   /**
    * 處理註冊
    */
-  const handleRegister = async () => {
+  const handleRegister = () => {
     if (!username || !email || !password || !confirmPassword) {
       Alert.alert('錯誤', '請填寫所有欄位');
       return;
@@ -47,10 +70,12 @@ const RegisterScreen: React.FC = () => {
       return;
     }
 
-    const success = await register(username, email, password);
-    if (!success) {
-      Alert.alert('註冊失敗', '可能是電子郵件已被使用或伺服器錯誤');
-    }
+    // 調用 Redux action 處理註冊
+    dispatch(registerRequest({ 
+      username, 
+      email, 
+      password 
+    }));
   };
 
   /**
@@ -254,17 +279,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#db4437',
   },
   appleButton: {
-    backgroundColor: '#000',
+    backgroundColor: '#000000',
   },
   footer: {
     padding: 20,
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
   },
   footerText: {
-    fontSize: 14,
     color: '#666',
+    fontSize: 14,
   },
   loginText: {
     color: COLORS.primary,

@@ -29,4 +29,9 @@ var Module = fx.Options(
 			return NewAdminLogService(db.GetDB(), logger)
 		},
 	),
+	fx.Provide(
+		func(db databaseManager.DatabaseManager, logger logger.Logger) interfaces.DashboardService {
+			return NewDashboardService(db.GetDB(), logger)
+		},
+	),
 )

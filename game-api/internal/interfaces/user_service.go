@@ -28,7 +28,7 @@ type UserService interface {
 	UpdateProfile(ctx context.Context, userID string, req *models.UpdateProfileRequest) error
 
 	// 更新用戶設定
-	UpdateSettings(ctx context.Context, userID string, req *models.UpdateSettingsRequest) error
+	UpdateSettings(ctx context.Context, userID string, req *models.AppUpdateSettingsRequest) error
 	// 獲取用戶列表
 	GetUsers(ctx context.Context, filter models.UserListFilterRequest) (*models.UserListResponse, error)
 

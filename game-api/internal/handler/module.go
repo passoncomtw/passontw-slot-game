@@ -10,6 +10,7 @@ var Module = fx.Options(
 		NewAuthHandler,
 		NewUserHandler,
 		NewBetHandler,
+		NewAppHandler,
 		NewAdminHandler,
 		NewGameHandler,
 		NewTransactionHandler,

@@ -334,7 +334,7 @@ func (s *userService) UpdateProfile(ctx context.Context, userID string, req *mod
 	return db.Model(&models.User{}).Where("user_id = ?", uid).Updates(updates).Error
 }
 
-func (s *userService) UpdateSettings(ctx context.Context, userID string, req *models.UpdateSettingsRequest) error {
+func (s *userService) UpdateSettings(ctx context.Context, userID string, req *models.AppUpdateSettingsRequest) error {
 	// 獲取原始的 GORM DB 對象
 	db := s.db.GetDB().WithContext(ctx)
 

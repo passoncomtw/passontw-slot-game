@@ -27,6 +27,7 @@ func NewRouter(
 	authHandler *AuthHandler,
 	userHandler *UserHandler,
 	betHandler *BetHandler,
+	appHandler *AppHandler,
 	adminHandler *AdminHandler,
 	gameHandler *GameHandler,
 	transactionHandler *TransactionHandler,
@@ -69,6 +70,9 @@ func NewRouter(
 			authorized.GET("/bets/history", betHandler.GetBetHistory)
 			authorized.GET("/bets/:session_id", betHandler.GetBetDetail)
 		}
+
+		// 註冊 AppHandler 的路由
+		appHandler.RegisterRoutes(api, authHandler.AuthMiddleware())
 	}
 
 	// 添加管理員路由
@@ -127,6 +131,7 @@ func StartServer(
 	authHandler *AuthHandler,
 	userHandler *UserHandler,
 	betHandler *BetHandler,
+	appHandler *AppHandler,
 	adminHandler *AdminHandler,
 	gameHandler *GameHandler,
 	transactionHandler *TransactionHandler,
@@ -169,6 +174,9 @@ func StartServer(
 			authorized.GET("/bets/history", betHandler.GetBetHistory)
 			authorized.GET("/bets/:session_id", betHandler.GetBetDetail)
 		}
+
+		// 註冊 AppHandler 的路由
+		appHandler.RegisterRoutes(api, authHandler.AuthMiddleware())
 	}
 
 	// 添加管理員路由

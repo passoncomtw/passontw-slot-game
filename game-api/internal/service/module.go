@@ -15,6 +15,11 @@ var Module = fx.Options(
 	fx.Provide(NewBetService),
 	fx.Provide(NewAdminService),
 	fx.Provide(
+		func(db databaseManager.DatabaseManager, logger logger.Logger) interfaces.AppService {
+			return NewAppService(db.GetDB(), logger)
+		},
+	),
+	fx.Provide(
 		func(db databaseManager.DatabaseManager, logger logger.Logger) interfaces.GameService {
 			return NewGameService(db.GetDB(), logger)
 		},

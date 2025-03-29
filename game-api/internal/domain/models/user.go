@@ -144,12 +144,4 @@ type UpdateProfileRequest struct {
 	AvatarURL string `json:"avatar_url" binding:"omitempty,url"`
 }
 
-type UpdateSettingsRequest struct {
-	Sound              *bool `json:"sound"`
-	Music              *bool `json:"music"`
-	Vibration          *bool `json:"vibration"`
-	HighQuality        *bool `json:"high_quality"`
-	AIAssistant        *bool `json:"ai_assistant"`
-	GameRecommendation *bool `json:"game_recommendation"`
-	DataCollection     *bool `json:"data_collection"`
-}
+// UpdateSettingsRequest 已移至 app_models.go，現在使用 AppUpdateSettingsRequest

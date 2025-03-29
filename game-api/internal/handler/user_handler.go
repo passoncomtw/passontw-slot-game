@@ -146,7 +146,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param request body models.UpdateSettingsRequest true "設定信息"
+// @Param request body models.AppUpdateSettingsRequest true "設定信息"
 // @Success 200 {object} SuccessResponse
 // @Failure 400 {object} interfaces.ErrorResponse
 // @Failure 401 {object} interfaces.ErrorResponse
@@ -159,7 +159,7 @@ func (h *UserHandler) UpdateSettings(c *gin.Context) {
 		return
 	}
 
-	var req models.UpdateSettingsRequest
+	var req models.AppUpdateSettingsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, interfaces.ErrorResponse{Error: err.Error()})
 		return

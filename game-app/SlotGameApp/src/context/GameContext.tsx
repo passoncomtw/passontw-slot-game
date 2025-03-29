@@ -49,7 +49,7 @@ const GameContext = createContext<GameContextType>({
  */
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [balance, setBalance] = useState<number>(user?.balance || 1000);
+  const [balance, setBalance] = useState<number>(1000); // 設置一個默認值
   const [winAmount, setWinAmount] = useState<number>(0);
   const [betAmount, setBetAmount] = useState<number>(10);
   const [jackpot] = useState<number>(10000);
@@ -61,9 +61,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 當用戶變更時更新餘額
   useEffect(() => {
     if (user) {
-      setBalance(user.balance);
+      console.log("用戶數據更新: ", user);
+      setBalance(user.balance || 1000);
     }
   }, [user]);
+
+  // 調試用
+  useEffect(() => {
+    console.log("當前餘額：", balance);
+  }, [balance]);
 
   /**
    * 增加投注金額

@@ -10,12 +10,15 @@ export const COLORS = {
   background: '#1E1E1E',
   card: '#2A2A2A',
   text: '#FFFFFF',
+  textPrimary: '#000000',
+  textSecondary: '#666666',
   border: '#444444',
   error: '#CF6679',
   success: '#4CAF50',
   warning: '#FFC107',
   info: '#2196F3',
   disabled: '#666666',
+  surface: '#FFFFFF',
 };
 
 // 路由常數

@@ -83,7 +83,9 @@ const HomeScreen: React.FC = () => {
       <ScrollView style={styles.content}>
         <View style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>我的餘額</Text>
-          <Text style={styles.balanceValue}>${user?.balance.toLocaleString()}</Text>
+          <Text style={styles.balanceValue}>
+            ${user && user.balance ? user.balance : 0}
+          </Text>
         </View>
 
         <View style={styles.jackpotCard}>

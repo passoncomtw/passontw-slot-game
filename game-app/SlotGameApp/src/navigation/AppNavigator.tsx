@@ -7,6 +7,7 @@ import { ROUTES } from '../utils/constants';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import HomeScreen from '../screens/main/HomeScreen';
+import GameScreen from '../screens/main/GameScreen';
 import ReduxDebugScreen from '../screens/debug/ReduxDebugScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -93,6 +94,7 @@ const AppNavigator: React.FC = () => {
       })}
     >
       <Tab.Screen name={ROUTES.HOME} component={HomeScreen} />
+      <Tab.Screen name={ROUTES.GAME} component={GameScreen} />
       {__DEV__ && showDebug && (
         <Tab.Screen 
           name={ROUTES.DEBUG} 

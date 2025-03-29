@@ -16,6 +16,7 @@ import Button from '../../components/Button';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { loginRequest } from '../../store/slices/authSlice';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * 登入頁面
@@ -27,13 +28,15 @@ const LoginScreen: React.FC = () => {
   
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const dispatch = useAppDispatch();
+  const { login } = useAuth();
   
   // 從 Redux 獲取驗證狀態
-  const { isLoading, isAuthenticated, error } = useAppSelector(state => state.auth);
+  const { loading, isAuthenticated, error } = useAppSelector(state => state.auth);
 
   // 當用戶成功登入後，isAuthenticated 會變為 true
   useEffect(() => {
     if (isAuthenticated) {
+      console.log('用戶已認證，導航至主頁');
       // 登入成功後導航至主頁
       navigation.reset({
         index: 0,
@@ -52,16 +55,32 @@ const LoginScreen: React.FC = () => {
   /**
    * 處理登入
    */
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('錯誤', '請填寫電子郵件和密碼');
       return;
     }
 
+    console.log('開始登入流程:', { email, rememberMe });
+
+    try {
+      // 使用 Context API 進行登入
+      const success = await login(email, password);
+      
+      if (success) {
+        console.log('Context API 登入成功');
+      } else {
+        console.error('Context API 登入失敗');
+      }
+    } catch (error) {
+      console.error('Context API 登入錯誤:', error);
+    }
+
     // 調用 Redux action 處理登入
     dispatch(loginRequest({ 
       email, 
-      password 
+      password,
+      rememberMe
     }));
   };
 
@@ -125,7 +144,7 @@ const LoginScreen: React.FC = () => {
         <Button
           title="登入"
           onPress={handleLogin}
-          isLoading={isLoading}
+          isLoading={loading}
         />
         
         <View style={styles.dividerContainer}>

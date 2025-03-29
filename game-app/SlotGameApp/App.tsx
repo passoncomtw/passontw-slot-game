@@ -6,6 +6,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 import AppNavigator from './src/navigation/AppNavigator';
 import store from './src/store/store';
+import { AuthProvider } from './src/context/AuthContext';
+import { GameProvider } from './src/context/GameContext';
+import { LogBox } from 'react-native';
+
+// 禁用黃色警告框
+LogBox.ignoreAllLogs();
 
 // 主應用程序組件
 export default function App() {
@@ -14,7 +20,11 @@ export default function App() {
       <SafeAreaProvider>
         <NavigationContainer>
           <StatusBar style="light" />
-          <AppNavigator />
+          <AuthProvider>
+            <GameProvider>
+              <AppNavigator />
+            </GameProvider>
+          </AuthProvider>
         </NavigationContainer>
       </SafeAreaProvider>
     </Provider>

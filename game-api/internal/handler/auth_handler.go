@@ -50,14 +50,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := h.authService.Login(req.Username, req.Password)
+	token, err := h.authService.AppLogin(c.Request.Context(), req)
 	if err != nil {
 		h.log.Error("登入失敗", zap.Error(err))
 		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "登入失敗: " + err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.TokenResponse{Token: token})
+	c.JSON(http.StatusOK, models.TokenResponse{Token: token.Token})
 }
 
 // GetUserProfile godoc

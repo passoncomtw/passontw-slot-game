@@ -29,7 +29,7 @@ import (
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token.
 
-// @BasePath  /api
+// @BasePath  /
 // @tag.name games
 // @tag.description 遊戲相關 API
 // @tag.name wallet

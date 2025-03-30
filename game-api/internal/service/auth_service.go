@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"game-api/internal/config"
@@ -254,11 +255,19 @@ func (s *AuthService) ParseAdminToken(token string) (*models.TokenData, error) {
 }
 
 // Login 簡易登入方法，直接返回 token
-func (s *AuthService) Login(username string, password string) (string, error) {
+func (s *AuthService) Login(identifier string, password string) (string, error) {
 	ctx := context.Background()
+
+	// 判斷是否為 email (包含 @ 符號)
 	req := models.AppLoginRequest{
-		Username: username,
 		Password: password,
+	}
+
+	// 如果包含 @ 符號，視為 email
+	if s.isEmail(identifier) {
+		req.Email = identifier
+	} else {
+		req.Username = identifier
 	}
 
 	response, err := s.AppLogin(ctx, req)
@@ -267,6 +276,11 @@ func (s *AuthService) Login(username string, password string) (string, error) {
 	}
 
 	return response.Token, nil
+}
+
+// isEmail 檢查是否為 email 格式 (簡單判斷是否含有 @ 符號)
+func (s *AuthService) isEmail(str string) bool {
+	return strings.Contains(str, "@")
 }
 
 // GetUserProfile 獲取用戶個人資料

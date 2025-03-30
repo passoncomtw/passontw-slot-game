@@ -377,14 +377,14 @@ func (h *AppHandler) GetTransactionHistory(c *gin.Context) {
 // RegisterRoutes 註冊路由
 func (h *AppHandler) RegisterRoutes(router *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	// 公開路由
-	games := router.Group("/v1/games")
+	games := router.Group("/games")
 	{
 		games.GET("", h.GetGameList)
 		games.GET("/:game_id", h.GetGameDetail)
 	}
 
 	// 需要認證的路由
-	authorizedGames := router.Group("/v1/games")
+	authorizedGames := router.Group("/games")
 	authorizedGames.Use(authMiddleware)
 	{
 		authorizedGames.POST("/sessions", h.StartGameSession)
@@ -393,7 +393,7 @@ func (h *AppHandler) RegisterRoutes(router *gin.RouterGroup, authMiddleware gin.
 	}
 
 	// 錢包相關路由
-	wallet := router.Group("/v1/wallet")
+	wallet := router.Group("/wallet")
 	wallet.Use(authMiddleware)
 	{
 		wallet.GET("/balance", h.GetWalletBalance)

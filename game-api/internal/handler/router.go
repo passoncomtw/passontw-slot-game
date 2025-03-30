@@ -66,10 +66,7 @@ func StartServer(
 	api := router.Group("/api/v1")
 	{
 		// 公開路由
-		auth := api.Group("/auth")
-		{
-			auth.POST("/login", authHandler.Login)
-		}
+		api.POST("/auth/login", authHandler.Login)
 
 		// 用戶公開路由
 		api.POST("/users", userHandler.Register)
@@ -79,7 +76,7 @@ func StartServer(
 		authorized.Use(authHandler.AuthMiddleware())
 		{
 			// 認證相關
-			authorized.GET("/auth/profile", authHandler.GetUserProfile)
+			authorized.GET("/auth/profile", userHandler.GetProfile)
 
 			// 用戶相關
 			authorized.GET("/users/profile", userHandler.GetProfile)

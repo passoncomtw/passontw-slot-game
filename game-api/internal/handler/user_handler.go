@@ -51,33 +51,6 @@ func (h *UserHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-// Login godoc
-// @Summary 用戶登入
-// @Description 使用電子郵件和密碼登入
-// @Tags users
-// @Accept json
-// @Produce json
-// @Param request body models.LoginRequest true "登入信息"
-// @Success 200 {object} models.TokenResponse
-// @Failure 401 {object} interfaces.ErrorResponse
-// @Failure 500 {object} interfaces.ErrorResponse
-// @Router /api/v1/auth/login [post]
-func (h *UserHandler) Login(c *gin.Context) {
-	var req models.AppLoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, interfaces.ErrorResponse{Error: err.Error()})
-		return
-	}
-
-	token, err := h.authService.AppLogin(c.Request.Context(), req)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, interfaces.ErrorResponse{Error: err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, models.TokenResponse{Token: token.Token})
-}
-
 // GetProfile godoc
 // @Summary 獲取用戶資料
 // @Description 獲取當前登入用戶的個人資料

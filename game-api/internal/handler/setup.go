@@ -25,6 +25,7 @@ func SetupRoutes(router *gin.Engine, authHandler *AuthHandler, userHandler *User
 		auth := api.Group("/auth")
 		{
 			auth.POST("/login", authHandler.Login)
+			auth.POST("/register", authHandler.Register)
 		}
 
 		api.POST("/users", userHandler.Register)

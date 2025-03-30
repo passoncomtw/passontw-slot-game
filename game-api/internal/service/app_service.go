@@ -199,9 +199,25 @@ func (s *AppServiceImpl) StartGameSession(ctx context.Context, userID string, re
 	var wallet entity.UserWallet
 	if err := s.db.Where("user_id = ?", uid).First(&wallet).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("找不到用戶錢包")
+			// 找不到錢包時，自動創建一個新錢包
+			s.logger.Info("用戶錢包不存在，正在創建新錢包", zap.String("userId", userID))
+
+			newWalletID := uuid.New().String()
+			// 創建一個新的用戶錢包
+			if err := s.db.Exec(
+				"INSERT INTO user_wallets (wallet_id, user_id, balance, total_deposit, total_withdraw, total_bet, total_win, created_at, updated_at) VALUES (?, ?, 0, 0, 0, 0, 0, ?, ?)",
+				newWalletID, uid, time.Now(), time.Now(),
+			).Error; err != nil {
+				return nil, fmt.Errorf("創建用戶錢包失敗: %w", err)
+			}
+
+			// 獲取新創建的錢包
+			if err := s.db.Where("user_id = ?", uid).First(&wallet).Error; err != nil {
+				return nil, fmt.Errorf("獲取新創建的錢包失敗: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("獲取用戶錢包信息失敗: %w", err)
 		}
-		return nil, err
 	}
 
 	// 檢查餘額是否足夠最小投注額
@@ -836,9 +852,47 @@ func (s *AppServiceImpl) RequestDeposit(ctx context.Context, userID string, req 
 	var wallet entity.UserWallet
 	if err := s.db.Where("user_id = ?", uid).First(&wallet).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("找不到用戶錢包")
+			// 找不到錢包時，檢查用戶是否存在
+			var userExists int64
+			if err := s.db.Table("users").Where("user_id = ?", uid).Count(&userExists).Error; err != nil {
+				s.logger.Error("檢查用戶是否存在失敗", zap.Error(err), zap.String("userId", userID))
+				return nil, fmt.Errorf("檢查用戶是否存在失敗: %w", err)
+			}
+
+			// 如果用戶不存在，返回錯誤
+			if userExists == 0 {
+				s.logger.Warn("用戶不存在", zap.String("userId", userID))
+				return nil, fmt.Errorf("用戶不存在")
+			}
+
+			// 用戶存在但錢包不存在，創建錢包
+			s.logger.Info("用戶錢包不存在，正在創建新錢包", zap.String("userId", userID))
+
+			newWalletID := uuid.New().String()
+			wallet = entity.UserWallet{
+				ID:            newWalletID,
+				UserID:        userID,
+				Balance:       0,
+				TotalDeposit:  0,
+				TotalWithdraw: 0,
+				TotalBet:      0,
+				TotalWin:      0,
+				CreatedAt:     time.Now(),
+				UpdatedAt:     time.Now(),
+			}
+
+			// 創建一個新的用戶錢包
+			if err := s.db.Create(&wallet).Error; err != nil {
+				s.logger.Error("創建用戶錢包失敗", zap.Error(err), zap.String("userId", userID))
+				return nil, fmt.Errorf("創建用戶錢包失敗: %w", err)
+			}
+
+			// 新創建的錢包餘額為 0，肯定不足提款金額
+			return nil, fmt.Errorf("餘額不足，當前餘額 %.2f，需要 %.2f", wallet.Balance, req.Amount)
+		} else {
+			s.logger.Error("獲取用戶錢包信息失敗", zap.Error(err), zap.String("userId", userID))
+			return nil, fmt.Errorf("獲取用戶錢包信息失敗: %w", err)
 		}
-		return nil, fmt.Errorf("獲取用戶錢包信息失敗: %w", err)
 	}
 
 	// 開始交易
@@ -950,9 +1004,47 @@ func (s *AppServiceImpl) RequestWithdraw(ctx context.Context, userID string, req
 	var wallet entity.UserWallet
 	if err := s.db.Where("user_id = ?", uid).First(&wallet).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("找不到用戶錢包")
+			// 找不到錢包時，檢查用戶是否存在
+			var userExists int64
+			if err := s.db.Table("users").Where("user_id = ?", uid).Count(&userExists).Error; err != nil {
+				s.logger.Error("檢查用戶是否存在失敗", zap.Error(err), zap.String("userId", userID))
+				return nil, fmt.Errorf("檢查用戶是否存在失敗: %w", err)
+			}
+
+			// 如果用戶不存在，返回錯誤
+			if userExists == 0 {
+				s.logger.Warn("用戶不存在", zap.String("userId", userID))
+				return nil, fmt.Errorf("用戶不存在")
+			}
+
+			// 用戶存在但錢包不存在，創建錢包
+			s.logger.Info("用戶錢包不存在，正在創建新錢包", zap.String("userId", userID))
+
+			newWalletID := uuid.New().String()
+			wallet = entity.UserWallet{
+				ID:            newWalletID,
+				UserID:        userID,
+				Balance:       0,
+				TotalDeposit:  0,
+				TotalWithdraw: 0,
+				TotalBet:      0,
+				TotalWin:      0,
+				CreatedAt:     time.Now(),
+				UpdatedAt:     time.Now(),
+			}
+
+			// 創建一個新的用戶錢包
+			if err := s.db.Create(&wallet).Error; err != nil {
+				s.logger.Error("創建用戶錢包失敗", zap.Error(err), zap.String("userId", userID))
+				return nil, fmt.Errorf("創建用戶錢包失敗: %w", err)
+			}
+
+			// 新創建的錢包餘額為 0，肯定不足提款金額
+			return nil, fmt.Errorf("餘額不足，當前餘額 %.2f，需要 %.2f", wallet.Balance, req.Amount)
+		} else {
+			s.logger.Error("獲取用戶錢包信息失敗", zap.Error(err), zap.String("userId", userID))
+			return nil, fmt.Errorf("獲取用戶錢包信息失敗: %w", err)
 		}
-		return nil, fmt.Errorf("獲取用戶錢包信息失敗: %w", err)
 	}
 
 	// 檢查餘額是否足夠

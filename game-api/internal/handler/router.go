@@ -67,6 +67,7 @@ func StartServer(
 	{
 		// 公開路由
 		api.POST("/auth/login", authHandler.Login)
+		api.POST("/auth/register", authHandler.Register)
 
 		// 用戶公開路由
 		api.POST("/users", userHandler.Register)

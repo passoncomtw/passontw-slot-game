@@ -60,6 +60,47 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, models.TokenResponse{Token: token.Token})
 }
 
+// Register godoc
+// @Summary 用戶註冊
+// @Description 創建新用戶帳號並獲取認證令牌
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body models.RegisterRequest true "註冊信息"
+// @Success 200 {object} models.TokenResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/auth/register [post]
+func (h *AuthHandler) Register(c *gin.Context) {
+	var req models.RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "無效的請求參數: " + err.Error()})
+		return
+	}
+
+	user, err := h.authService.Register(c.Request.Context(), &req)
+	if err != nil {
+		h.log.Error("註冊失敗", zap.Error(err))
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "註冊失敗: " + err.Error()})
+		return
+	}
+
+	// 用戶註冊成功後，自動登入
+	tokenData := models.TokenData{
+		UserID: user.UserID.String(),
+		Role:   user.Role,
+	}
+
+	token, _, err := h.authService.GenerateToken(tokenData)
+	if err != nil {
+		h.log.Error("生成令牌失敗", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "生成令牌失敗: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.TokenResponse{Token: token})
+}
+
 // GetUserProfile godoc
 // @Summary 獲取用戶資料
 // @Description 獲取當前登入用戶的資料

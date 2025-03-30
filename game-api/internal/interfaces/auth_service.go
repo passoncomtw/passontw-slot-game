@@ -13,6 +13,9 @@ type AuthService interface {
 	// 用戶簡易登入
 	Login(username string, password string) (string, error)
 
+	// 用戶註冊
+	Register(ctx context.Context, req *models.RegisterRequest) (*models.User, error)
+
 	// 獲取用戶個人資料
 	GetUserProfile(ctx context.Context, userID string) (*models.UserProfileResponse, error)
 

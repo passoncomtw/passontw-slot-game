@@ -22,17 +22,24 @@ import (
 
 // AuthService 提供身份驗證功能
 type AuthService struct {
-	config *config.Config
-	log    logger.Logger
-	db     databaseManager.DatabaseManager
+	config      *config.Config
+	log         logger.Logger
+	db          databaseManager.DatabaseManager
+	userService interfaces.UserService
 }
 
 // NewAuthService 創建一個新的 AuthService 實例
-func NewAuthService(config *config.Config, log logger.Logger, db databaseManager.DatabaseManager) interfaces.AuthService {
+func NewAuthService(
+	config *config.Config,
+	log logger.Logger,
+	db databaseManager.DatabaseManager,
+	userService interfaces.UserService,
+) interfaces.AuthService {
 	return &AuthService{
-		config: config,
-		log:    log,
-		db:     db,
+		config:      config,
+		log:         log,
+		db:          db,
+		userService: userService,
 	}
 }
 
@@ -332,4 +339,25 @@ func (s *AuthService) RevokeToken(token string) error {
 	// 這裡只是一個示例，實際實現可能需要使用 Redis 或數據庫來存儲已撤銷的令牌
 	s.log.Info("令牌撤銷", zap.String("token", token))
 	return nil
+}
+
+// Register 用戶註冊
+func (s *AuthService) Register(ctx context.Context, req *models.RegisterRequest) (*models.User, error) {
+	// 調用用戶服務的註冊方法
+	user, err := s.userService.Register(ctx, req)
+	if err != nil {
+		s.log.Error("註冊失敗", zap.Error(err))
+		return nil, err
+	}
+
+	// 更新最後登入時間
+	db := s.db.GetDB().WithContext(ctx)
+	updateResult := db.Table("users").Where("user_id = ?", user.UserID).
+		Update("last_login_at", time.Now())
+	if err := updateResult.Error; err != nil {
+		s.log.Warn("更新最後登入時間失敗", zap.Error(err), zap.String("userID", user.UserID.String()))
+	}
+
+	s.log.Info("註冊成功", zap.String("userID", user.UserID.String()), zap.String("username", user.Username))
+	return user, nil
 }

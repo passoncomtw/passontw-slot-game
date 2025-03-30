@@ -10,12 +10,11 @@ import {
   logoutRequest, 
   logoutSuccess, 
   logoutFailure,
-  LoginRequest,
-  RegisterRequest,
   User
 } from '../slices/authSlice';
-import { apiService, AUTH_TOKEN_KEY, USER_PROFILE_KEY } from '../api/apiClient';
-import userService, { TokenResponse, UserProfile } from '../api/userService';
+import { AUTH_TOKEN_KEY, USER_PROFILE_KEY } from '../api/apiClient';
+import { loginUser, registerUser, getWalletBalance, AuthResponse, UserWallet } from '../api/userService';
+import { resetToLogin } from '../../navigation/navigationUtils';
 
 // 登入 Saga
 function* loginSaga(action: ReturnType<typeof loginRequest>) {
@@ -23,7 +22,7 @@ function* loginSaga(action: ReturnType<typeof loginRequest>) {
     console.log('開始登入流程:', action.payload);
     
     // 調用 API
-    const tokenResponse: TokenResponse = yield call(userService.login, {
+    const tokenResponse: AuthResponse = yield call(loginUser, {
       email: action.payload.email,
       password: action.payload.password
     });
@@ -35,17 +34,16 @@ function* loginSaga(action: ReturnType<typeof loginRequest>) {
       
       try {
         // 獲取用戶資料
-        const profileData: UserProfile = yield call(userService.getProfile);
+        const walletData: UserWallet = yield call(getWalletBalance);
         
         // 映射 API 用戶資料到應用程式用戶模型
         const user: User = {
-          id: profileData.userId,
-          username: profileData.username,
-          email: profileData.email,
-          balance: profileData.wallet?.balance || 0,
-          points: profileData.points || 0,
-          vipLevel: profileData.vipLevel || 1,
-          avatar: profileData.avatarUrl
+          id: walletData.walletId,
+          username: action.payload.email.split('@')[0], // 使用郵箱前綴作為用戶名
+          email: action.payload.email,
+          balance: walletData.balance || 0,
+          points: 0,
+          vipLevel: 1
         };
         
         // 如果要記住登入狀態，也保存用戶資料
@@ -91,7 +89,7 @@ function* registerSaga(action: ReturnType<typeof registerRequest>) {
     console.log('開始註冊流程:', action.payload);
     
     // 調用 API
-    const tokenResponse: TokenResponse = yield call(userService.register, action.payload);
+    const tokenResponse: AuthResponse = yield call(registerUser, action.payload);
     
     // 保存 token 到 AsyncStorage
     if (tokenResponse.token) {
@@ -100,17 +98,16 @@ function* registerSaga(action: ReturnType<typeof registerRequest>) {
       
       try {
         // 獲取用戶資料
-        const profileData: UserProfile = yield call(userService.getProfile);
+        const walletData: UserWallet = yield call(getWalletBalance);
         
         // 映射 API 用戶資料到應用程式用戶模型
         const user: User = {
-          id: profileData.userId,
-          username: profileData.username,
-          email: profileData.email,
-          balance: profileData.wallet?.balance || 0,
-          points: profileData.points || 0,
-          vipLevel: profileData.vipLevel || 1,
-          avatar: profileData.avatarUrl
+          id: walletData.walletId,
+          username: action.payload.username,
+          email: action.payload.email,
+          balance: walletData.balance || 0,
+          points: 0,
+          vipLevel: 1
         };
         
         // 保存用戶資料到本地
@@ -159,6 +156,9 @@ function* logoutSaga() {
     // 成功後派發 action
     yield put(logoutSuccess());
     console.log('登出成功');
+
+    // 重置導航到登入頁面
+    resetToLogin();
   } catch (error) {
     // 失敗後派發 action
     const errorMessage = error instanceof Error ? error.message : '登出失敗，請稍後再試';

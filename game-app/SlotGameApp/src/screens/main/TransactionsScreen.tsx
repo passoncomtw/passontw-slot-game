@@ -49,7 +49,7 @@ const TransactionsScreen: React.FC = () => {
   
   // 從 Redux 獲取交易記錄
   const transactions = useAppSelector((state: RootState) => state.transactions);
-  const { data: transactionData, isLoading, error } = transactions || { data: null, isLoading: false, error: null };
+  const { data: transactionData = [], isLoading = false, error = null, hasMore = false } = transactions || { data: [], isLoading: false, error: null, hasMore: false };
   
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -77,14 +77,14 @@ const TransactionsScreen: React.FC = () => {
 
   // 上拉加載更多
   const loadMoreTransactions = useCallback(() => {
-    if (isLoading || loadingMore || !transactionData || transactionData.length < 20) return;
+    if (isLoading || loadingMore || !hasMore || !transactionData || transactionData.length < 20) return;
     
     setLoadingMore(true);
     const nextPage = page + 1;
     setPage(nextPage);
     
     dispatch(fetchTransactionsRequest({ page: nextPage, limit: 20 }));
-  }, [dispatch, isLoading, loadingMore, page, transactionData]);
+  }, [dispatch, isLoading, loadingMore, page, transactionData, hasMore]);
   
   // 處理加載更多狀態
   useEffect(() => {
@@ -95,7 +95,7 @@ const TransactionsScreen: React.FC = () => {
 
   // 過濾交易記錄
   const filteredTransactions = useMemo(() => {
-    if (!transactionData) return [];
+    if (!transactionData || !Array.isArray(transactionData)) return [];
     
     if (activeFilter === 'all') return transactionData;
     

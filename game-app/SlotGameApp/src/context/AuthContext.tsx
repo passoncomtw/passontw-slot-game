@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch } from 'react-redux';
-import { fetchUserRequest } from '../store/slices/authSlice';
+import { fetchUserRequest, logoutRequest } from '../store/slices/authSlice';
 import { AUTH_TOKEN_KEY, USER_PROFILE_KEY } from '../store/api/apiClient';
 import * as userService from '../store/api/userService';
 
@@ -222,10 +222,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // 清除本地存儲
-      await AsyncStorage.removeItem(USER_PROFILE_KEY);
-      await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+      // 透過 Redux 觸發登出操作，讓 Redux 控制導航
+      dispatch(logoutRequest());
       
+      // 清除本地狀態
       setUser(null);
       setIsAuthenticated(false);
       console.log('用戶已成功登出');

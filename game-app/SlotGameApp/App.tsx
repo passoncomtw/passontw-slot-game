@@ -9,6 +9,7 @@ import store from './src/store/store';
 import { AuthProvider } from './src/context/AuthContext';
 import { GameProvider } from './src/context/GameContext';
 import { LogBox } from 'react-native';
+import { navigationRef } from './src/navigation/navigationUtils';
 
 // 禁用黃色警告框
 LogBox.ignoreAllLogs();
@@ -18,7 +19,7 @@ export default function App() {
   return (
     <Provider store={store}>
       <SafeAreaProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef}>
           <StatusBar style="light" />
           <AuthProvider>
             <GameProvider>

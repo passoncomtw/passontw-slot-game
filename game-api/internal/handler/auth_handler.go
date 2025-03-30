@@ -31,38 +31,61 @@ type AppLoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-// Login 處理用戶登入請求
-// @Summary 用戶登入 (正式版本)
-// @Description 驗證用戶憑證並返回訪問令牌
-// @Tags 授權
+// Login godoc
+// @Summary 用戶登入
+// @Description 用戶登入並獲取認證令牌
+// @Tags auth
 // @Accept json
 // @Produce json
-// @Param login body models.AppLoginRequest true "登入信息"
-// @Success 200 {object} models.LoginResponse "成功"
-// @Failure 400 {object} interfaces.ErrorResponse "請求錯誤"
-// @Failure 401 {object} interfaces.ErrorResponse "未授權"
-// @Failure 500 {object} interfaces.ErrorResponse "服務器錯誤"
-// @Router /api/v1/auth/login [post]
+// @Param request body models.AppLoginRequest true "登入信息"
+// @Success 200 {object} models.TokenResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /v1/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
-	var loginReq models.AppLoginRequest
-	if err := c.ShouldBindJSON(&loginReq); err != nil {
-		h.log.Error("無效的登入請求", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "無效的請求", "details": err.Error()})
+	var req models.AppLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "無效的請求參數: " + err.Error()})
 		return
 	}
 
-	h.log.Info("收到登入請求", zap.String("email", loginReq.Username))
-
-	// 使用 authService 處理登入請求
-	response, err := h.authService.AppLogin(c.Request.Context(), loginReq)
+	token, err := h.authService.Login(req.Username, req.Password)
 	if err != nil {
-		h.log.Error("登入處理失敗", zap.Error(err))
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "登入失敗", "details": err.Error()})
+		h.log.Error("登入失敗", zap.Error(err))
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "登入失敗: " + err.Error()})
 		return
 	}
 
-	// 返回登入成功響應
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, models.TokenResponse{Token: token})
+}
+
+// GetUserProfile godoc
+// @Summary 獲取用戶資料
+// @Description 獲取當前登入用戶的資料
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} models.UserProfileResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /v1/auth/profile [get]
+func (h *AuthHandler) GetUserProfile(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "未授權訪問"})
+		return
+	}
+
+	profile, err := h.authService.GetUserProfile(c.Request.Context(), userID.(string))
+	if err != nil {
+		h.log.Error("獲取用戶資料失敗", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
 }
 
 // AuthMiddleware 身份驗證中間件

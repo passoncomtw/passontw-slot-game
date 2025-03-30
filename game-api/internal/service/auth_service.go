@@ -253,6 +253,75 @@ func (s *AuthService) ParseAdminToken(token string) (*models.TokenData, error) {
 	}, nil
 }
 
+// Login 簡易登入方法，直接返回 token
+func (s *AuthService) Login(username string, password string) (string, error) {
+	ctx := context.Background()
+	req := models.AppLoginRequest{
+		Username: username,
+		Password: password,
+	}
+
+	response, err := s.AppLogin(ctx, req)
+	if err != nil {
+		return "", err
+	}
+
+	return response.Token, nil
+}
+
+// GetUserProfile 獲取用戶個人資料
+func (s *AuthService) GetUserProfile(ctx context.Context, userID string) (*models.UserProfileResponse, error) {
+	// 從資料庫查詢用戶資料
+	db := s.db.GetDB().WithContext(ctx)
+
+	var user struct {
+		UserID    string    `gorm:"column:user_id"`
+		Username  string    `gorm:"column:username"`
+		Email     string    `gorm:"column:email"`
+		Role      string    `gorm:"column:role"`
+		IsActive  bool      `gorm:"column:is_active"`
+		CreatedAt time.Time `gorm:"column:created_at"`
+		UpdatedAt time.Time `gorm:"column:updated_at"`
+	}
+
+	// 查詢用戶資料
+	if err := db.Table("users").Where("user_id = ?", userID).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("用戶不存在")
+		}
+		return nil, fmt.Errorf("查詢用戶資料失敗: %w", err)
+	}
+
+	// 查詢用戶錢包資料
+	var wallet struct {
+		Balance float64 `gorm:"column:balance"`
+	}
+
+	if err := db.Table("user_wallets").Where("user_id = ?", userID).First(&wallet).Error; err != nil {
+		// 如果找不到錢包，默認餘額為0
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			s.log.Warn("查詢用戶錢包失敗", zap.Error(err), zap.String("userID", userID))
+		}
+	}
+
+	// 構建並返回用戶資料
+	status := "ACTIVE"
+	if !user.IsActive {
+		status = "INACTIVE"
+	}
+
+	return &models.UserProfileResponse{
+		ID:        user.UserID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Balance:   wallet.Balance,
+		Role:      user.Role,
+		Status:    status,
+		CreatedAt: user.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+	}, nil
+}
+
 // RevokeToken 撤銷 JWT 令牌
 func (s *AuthService) RevokeToken(token string) error {
 	// 實現撤銷令牌的邏輯，可能需要將令牌添加到黑名單中

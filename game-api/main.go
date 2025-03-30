@@ -13,8 +13,8 @@ import (
 	"go.uber.org/fx"
 )
 
-// @title           Passontw Auth Service API
-// @description     Passontw Auth Service API.
+// @title           Slot Game Service API
+// @description     Slot Game Service API Documentation
 // @termsOfService  http://swagger.io/terms/
 
 // @contact.name   API Support
@@ -29,7 +29,16 @@ import (
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token.
 
-// @BasePath  /
+// @BasePath  /api
+// @tag.name games
+// @tag.description 遊戲相關 API
+// @tag.name wallet
+// @tag.description 錢包與交易相關 API
+// @tag.name user
+// @tag.description 用戶相關 API
+// @tag.name auth
+// @tag.description 認證相關 API
+
 func main() {
 	if err := utils.InitSnowflake(2); err != nil {
 		log.Fatalf("Failed to initialize Snowflake: %v", err)

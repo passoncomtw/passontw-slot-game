@@ -39,7 +39,7 @@ func NewAppHandler(appService interfaces.AppService, logger *zap.Logger) *AppHan
 // @Success 200 {object} models.AppGameListResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /api/v1/games [get]
+// @Router /v1/games [get]
 func (h *AppHandler) GetGameList(c *gin.Context) {
 	var req models.AppGameListRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
@@ -68,7 +68,7 @@ func (h *AppHandler) GetGameList(c *gin.Context) {
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /api/v1/games/{game_id} [get]
+// @Router /v1/games/{game_id} [get]
 func (h *AppHandler) GetGameDetail(c *gin.Context) {
 	gameID := c.Param("game_id")
 	if gameID == "" {
@@ -103,7 +103,7 @@ func (h *AppHandler) GetGameDetail(c *gin.Context) {
 // @Failure 401 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /api/v1/games/sessions [post]
+// @Router /v1/games/sessions [post]
 func (h *AppHandler) StartGameSession(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -144,7 +144,7 @@ func (h *AppHandler) StartGameSession(c *gin.Context) {
 // @Failure 401 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /api/v1/games/bets [post]
+// @Router /v1/games/bets [post]
 func (h *AppHandler) PlaceBet(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -189,7 +189,7 @@ func (h *AppHandler) PlaceBet(c *gin.Context) {
 // @Failure 401 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /api/v1/games/sessions/end [post]
+// @Router /v1/games/sessions/end [post]
 func (h *AppHandler) EndGameSession(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -231,7 +231,7 @@ func (h *AppHandler) EndGameSession(c *gin.Context) {
 // @Success 200 {object} models.WalletBalanceResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /api/v1/wallet/balance [get]
+// @Router /v1/wallet/balance [get]
 func (h *AppHandler) GetWalletBalance(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -261,7 +261,7 @@ func (h *AppHandler) GetWalletBalance(c *gin.Context) {
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /api/v1/wallet/deposit [post]
+// @Router /v1/wallet/deposit [post]
 func (h *AppHandler) RequestDeposit(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -302,7 +302,7 @@ func (h *AppHandler) RequestDeposit(c *gin.Context) {
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /api/v1/wallet/withdraw [post]
+// @Router /v1/wallet/withdraw [post]
 func (h *AppHandler) RequestWithdraw(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -350,7 +350,7 @@ func (h *AppHandler) RequestWithdraw(c *gin.Context) {
 // @Success 200 {object} models.TransactionHistoryResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /api/v1/wallet/transactions [get]
+// @Router /v1/wallet/transactions [get]
 func (h *AppHandler) GetTransactionHistory(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {

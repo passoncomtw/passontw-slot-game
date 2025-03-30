@@ -7,20 +7,48 @@ import {
   ScrollView
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, ROUTES } from '../../utils/constants';
 import { useAuth } from '../../context/AuthContext';
 import Card from '../../components/Card';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+// 定義導航參數類型
+type RootStackParamList = {
+  [key: string]: undefined;
+};
+
+type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
 /**
  * 個人資料頁面
  */
 const ProfileScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<ProfileScreenNavigationProp>();
   const { user, logout } = useAuth();
 
   const navigateToSettings = () => {
     navigation.navigate(ROUTES.SETTINGS);
+  };
+
+  const navigateToWallet = () => {
+    navigation.navigate(ROUTES.WALLET);
+  };
+
+  const navigateToTransactions = () => {
+    navigation.navigate(ROUTES.TRANSACTIONS);
+  };
+
+  const navigateToAIAssistant = () => {
+    navigation.navigate(ROUTES.AI_ASSISTANT);
+  };
+
+  const navigateToNotifications = () => {
+    navigation.navigate(ROUTES.NOTIFICATIONS);
+  };
+
+  const navigateToAllHistory = () => {
+    navigation.navigate(ROUTES.TRANSACTIONS);
   };
 
   return (
@@ -37,20 +65,53 @@ const ProfileScreen: React.FC = () => {
           <View style={styles.avatar}>
             <Ionicons name="person" size={40} color={COLORS.primary} />
           </View>
-          <Text style={styles.username}>{user?.username}</Text>
-          <Text style={styles.vipLevel}>VIP {user?.vipLevel} 級會員</Text>
+          <Text style={styles.username}>{user?.username || '用戶'}</Text>
+          <Text style={styles.vipLevel}>VIP {user?.vipLevel || 1} 級會員</Text>
           <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>${user?.balance.toLocaleString()}</Text>
+            <TouchableOpacity style={styles.statItem} onPress={navigateToWallet}>
+              <Text style={styles.statValue}>${user && user.balance ? user.balance : 0}</Text>
               <Text style={styles.statLabel}>餘額</Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.divider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{user?.points}</Text>
+            <TouchableOpacity style={styles.statItem} onPress={navigateToTransactions}>
+              <Text style={styles.statValue}>{user && user.points ? user.points : 0}</Text>
               <Text style={styles.statLabel}>積分</Text>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
+
+        <Card style={styles.quickMenu}>
+          <Text style={styles.cardTitle}>快速操作</Text>
+          <View style={styles.quickMenuGrid}>
+            <TouchableOpacity style={styles.menuItem} onPress={navigateToWallet}>
+              <View style={[styles.menuIcon, {backgroundColor: '#FF9800'}]}>
+                <Ionicons name="wallet-outline" size={22} color="white" />
+              </View>
+              <Text style={styles.menuLabel}>錢包</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.menuItem} onPress={navigateToTransactions}>
+              <View style={[styles.menuIcon, {backgroundColor: '#4CAF50'}]}>
+                <Ionicons name="time-outline" size={22} color="white" />
+              </View>
+              <Text style={styles.menuLabel}>交易記錄</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.menuItem} onPress={navigateToNotifications}>
+              <View style={[styles.menuIcon, {backgroundColor: '#F44336'}]}>
+                <Ionicons name="notifications-outline" size={22} color="white" />
+              </View>
+              <Text style={styles.menuLabel}>通知</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.menuItem} onPress={navigateToAIAssistant}>
+              <View style={[styles.menuIcon, {backgroundColor: '#2196F3'}]}>
+                <Ionicons name="help-circle-outline" size={22} color="white" />
+              </View>
+              <Text style={styles.menuLabel}>AI助手</Text>
+            </TouchableOpacity>
+          </View>
+        </Card>
 
         <Card style={styles.statsCard}>
           <Text style={styles.cardTitle}>我的數據</Text>
@@ -143,7 +204,7 @@ const ProfileScreen: React.FC = () => {
         <Card style={styles.recentHistoryCard}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>最近記錄</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={navigateToAllHistory}>
               <Text style={styles.viewAllText}>查看全部</Text>
             </TouchableOpacity>
           </View>
@@ -436,6 +497,34 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
     fontSize: 16,
+  },
+  quickMenu: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+  },
+  quickMenuGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  menuItem: {
+    width: '22%',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  menuIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  menuLabel: {
+    fontSize: 12,
+    color: '#333',
+    textAlign: 'center',
   },
 });
 

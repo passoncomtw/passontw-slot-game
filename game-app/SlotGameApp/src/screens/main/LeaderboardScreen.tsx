@@ -136,10 +136,10 @@ const LeaderboardScreen: React.FC = () => {
               <Ionicons name="person" size={20} color="#666" />
             </View>
             <View style={styles.listInfoContainer}>
-              <Text style={styles.listName}>張小明 (您)</Text>
-              <Text style={styles.listVipText}>VIP {user?.vipLevel || 2}</Text>
+              <Text style={styles.listName}>{user?.username || '用戶'} (您)</Text>
+              <Text style={styles.listVipText}>VIP {user?.vipLevel || 1}</Text>
             </View>
-            <Text style={styles.listAmount}>${user?.balance.toLocaleString() || 1000}</Text>
+            <Text style={styles.listAmount}>${user?.balance || 0}</Text>
           </View>
           <View style={styles.nextRankContainer}>
             <Text>距離上一名還差：</Text>

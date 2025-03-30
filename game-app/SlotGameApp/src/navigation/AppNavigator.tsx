@@ -3,11 +3,17 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAppSelector } from '../store/hooks';
-import { ROUTES } from '../utils/constants';
+import { COLORS, ROUTES } from '../utils/constants';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import HomeScreen from '../screens/main/HomeScreen';
 import GameScreen from '../screens/main/GameScreen';
+import LeaderboardScreen from '../screens/main/LeaderboardScreen';
+import ProfileScreen from '../screens/main/ProfileScreen';
+import SettingsScreen from '../screens/main/SettingsScreen';
+import WalletScreen from '../screens/main/WalletScreen';
+import TransactionsScreen from '../screens/main/TransactionsScreen';
+import AIAssistantScreen from '../screens/main/AIAssistantScreen';
 import ReduxDebugScreen from '../screens/debug/ReduxDebugScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -18,6 +24,7 @@ const DEBUG_MODE_KEY = '@SlotGame:debug_mode';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const AuthStack = createNativeStackNavigator();
+const MainStack = createNativeStackNavigator();
 const DebugStack = createNativeStackNavigator();
 
 const screenOptions = {
@@ -74,6 +81,8 @@ const AppNavigator: React.FC = () => {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === ROUTES.GAME) {
             iconName = focused ? 'game-controller' : 'game-controller-outline';
+          } else if (route.name === ROUTES.LEADERBOARD) {
+            iconName = focused ? 'trophy' : 'trophy-outline';
           } else if (route.name === ROUTES.PROFILE) {
             iconName = focused ? 'person' : 'person-outline';
           } else if (route.name === ROUTES.DEBUG) {
@@ -82,7 +91,7 @@ const AppNavigator: React.FC = () => {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#6200EA',
+        tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: 'gray',
         tabBarStyle: {
           backgroundColor: '#1A1A1A',
@@ -93,8 +102,34 @@ const AppNavigator: React.FC = () => {
         },
       })}
     >
-      <Tab.Screen name={ROUTES.HOME} component={HomeScreen} />
-      <Tab.Screen name={ROUTES.GAME} component={GameScreen} />
+      <Tab.Screen 
+        name={ROUTES.HOME} 
+        component={HomeScreen} 
+        options={{
+          tabBarLabel: '首頁'
+        }}
+      />
+      <Tab.Screen 
+        name={ROUTES.GAME} 
+        component={GameScreen} 
+        options={{
+          tabBarLabel: '遊戲'
+        }}
+      />
+      <Tab.Screen 
+        name={ROUTES.LEADERBOARD} 
+        component={LeaderboardScreen} 
+        options={{
+          tabBarLabel: '排行榜'
+        }}
+      />
+      <Tab.Screen 
+        name={ROUTES.PROFILE} 
+        component={ProfileScreen} 
+        options={{
+          tabBarLabel: '我的'
+        }}
+      />
       {__DEV__ && showDebug && (
         <Tab.Screen 
           name={ROUTES.DEBUG} 
@@ -105,6 +140,21 @@ const AppNavigator: React.FC = () => {
         />
       )}
     </Tab.Navigator>
+  );
+
+  // 主要應用堆疊導航器
+  const MainStackNavigator = () => (
+    <MainStack.Navigator screenOptions={screenOptions}>
+      <MainStack.Screen name="TabRoot" component={MainTabNavigator} />
+      <MainStack.Screen name={ROUTES.SETTINGS} component={SettingsScreen} />
+      {/* 添加其他頁面 */}
+      <MainStack.Screen name={ROUTES.WALLET} component={WalletScreen} />
+      <MainStack.Screen name={ROUTES.TRANSACTIONS} component={TransactionsScreen} />
+      <MainStack.Screen name={ROUTES.GAME_DETAIL} component={GameScreen} />
+      <MainStack.Screen name={ROUTES.GAME_PLAY} component={GameScreen} />
+      <MainStack.Screen name={ROUTES.NOTIFICATIONS} component={HomeScreen} />
+      <MainStack.Screen name={ROUTES.AI_ASSISTANT} component={AIAssistantScreen} />
+    </MainStack.Navigator>
   );
 
   if (loading) {
@@ -120,7 +170,7 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen name="DebugRoot" component={DebugStackNavigator} />
       ) : isAuthenticated ? (
         // 如果用戶已登入，顯示主應用
-        <Stack.Screen name="MainRoot" component={MainTabNavigator} />
+        <Stack.Screen name="MainRoot" component={MainStackNavigator} />
       ) : (
         // 如果用戶未登入且未啟用調試，顯示身份驗證頁面
         <Stack.Screen name="AuthRoot" component={AuthStackNavigator} />

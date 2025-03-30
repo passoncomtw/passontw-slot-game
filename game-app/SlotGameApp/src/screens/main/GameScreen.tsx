@@ -1,17 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
   ScrollView, 
-  FlatList 
+  FlatList,
+  Alert
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import Header from '../../components/Header';
 import SlotMachine from '../../components/SlotMachine';
 import { COLORS } from '../../utils/constants';
 import { useGame } from '../../context/GameContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { 
+  placeBetRequest, 
+  getGameResultRequest, 
+  resetBetState,
+  fetchBetHistoryRequest
+} from '../../store/slices/gameSlice';
+import { 
+  PlaceBetRequest, 
+  GameResultItem, 
+  PlaceBetResponse,
+  BetHistoryParams
+} from '../../store/api/gameService';
 
 /**
  * 遊戲頁面
@@ -22,19 +37,130 @@ const GameScreen: React.FC = () => {
     betAmount, 
     increaseBet, 
     decreaseBet, 
-    isSpinning, 
-    spin, 
+    isSpinning,
     gameHistory,
     winAmount,
+    reels,
+    setReels
   } = useGame();
+
+  const dispatch = useAppDispatch();
+  // 從Redux獲取遊戲狀態
+  const gameState = useAppSelector(state => state.game);
+  const userState = useAppSelector(state => state.auth.user);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [gameSessionId, setGameSessionId] = useState<string>("session-123456");
+
+  // 頁面加載時獲取下注歷史
+  useEffect(() => {
+    const params: BetHistoryParams = {
+      page: 1,
+      pageSize: 10
+    };
+    dispatch(fetchBetHistoryRequest(params as any));
+  }, [dispatch]);
+
+  // 監聽下注狀態變化
+  useEffect(() => {
+    const { bet } = gameState;
+    
+    // 如果有下注結果
+    if (!bet.isProcessing && !bet.isPlacing && bet.currentBet && !isLoading) {
+      // 更新本地遊戲狀態
+      if (bet.currentBet.results && bet.currentBet.results.length > 0) {
+        // 將API返回的結果轉換為本地顯示的符號
+        const newReels = bet.currentBet.results.map(result => result.symbol);
+        setReels(newReels);
+      }
+    }
+  }, [gameState.bet, isLoading]);
+
+  // 當下注完成但有錯誤時顯示錯誤提示
+  useEffect(() => {
+    const { bet } = gameState;
+    if (!bet.isPlacing && bet.error) {
+      Alert.alert('下注失敗', bet.error);
+      dispatch(resetBetState());
+    }
+  }, [gameState.bet.error]);
 
   /**
    * 格式化日期時間
    */
-  const formatDateTime = (date: Date): string => {
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
+  const formatDateTime = (date: Date | string): string => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    const hours = dateObj.getHours().toString().padStart(2, '0');
+    const minutes = dateObj.getMinutes().toString().padStart(2, '0');
     return `${hours}:${minutes}`;
+  };
+
+  /**
+   * 執行下注並獲取結果
+   */
+  const handleSpin = async () => {
+    if (isSpinning || actualBalance < betAmount) return;
+    
+    try {
+      setIsLoading(true);
+      console.log('開始下注...');
+      
+      // 生成下注請求
+      const betRequest: PlaceBetRequest = {
+        sessionId: gameSessionId,
+        gameId: 'slot-lucky-seven',
+        betAmount: betAmount,
+        betOptions: {
+          lines: 1,
+          multiplier: 1
+        }
+      };
+      
+      // 派發下注請求
+      dispatch(placeBetRequest(betRequest));
+      
+      // 模擬旋轉動畫時間
+      setTimeout(() => {
+        // 獲取遊戲結果
+        if (gameState.bet.currentBet?.betId) {
+          dispatch(getGameResultRequest(gameState.bet.currentBet.betId));
+        }
+        setIsLoading(false);
+      }, 2000);
+      
+    } catch (error) {
+      console.error('下注過程中出錯:', error);
+      setIsLoading(false);
+      Toast.show({
+        type: 'error',
+        text1: '錯誤',
+        text2: '下注過程中出現錯誤，請稍後再試。',
+        position: 'bottom'
+      });
+    }
+  };
+
+  // 計算真實的餘額，優先使用Redux中的用戶餘額
+  const actualBalance = userState?.balance !== undefined ? userState.balance : balance;
+  
+  // 取得下注歷史記錄，優先使用API返回的歷史
+  const betHistoryRecords = gameState.betHistory.data.length > 0 
+    ? gameState.betHistory.data
+    : gameHistory.map(item => ({
+        betId: item.id,
+        gameId: 'slot-lucky-seven',
+        betAmount: item.betAmount,
+        isWin: item.isWin,
+        winAmount: item.winAmount,
+        timestamp: item.timestamp.toISOString(),
+      } as PlaceBetResponse));
+
+  // 刷新下注歷史記錄
+  const refreshBetHistory = () => {
+    const params: BetHistoryParams = {
+      page: 1,
+      pageSize: 10
+    };
+    dispatch(fetchBetHistoryRequest(params as any));
   };
 
   return (
@@ -45,7 +171,7 @@ const GameScreen: React.FC = () => {
         <View style={styles.balanceContainer}>
           <View>
             <Text style={styles.balanceLabel}>餘額</Text>
-            <Text style={styles.balanceValue}>${balance.toLocaleString()}</Text>
+            <Text style={styles.balanceValue}>${actualBalance.toLocaleString()}</Text>
           </View>
           
           <View>
@@ -65,7 +191,7 @@ const GameScreen: React.FC = () => {
               <TouchableOpacity 
                 style={styles.betButton} 
                 onPress={decreaseBet}
-                disabled={isSpinning || betAmount <= 10}
+                disabled={isSpinning || isLoading || betAmount <= 10}
               >
                 <Text style={styles.betButtonText}>-</Text>
               </TouchableOpacity>
@@ -77,7 +203,7 @@ const GameScreen: React.FC = () => {
               <TouchableOpacity 
                 style={styles.betButton} 
                 onPress={increaseBet}
-                disabled={isSpinning || betAmount >= balance}
+                disabled={isSpinning || isLoading || betAmount >= actualBalance}
               >
                 <Text style={styles.betButtonText}>+</Text>
               </TouchableOpacity>
@@ -85,28 +211,37 @@ const GameScreen: React.FC = () => {
           </View>
           
           <TouchableOpacity 
-            style={[styles.spinButton, isSpinning && styles.spinButtonDisabled]} 
-            onPress={spin}
-            disabled={isSpinning || balance < betAmount}
+            style={[
+              styles.spinButton, 
+              (isSpinning || isLoading || gameState.bet.isPlacing || gameState.bet.isProcessing) 
+                && styles.spinButtonDisabled
+            ]} 
+            onPress={handleSpin}
+            disabled={isSpinning || isLoading || actualBalance < betAmount || gameState.bet.isPlacing || gameState.bet.isProcessing}
           >
             <Ionicons name="play" size={18} color="white" style={styles.spinIcon} />
-            <Text style={styles.spinButtonText}>旋轉</Text>
+            <Text style={styles.spinButtonText}>
+              {isLoading || gameState.bet.isPlacing || gameState.bet.isProcessing ? '旋轉中...' : '旋轉'}
+            </Text>
           </TouchableOpacity>
         </View>
         
         <View style={styles.historyHeader}>
           <Text style={styles.historyTitle}>歷史記錄</Text>
-          <TouchableOpacity>
-            <Text style={styles.historyViewAll}>查看全部</Text>
+          {gameState.betHistory.isLoading && <Text style={styles.loadingText}>載入中...</Text>}
+          <TouchableOpacity onPress={refreshBetHistory}>
+            <Text style={styles.historyViewAll}>刷新</Text>
           </TouchableOpacity>
         </View>
         
         <View style={styles.historyContainer}>
-          {gameHistory.length === 0 ? (
+          {gameState.betHistory.isLoading ? (
+            <Text style={styles.loadingText}>正在載入歷史記錄...</Text>
+          ) : betHistoryRecords.length === 0 ? (
             <Text style={styles.noHistoryText}>暫無遊戲記錄</Text>
           ) : (
-            gameHistory.slice(0, 5).map((item) => (
-              <View key={item.id} style={styles.historyItem}>
+            betHistoryRecords.slice(0, 5).map((item) => (
+              <View key={item.betId} style={styles.historyItem}>
                 <View>
                   <Text style={styles.historyItemTitle}>
                     {item.isWin ? `贏得 $${item.winAmount}` : `下注 $${item.betAmount}`}
@@ -126,8 +261,23 @@ const GameScreen: React.FC = () => {
               </View>
             ))
           )}
+          
+          {gameState.betHistory.error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{gameState.betHistory.error}</Text>
+              <TouchableOpacity 
+                style={styles.retryButton}
+                onPress={refreshBetHistory}
+              >
+                <Text style={styles.retryButtonText}>重試</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
+      
+      {/* Toast通知組件 */}
+      <Toast />
     </View>
   );
 };
@@ -250,32 +400,42 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   historyContainer: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.surface,
     borderRadius: 10,
-    padding: 12,
+    padding: 15,
     marginBottom: 20,
+  },
+  noHistoryText: {
+    textAlign: 'center',
+    paddingVertical: 15,
+    color: '#999',
+  },
+  loadingText: {
+    textAlign: 'center',
+    paddingVertical: 15,
+    color: '#666',
   },
   historyItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    alignItems: 'center',
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   historyItemTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '500',
-    color: '#333',
+    color: COLORS.textPrimary,
   },
   historyItemTime: {
     fontSize: 12,
-    color: '#999',
-    marginTop: 4,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
   historyItemAmount: {
     fontSize: 16,
     fontWeight: '600',
-    alignSelf: 'center',
   },
   winAmount: {
     color: COLORS.success,
@@ -283,10 +443,23 @@ const styles = StyleSheet.create({
   loseAmount: {
     color: COLORS.error,
   },
-  noHistoryText: {
-    textAlign: 'center',
-    color: '#999',
-    padding: 20,
+  errorContainer: {
+    padding: 15,
+    alignItems: 'center',
+  },
+  errorText: {
+    color: COLORS.error,
+    marginBottom: 10,
+  },
+  retryButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: '600',
   },
 });
 

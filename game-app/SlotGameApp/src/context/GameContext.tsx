@@ -25,6 +25,7 @@ interface GameContextType {
   spin: () => Promise<void>;
   resetWinAmount: () => void;
   updateBalance: (amount: number) => void;
+  setReels: (newReels: string[]) => void;
 }
 
 const GameContext = createContext<GameContextType>({
@@ -42,6 +43,7 @@ const GameContext = createContext<GameContextType>({
   spin: async () => {},
   resetWinAmount: () => {},
   updateBalance: () => {},
+  setReels: () => {}
 });
 
 /**
@@ -193,6 +195,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         spin,
         resetWinAmount,
         updateBalance,
+        setReels
       }}
     >
       {children}

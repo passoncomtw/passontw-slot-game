@@ -112,6 +112,12 @@ const authSlice = createSlice({
     fetchUserFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
       state.error = action.payload;
+    },
+    // 更新用戶餘額
+    updateUserBalance: (state, action: PayloadAction<number>) => {
+      if (state.user) {
+        state.user.balance = action.payload;
+      }
     }
   }
 });
@@ -129,7 +135,8 @@ export const {
   logoutFailure,
   fetchUserRequest,
   fetchUserSuccess,
-  fetchUserFailure
+  fetchUserFailure,
+  updateUserBalance
 } = authSlice.actions;
 
 // 導出 reducer

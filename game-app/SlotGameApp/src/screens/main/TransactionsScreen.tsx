@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../utils/constants';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useAuth } from '../../context/AuthContext';
 import { fetchTransactionsRequest } from '../../store/slices/transactionSlice';
 import { RootState } from '../../store/rootReducer';
 
@@ -39,33 +38,301 @@ export type Transaction = {
 // 過濾器類型
 type FilterType = 'all' | 'deposit' | 'withdraw' | 'game';
 
+// 日期分組類型
+type GroupedTransactions = Record<string, Transaction[]>;
+
+// 過濾器標籤組件
+interface FilterTabsProps {
+  options: { label: string; value: string }[];
+  activeValue: string;
+  onChange: (value: FilterType) => void;
+}
+
+const FilterTabs: React.FC<FilterTabsProps> = ({ options, activeValue, onChange }) => (
+  <View style={styles.filterTabsContainer}>
+    {options.map((option) => (
+      <TouchableOpacity
+        key={option.value}
+        style={[
+          styles.filterTab,
+          activeValue === option.value && styles.activeFilterTab
+        ]}
+        onPress={() => onChange(option.value as FilterType)}
+      >
+        <Text
+          style={[
+            styles.filterTabText,
+            activeValue === option.value && styles.activeFilterTabText
+          ]}
+        >
+          {option.label}
+        </Text>
+      </TouchableOpacity>
+    ))}
+  </View>
+);
+
+// 頁頭組件
+interface HeaderProps {
+  title: string;
+  onBack: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ title, onBack }) => (
+  <View style={styles.header}>
+    <TouchableOpacity style={styles.backButton} onPress={onBack}>
+      <Ionicons name="chevron-back" size={24} color="white" />
+    </TouchableOpacity>
+    <Text style={styles.headerTitle}>{title}</Text>
+  </View>
+);
+
+// 載入中狀態組件
+const LoadingView: React.FC = () => (
+  <View style={styles.loadingContainer}>
+    <ActivityIndicator size="large" color={COLORS.primary} />
+    <Text style={styles.loadingText}>載入交易記錄中...</Text>
+  </View>
+);
+
+// 錯誤狀態組件
+interface ErrorViewProps {
+  error: string;
+  onRetry: () => void;
+}
+
+const ErrorView: React.FC<ErrorViewProps> = ({ error, onRetry }) => (
+  <View style={styles.errorContainer}>
+    <Ionicons name="alert-circle-outline" size={48} color={COLORS.error} />
+    <Text style={styles.errorText}>載入失敗</Text>
+    <Text style={styles.errorSubtext}>{error}</Text>
+    <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
+      <Text style={styles.retryButtonText}>重試</Text>
+    </TouchableOpacity>
+  </View>
+);
+
+// 空數據狀態組件
+interface EmptyViewProps {
+  activeFilter: FilterType;
+}
+
+const EmptyView: React.FC<EmptyViewProps> = ({ activeFilter }) => (
+  <View style={styles.emptyContainer}>
+    <Ionicons name="document-text-outline" size={48} color="#999" />
+    <Text style={styles.emptyText}>沒有交易記錄</Text>
+    <Text style={styles.emptySubtext}>您目前沒有{
+      activeFilter === 'deposit' ? '充值' : 
+      activeFilter === 'withdraw' ? '提現' : 
+      activeFilter === 'game' ? '遊戲' : ''
+    }相關的交易記錄</Text>
+  </View>
+);
+
+// 交易項目組件
+interface TransactionItemProps {
+  transaction: Transaction;
+}
+
+const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
+  let iconName = 'arrow-down';
+  let iconColor = COLORS.success;
+  let amountPrefix = '+';
+
+  if (transaction.type === 'withdraw') {
+    iconName = 'arrow-up';
+    iconColor = COLORS.error;
+    amountPrefix = '-';
+  } else if (transaction.type === 'lose') {
+    iconName = 'close-circle';
+    iconColor = COLORS.error;
+    amountPrefix = '-';
+  } else if (transaction.type === 'win') {
+    iconName = 'trophy';
+    iconColor = COLORS.success;
+  } else if (transaction.type === 'deposit') {
+    iconName = 'cash';
+  } else if (transaction.type === 'transfer') {
+    iconName = 'swap-horizontal';
+    iconColor = COLORS.info;
+  }
+
+  return (
+    <View style={styles.transactionItem}>
+      <View style={[styles.transactionIcon, { backgroundColor: iconColor }]}>
+        <Ionicons name={iconName} size={18} color="white" />
+      </View>
+      <View style={styles.transactionDetails}>
+        <Text style={styles.transactionType}>
+          {transaction.type === 'deposit' ? '充值' : 
+           transaction.type === 'withdraw' ? '提現' : 
+           transaction.type === 'win' ? `贏取${transaction.gameTitle ? ` (${transaction.gameTitle})` : ''}` : 
+           transaction.type === 'lose' ? `投注${transaction.gameTitle ? ` (${transaction.gameTitle})` : ''}` : 
+           '轉賬'}
+        </Text>
+        <Text style={styles.transactionDescription}>
+          {transaction.description || 
+            (transaction.type === 'deposit' ? '在線充值' : 
+             transaction.type === 'withdraw' ? '提現至銀行賬戶' : 
+             transaction.type === 'win' || transaction.type === 'lose' ? `遊戲交易` : 
+             '賬戶間轉賬')}
+        </Text>
+      </View>
+      <View style={styles.transactionStatus}>
+        <Text style={[
+          styles.transactionAmount, 
+          { color: amountPrefix === '+' ? COLORS.success : COLORS.error }
+        ]}>
+          {amountPrefix}${transaction.amount}
+        </Text>
+        <Text style={[
+          styles.statusText, 
+          { 
+            color: transaction.status === 'completed' ? COLORS.success : 
+                   transaction.status === 'pending' ? COLORS.warning : COLORS.error 
+          }
+        ]}>
+          {transaction.status === 'completed' ? '已完成' : 
+           transaction.status === 'pending' ? '處理中' : '失敗'}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+// 日期分組標題組件
+const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
+  <View style={styles.sectionHeader}>
+    <Text style={styles.sectionTitle}>{title}</Text>
+  </View>
+);
+
+// 載入更多組件
+const LoadMoreFooter: React.FC = () => (
+  <View style={styles.loadMoreContainer}>
+    <ActivityIndicator size="small" color={COLORS.primary} />
+    <Text style={styles.loadMoreText}>載入更多...</Text>
+  </View>
+);
+
+/**
+ * 日期格式化函數
+ */
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+  
+  try {
+    return date.toLocaleDateString('zh-TW', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  } catch (error) {
+    // 備用格式化方法
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${year}年${month}月${day}日`;
+  }
+}
+
+/**
+ * 將交易記錄按日期分組
+ */
+function groupTransactionsByDate(transactions: Transaction[]): GroupedTransactions {
+  console.log("🚀 ~ groupTransactionsByDate ~ transactions:", transactions)
+  if (!Array.isArray(transactions) || transactions.length === 0) {
+    return {};
+  }
+  
+  return transactions.reduce((groups: GroupedTransactions, transaction: Transaction) => {
+    if (!transaction.date) {
+      return groups;
+    }
+    
+    const dateKey = formatDate(transaction.date);
+    console.log("🚀 ~ groupTransactionsByDate ~ dateKey:", dateKey)
+    if (!dateKey) {
+      return groups; // 跳過無效日期
+    }
+    
+    if (!groups[dateKey]) {
+      groups[dateKey] = [];
+    }
+    
+    groups[dateKey].push(transaction);
+    return groups;
+  }, {});
+}
+
+/**
+ * 排序日期鍵值（最新的在最前面）
+ */
+function sortDateKeys(dateKeys: string[]): string[] {
+  return dateKeys.sort((a, b) => {
+    const dateA = new Date(a.replace(/年|月|日/g, ' ').trim());
+    const dateB = new Date(b.replace(/年|月|日/g, ' ').trim());
+    return dateB.getTime() - dateA.getTime();
+  });
+}
+
 /**
  * 交易記錄頁面
  */
 const TransactionsScreen: React.FC = () => {
   const navigation = useNavigation<TransactionsScreenNavigationProp>();
   const dispatch = useAppDispatch();
-  const { user } = useAuth();
   
-  // 從 Redux 獲取交易記錄
-  const transactions = useAppSelector((state: RootState) => state.transactions);
-  const { data: transactionData = [], isLoading = false, error = null, hasMore = false } = transactions || { data: [], isLoading: false, error: null, hasMore: false };
+  // 從 Redux 獲取交易記錄，確保提供默認值以避免 undefined 錯誤
+  const state = useAppSelector((state: RootState) => {
+    console.log("🚀 ~ state:", state)
+    return state
+  })
+  const {transactions} = state;
+  console.log("🚀 ~ transactions:", transactions)
+  
+  // 提取所需狀態並提供默認值
+  const transactionData = transactions?.data || [];
+  const isLoading = transactions?.isLoading || false;
+  const error = transactions?.error || null;
+  const hasMore = transactions?.hasMore || false;
+  const currentPage = transactions?.page || 1;
   
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [refreshing, setRefreshing] = useState(false);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(currentPage);
   const [loadingMore, setLoadingMore] = useState(false);
 
   // 初次載入數據
   useEffect(() => {
-    dispatch(fetchTransactionsRequest({ page: 1, limit: 20 }));
-  }, [dispatch]);
+    fetchTransactions(1);
+  }, [activeFilter]);
+
+  // 處理過濾器變更
+  const handleFilterChange = (filterType: FilterType) => {
+    if (filterType !== activeFilter) {
+      setActiveFilter(filterType);
+      setPage(1);
+    }
+  };
+
+  // 獲取交易記錄的共用方法
+  const fetchTransactions = useCallback((pageNum: number) => {
+    const apiFilter = activeFilter === 'all' ? undefined : 
+                      activeFilter === 'game' ? 'bet,win' : 
+                      activeFilter;
+    
+    dispatch(fetchTransactionsRequest({ page: pageNum, limit: 20, filter: apiFilter }));
+  }, [dispatch, activeFilter]);
 
   // 下拉刷新功能
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    dispatch(fetchTransactionsRequest({ page: 1, limit: 20 }));
-  }, [dispatch]);
+    fetchTransactions(1);
+  }, [fetchTransactions]);
   
   // 處理刷新狀態
   useEffect(() => {
@@ -77,14 +344,15 @@ const TransactionsScreen: React.FC = () => {
 
   // 上拉加載更多
   const loadMoreTransactions = useCallback(() => {
-    if (isLoading || loadingMore || !hasMore || !transactionData || transactionData.length < 20) return;
+    if (isLoading || loadingMore || !hasMore || !Array.isArray(transactionData)) {
+      return;
+    }
     
     setLoadingMore(true);
     const nextPage = page + 1;
     setPage(nextPage);
-    
-    dispatch(fetchTransactionsRequest({ page: nextPage, limit: 20 }));
-  }, [dispatch, isLoading, loadingMore, page, transactionData, hasMore]);
+    fetchTransactions(nextPage);
+  }, [isLoading, loadingMore, hasMore, transactionData, page, fetchTransactions]);
   
   // 處理加載更多狀態
   useEffect(() => {
@@ -93,149 +361,40 @@ const TransactionsScreen: React.FC = () => {
     }
   }, [isLoading, loadingMore]);
 
-  // 過濾交易記錄
-  const filteredTransactions = useMemo(() => {
-    if (!transactionData || !Array.isArray(transactionData)) return [];
-    
-    if (activeFilter === 'all') return transactionData;
-    
-    if (activeFilter === 'deposit') {
-      return transactionData.filter((tx: Transaction) => tx.type === 'deposit');
-    }
-    
-    if (activeFilter === 'withdraw') {
-      return transactionData.filter((tx: Transaction) => tx.type === 'withdraw');
-    }
-    
-    if (activeFilter === 'game') {
-      return transactionData.filter((tx: Transaction) => tx.type === 'win' || tx.type === 'lose');
-    }
-    
-    return transactionData;
-  }, [transactionData, activeFilter]);
-
-  // 根據日期分組交易記錄
-  const groupedTransactions = useMemo(() => {
-    if (!filteredTransactions.length) return {};
-    
-    return filteredTransactions.reduce((groups: Record<string, Transaction[]>, transaction: Transaction) => {
-      const date = new Date(transaction.date);
-      const dateKey = date.toLocaleDateString('zh-TW', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
-      
-      if (!groups[dateKey]) {
-        groups[dateKey] = [];
-      }
-      
-      groups[dateKey].push(transaction);
-      return groups;
-    }, {});
-  }, [filteredTransactions]);
+  // 獲取已分組的交易記錄和排序後的日期
+  const groupedTransactions = groupTransactionsByDate(transactionData);
+  const sortedDateKeys = sortDateKeys(Object.keys(groupedTransactions));
+  console.log("🚀 ~ groupedTransactions:", groupedTransactions)
 
   // 導航返回
   const navigateBack = () => {
     navigation.goBack();
   };
 
-  // 渲染交易記錄項目
-  const renderTransactionItem = ({ item }: { item: Transaction }) => {
-    let iconName = 'arrow-down';
-    let iconColor = COLORS.success;
-    let amountPrefix = '+';
-
-    if (item.type === 'withdraw') {
-      iconName = 'arrow-up';
-      iconColor = COLORS.error;
-      amountPrefix = '-';
-    } else if (item.type === 'lose') {
-      iconName = 'close-circle';
-      iconColor = COLORS.error;
-      amountPrefix = '-';
-    } else if (item.type === 'win') {
-      iconName = 'trophy';
-      iconColor = COLORS.success;
-    } else if (item.type === 'deposit') {
-      iconName = 'cash';
-    } else if (item.type === 'transfer') {
-      iconName = 'swap-horizontal';
-      iconColor = COLORS.info;
+  // 渲染內容函數 - 使用 early return 模式
+  const renderContent = () => {
+    if (isLoading && !loadingMore && !refreshing) {
+      return <LoadingView />;
     }
-
-    return (
-      <View style={styles.transactionItem}>
-        <View style={[styles.transactionIcon, { backgroundColor: iconColor }]}>
-          <Ionicons name={iconName} size={18} color="white" />
-        </View>
-        <View style={styles.transactionDetails}>
-          <Text style={styles.transactionType}>
-            {item.type === 'deposit' ? '充值' : 
-             item.type === 'withdraw' ? '提現' : 
-             item.type === 'win' ? `贏取${item.gameTitle ? ` (${item.gameTitle})` : ''}` : 
-             item.type === 'lose' ? `投注${item.gameTitle ? ` (${item.gameTitle})` : ''}` : 
-             '轉賬'}
-          </Text>
-          <Text style={styles.transactionDescription}>
-            {item.description || 
-              (item.type === 'deposit' ? '在線充值' : 
-               item.type === 'withdraw' ? '提現至銀行賬戶' : 
-               item.type === 'win' || item.type === 'lose' ? `遊戲交易` : 
-               '賬戶間轉賬')}
-          </Text>
-        </View>
-        <View style={styles.transactionStatus}>
-          <Text style={[
-            styles.transactionAmount, 
-            { color: amountPrefix === '+' ? COLORS.success : COLORS.error }
-          ]}>
-            {amountPrefix}${item.amount}
-          </Text>
-          <Text style={[
-            styles.statusText, 
-            { 
-              color: item.status === 'completed' ? COLORS.success : 
-                     item.status === 'pending' ? COLORS.warning : COLORS.error 
-            }
-          ]}>
-            {item.status === 'completed' ? '已完成' : 
-             item.status === 'pending' ? '處理中' : '失敗'}
-          </Text>
-        </View>
-      </View>
-    );
-  };
-
-  // 渲染交易記錄分組標題
-  const renderSectionHeader = (title: string) => (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-    </View>
-  );
-
-  // 渲染分組後的列表
-  const renderGroupedList = () => {
-    const groupKeys = Object.keys(groupedTransactions);
     
-    // 按日期排序（最新的日期在前）
-    groupKeys.sort((a, b) => {
-      const dateA = new Date(a.replace(/年|月|日/g, ' ').trim());
-      const dateB = new Date(b.replace(/年|月|日/g, ' ').trim());
-      return dateB.getTime() - dateA.getTime();
-    });
+    if (error) {
+      return <ErrorView error={error} onRetry={onRefresh} />;
+    }
+    
+    console.log("🚀 ~ renderContent ~ sortedDateKeys:", sortedDateKeys)
+     if (sortedDateKeys.length === 0) {
+       return <EmptyView activeFilter={activeFilter} />;
+     }
     
     return (
       <FlatList
-        data={groupKeys}
+        data={sortedDateKeys}
         keyExtractor={item => item}
         renderItem={({ item: dateKey }) => (
           <View>
-            {renderSectionHeader(dateKey)}
+            <SectionHeader title={dateKey} />
             {groupedTransactions[dateKey].map(transaction => (
-              <View key={transaction.id}>
-                {renderTransactionItem({ item: transaction })}
-              </View>
+              <TransactionItem key={transaction.id} transaction={transaction} />
             ))}
           </View>
         )}
@@ -248,98 +407,33 @@ const TransactionsScreen: React.FC = () => {
         }
         onEndReached={loadMoreTransactions}
         onEndReachedThreshold={0.5}
-        ListEmptyComponent={
-          !isLoading ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="receipt-outline" size={48} color="#ccc" />
-              <Text style={styles.emptyText}>暫無交易記錄</Text>
-            </View>
-          ) : null
-        }
-        ListFooterComponent={
-          loadingMore ? (
-            <View style={styles.footerLoader}>
-              <ActivityIndicator size="small" color={COLORS.primary} />
-              <Text style={styles.footerLoaderText}>載入更多...</Text>
-            </View>
-          ) : null
-        }
+        contentContainerStyle={styles.flatListContent}
+        ListFooterComponent={loadingMore ? <LoadMoreFooter /> : null}
+        ListEmptyComponent={<EmptyView activeFilter={activeFilter} />}
       />
     );
   };
 
+  // 主渲染函數
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={navigateBack}>
-          <Ionicons name="chevron-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>交易記錄</Text>
-      </View>
+      <Header title="交易記錄" onBack={navigateBack} />
 
       <View style={styles.filterContainer}>
-        <ScrollableFilter
+        <FilterTabs
           options={[
             { label: '全部', value: 'all' },
             { label: '充值', value: 'deposit' },
             { label: '提現', value: 'withdraw' },
-            { label: '遊戲交易', value: 'game' }
+            { label: '遊戲', value: 'game' }
           ]}
           activeValue={activeFilter}
-          onChange={(value: FilterType) => setActiveFilter(value)}
+          onChange={handleFilterChange}
         />
       </View>
 
-      {isLoading && !refreshing && !loadingMore ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>載入中...</Text>
-        </View>
-      ) : error ? (
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={COLORS.error} />
-          <Text style={styles.errorText}>加載失敗，請稍後重試</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
-            <Text style={styles.retryButtonText}>重試</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        renderGroupedList()
-      )}
+      {renderContent()}
     </SafeAreaView>
-  );
-};
-
-// 可滾動的過濾器組件
-type ScrollableFilterProps = {
-  options: { label: string; value: string }[];
-  activeValue: string;
-  onChange: (value: FilterType) => void;
-};
-
-const ScrollableFilter: React.FC<ScrollableFilterProps> = ({ options, activeValue, onChange }) => {
-  return (
-    <View style={styles.scrollableFilter}>
-      {options.map(option => (
-        <TouchableOpacity
-          key={option.value}
-          style={[
-            styles.filterOption,
-            activeValue === option.value && styles.activeFilterOption
-          ]}
-          onPress={() => onChange(option.value as FilterType)}
-        >
-          <Text
-            style={[
-              styles.filterOptionText,
-              activeValue === option.value && styles.activeFilterOptionText
-            ]}
-          >
-            {option.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
   );
 };
 
@@ -350,7 +444,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: COLORS.primary,
-    paddingTop: 10,
+    paddingTop: 50,
     paddingBottom: 15,
     flexDirection: 'row',
     alignItems: 'center',
@@ -363,53 +457,121 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: 'white',
+    flex: 1,
+    textAlign: 'center',
+    marginRight: 30, // 為了平衡 backButton 的空間
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
   },
   filterContainer: {
-    backgroundColor: 'white',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    marginVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#eeeeee',
+    paddingBottom: 12,
   },
-  scrollableFilter: {
+  filterTabsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  filterOption: {
+  filterTab: {
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
     backgroundColor: '#f0f0f0',
   },
-  activeFilterOption: {
+  activeFilterTab: {
     backgroundColor: COLORS.primary,
   },
-  filterOptionText: {
+  filterTabText: {
     fontSize: 14,
     color: '#666',
   },
-  activeFilterOptionText: {
+  activeFilterTabText: {
     color: 'white',
     fontWeight: '500',
+  },
+  sectionHeader: {
+    backgroundColor: '#f8f8f8',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eeeeee',
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#999',
+  },
+  transactionItem: {
+    flexDirection: 'row',
+    padding: 16,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eeeeee',
+  },
+  transactionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  transactionDetails: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  transactionType: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  transactionDescription: {
+    fontSize: 14,
+    color: '#666',
+  },
+  transactionStatus: {
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  transactionAmount: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  statusText: {
+    fontSize: 12,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#666',
+    color: COLORS.primary,
   },
   emptyContainer: {
-    padding: 40,
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: 40,
   },
   emptyText: {
-    marginTop: 10,
     fontSize: 16,
     color: '#666',
+    marginVertical: 12,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
   errorContainer: {
     flex: 1,
@@ -418,84 +580,39 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   errorText: {
-    marginTop: 10,
     fontSize: 16,
-    color: '#666',
+    color: COLORS.error,
+    marginVertical: 10,
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
     marginBottom: 20,
   },
   retryButton: {
     backgroundColor: COLORS.primary,
-    paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    paddingVertical: 10,
+    borderRadius: 20,
   },
   retryButtonText: {
     color: 'white',
-    fontSize: 16,
     fontWeight: '500',
   },
-  sectionHeader: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
-  },
-  transactionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  transactionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  transactionDetails: {
-    flex: 1,
-  },
-  transactionType: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 3,
-  },
-  transactionDescription: {
-    fontSize: 12,
-    color: '#999',
-  },
-  transactionStatus: {
-    alignItems: 'flex-end',
-  },
-  transactionAmount: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 3,
-  },
-  statusText: {
-    fontSize: 12,
-  },
-  footerLoader: {
+  loadMoreContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 16,
   },
-  footerLoaderText: {
+  loadMoreText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#666',
+    color: COLORS.primary,
+  },
+  flatListContent: {
+    padding: 16,
   },
 });
 

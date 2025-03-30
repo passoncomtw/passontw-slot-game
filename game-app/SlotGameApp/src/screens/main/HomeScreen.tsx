@@ -5,14 +5,12 @@ import {
   StyleSheet, 
   ScrollView, 
   TouchableOpacity,
-  Image
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, ROUTES } from '../../utils/constants';
 import { useAuth } from '../../context/AuthContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import Card from '../../components/Card';
 
 // 定義導航參數類型
 type RootStackParamList = {

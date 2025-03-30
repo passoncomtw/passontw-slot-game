@@ -18,6 +18,9 @@ const apiClient = axios.create({
   }
 });
 
+// 添加日誌
+console.log('Loading apiClient...');
+
 // 請求攔截器
 apiClient.interceptors.request.use(
   async (config) => {

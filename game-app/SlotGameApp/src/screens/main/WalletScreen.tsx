@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { COLORS, ROUTES } from '../../utils/constants';
+import { COLORS } from '../../utils/constants';
 import { useAuth } from '../../context/AuthContext';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { 
@@ -26,16 +26,6 @@ import {
 } from '../../store/slices/walletSlice';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Card from '../../components/Card';
-
-// 交易記錄類型定義
-type Transaction = {
-  id: string;
-  type: 'deposit' | 'withdraw' | 'win' | 'lose';
-  amount: number;
-  date: Date;
-  status: 'completed' | 'pending' | 'failed';
-  gameTitle?: string;
-};
 
 // 定義導航參數類型
 type RootStackParamList = {
@@ -300,7 +290,7 @@ const WalletScreen: React.FC = () => {
             }
           />
         ) : (
-          <Text style={styles.noTransactionsText}>沒有交易記錄</Text>
+          <Text style={styles.noTransactionsText}>沒有交易記錄1111</Text>
         )}
       </View>
     </View>
@@ -546,7 +536,7 @@ const WalletScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.tabContent}>
         {activeTab === 'balance' && renderBalanceTab()}
         {activeTab === 'deposit' && renderDepositTab()}
         {activeTab === 'withdraw' && renderWithdrawTab()}
@@ -747,7 +737,10 @@ const styles = StyleSheet.create({
   },
   selectedPaymentOption: {
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.primaryLight
+    backgroundColor: COLORS.primary
+  },
+  selectedPaymentOptionText: {
+    color: COLORS.primary
   },
   paymentOptionText: {
     marginLeft: 5

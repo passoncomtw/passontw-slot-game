@@ -8,10 +8,21 @@ import {
   Image
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, ROUTES } from '../../utils/constants';
 import { useAuth } from '../../context/AuthContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Card from '../../components/Card';
+
+// 定義導航參數類型
+type RootStackParamList = {
+  Game: undefined;
+  GameDetail: { gameId: string };
+  Wallet: undefined;
+  Profile: undefined;
+};
+
+type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface GameCardProps {
   title: string;
@@ -64,17 +75,17 @@ const GameCard: React.FC<GameCardProps> = ({ title, iconName, color, rating, tag
  * 首頁頁面
  */
 const HomeScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<HomeScreenNavigationProp>();
   const { user } = useAuth();
 
   const navigateToGame = () => {
-    navigation.navigate(ROUTES.GAME);
+    navigation.navigate('Game');
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>AI 幸運老虎機</Text>
+        <Text style={styles.headerText}>幸運老虎機</Text>
         <TouchableOpacity style={styles.notificationButton}>
           <Ionicons name="notifications-outline" size={24} color="white" />
         </TouchableOpacity>
@@ -86,21 +97,17 @@ const HomeScreen: React.FC = () => {
           <Text style={styles.balanceValue}>
             ${user && user.balance ? user.balance : 0}
           </Text>
+          <TouchableOpacity 
+            style={styles.rechargeButton}
+            onPress={() => navigation.navigate('Wallet')}
+          >
+            <Text style={styles.rechargeButtonText}>儲值</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.jackpotCard}>
           <Text style={styles.jackpotLabel}>當前頭獎</Text>
           <Text style={styles.jackpotValue}>$10,000</Text>
-        </View>
-
-        <View style={styles.aiSuggestion}>
-          <View style={styles.aiTitleContainer}>
-            <Ionicons name="bulb-outline" size={18} color="white" style={{ marginRight: 5 }} />
-            <Text style={styles.aiTitle}>AI 建議</Text>
-          </View>
-          <Text style={styles.aiMessage}>
-            根據您的遊戲風格，我建議您嘗試「幸運七」遊戲。它與您的偏好匹配度高達85%！
-          </Text>
         </View>
 
         <View style={styles.sectionHeader}>
@@ -154,7 +161,7 @@ const HomeScreen: React.FC = () => {
             iconName="diamond-outline"
             color="#009688"
             rating={4.1}
-            tag="85% 匹配"
+            tag="推薦"
             onPress={navigateToGame}
           />
           <GameCard 
@@ -162,7 +169,7 @@ const HomeScreen: React.FC = () => {
             iconName="flame-outline"
             color="#FF5722"
             rating={3.5}
-            tag="70% 匹配"
+            tag="推薦"
             onPress={navigateToGame}
           />
           <GameCard 
@@ -170,7 +177,7 @@ const HomeScreen: React.FC = () => {
             iconName="moon-outline"
             color="#3F51B5"
             rating={4.0}
-            tag="65% 匹配"
+            tag="推薦"
             onPress={navigateToGame}
           />
         </ScrollView>
@@ -185,18 +192,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f8f8',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
     backgroundColor: COLORS.primary,
-    paddingTop: 50,
-    paddingBottom: 15,
-    paddingHorizontal: 16,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: 'white',
+  headerText: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   notificationButton: {
     padding: 5,
@@ -265,39 +269,44 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: 'bold',
+    color: '#333333',
+    marginBottom: 15,
+    marginHorizontal: 20,
   },
   gameScrollView: {
     marginTop: 8,
   },
   gameScrollContent: {
-    paddingRight: 16,
+    paddingHorizontal: 16,
   },
   gameCard: {
-    width: 150,
-    backgroundColor: 'white',
-    borderRadius: 10,
+    width: 160,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     padding: 12,
     marginRight: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
   gameIconContainer: {
     width: '100%',
-    height: 80,
+    height: 100,
     borderRadius: 8,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 10,
   },
   gameTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: 'bold',
+    color: '#333333',
     marginBottom: 6,
   },
   ratingContainer: {
@@ -307,20 +316,72 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 12,
-    color: '#999',
+    color: '#999999',
     marginLeft: 4,
   },
   tagContainer: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 4,
+    backgroundColor: '#EEEEEE',
     paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 12,
     alignSelf: 'flex-start',
   },
   tagText: {
-    color: 'white',
+    fontSize: 10,
+    color: '#666666',
+  },
+  categoryContainer: {
+    paddingHorizontal: 15,
+    marginBottom: 20,
+  },
+  gameContainer: {
+    paddingHorizontal: 15,
+    paddingBottom: 20,
+  },
+  gamesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: 5,
+  },
+  categoryScrollView: {
+    paddingLeft: 5,
+    paddingRight: 5,
+  },
+  categoryCard: {
+    width: 140,
+    height: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    borderRadius: 10,
+  },
+  categoryText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  banner: {
+    height: 150,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  rechargeButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginTop: 8,
+  },
+  rechargeButtonText: {
+    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: 'bold',
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -7,12 +7,15 @@ import {
   ScrollView,
   TextInput,
   Alert,
-  FlatList
+  FlatList,
+  ActivityIndicator
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, ROUTES } from '../../utils/constants';
 import { useAuth } from '../../context/AuthContext';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { depositRequest, fetchBalanceRequest, resetDeposit, resetWithdraw, withdrawRequest } from '../../store/slices/walletSlice';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Card from '../../components/Card';
 
@@ -39,8 +42,54 @@ type WalletScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const WalletScreen: React.FC = () => {
   const navigation = useNavigation<WalletScreenNavigationProp>();
   const { user } = useAuth();
+  const dispatch = useAppDispatch();
+  
+  // 從 Redux 獲取錢包狀態
+  const { 
+    balance: { data: walletData, isLoading: balanceLoading, error: balanceError },
+    deposit: { isLoading: depositLoading, success: depositSuccess, error: depositError },
+    withdraw: { isLoading: withdrawLoading, success: withdrawSuccess, error: withdrawError }
+  } = useAppSelector(state => state.wallet);
+  
   const [activeTab, setActiveTab] = useState<'balance' | 'deposit' | 'withdraw'>('balance');
   const [amount, setAmount] = useState('');
+  const [paymentType, setPaymentType] = useState('credit_card'); // 'credit_card', 'bank_transfer', 'e_wallet'
+  const [bankAccount, setBankAccount] = useState('');
+
+  // 在組件掛載時獲取餘額
+  useEffect(() => {
+    dispatch(fetchBalanceRequest());
+  }, [dispatch]);
+
+  // 處理存款/提款結果
+  useEffect(() => {
+    if (depositSuccess) {
+      Alert.alert('充值成功', '您的餘額已更新。');
+      setAmount('');
+      setActiveTab('balance');
+      dispatch(resetDeposit()); // 重置存款狀態
+      dispatch(fetchBalanceRequest()); // 刷新餘額
+    }
+    
+    if (withdrawSuccess) {
+      Alert.alert('提現成功', '您的提現申請已提交，等待處理。');
+      setAmount('');
+      setBankAccount('');
+      setActiveTab('balance');
+      dispatch(resetWithdraw()); // 重置提款狀態
+      dispatch(fetchBalanceRequest()); // 刷新餘額
+    }
+    
+    if (depositError) {
+      Alert.alert('充值失敗', depositError);
+      dispatch(resetDeposit());
+    }
+    
+    if (withdrawError) {
+      Alert.alert('提現失敗', withdrawError);
+      dispatch(resetWithdraw());
+    }
+  }, [depositSuccess, withdrawSuccess, depositError, withdrawError, dispatch]);
 
   // 模擬交易記錄
   const transactions: Transaction[] = [
@@ -86,6 +135,12 @@ const WalletScreen: React.FC = () => {
       return;
     }
 
+    const amountNumber = Number(amount);
+    if (amountNumber < 10) {
+      Alert.alert('錯誤', '最低充值金額為 $10');
+      return;
+    }
+
     Alert.alert('充值', `您確定要充值 $${amount} 嗎？`, [
       {
         text: '取消',
@@ -94,8 +149,10 @@ const WalletScreen: React.FC = () => {
       {
         text: '確認',
         onPress: () => {
-          Alert.alert('成功', `充值 $${amount} 已提交，等待處理。`);
-          setAmount('');
+          dispatch(depositRequest({
+            amount: amountNumber,
+            paymentType
+          }));
         }
       }
     ]);
@@ -107,8 +164,20 @@ const WalletScreen: React.FC = () => {
       return;
     }
 
-    if (user?.balance && Number(amount) > user.balance) {
+    const amountNumber = Number(amount);
+    if (amountNumber < 20) {
+      Alert.alert('錯誤', '最低提現金額為 $20');
+      return;
+    }
+
+    const currentBalance = walletData?.balance || 0;
+    if (amountNumber > currentBalance) {
       Alert.alert('錯誤', '提現金額不能超過餘額');
+      return;
+    }
+
+    if (!bankAccount.trim()) {
+      Alert.alert('錯誤', '請輸入銀行帳號');
       return;
     }
 
@@ -120,8 +189,10 @@ const WalletScreen: React.FC = () => {
       {
         text: '確認',
         onPress: () => {
-          Alert.alert('成功', `提現 $${amount} 已提交，等待處理。`);
-          setAmount('');
+          dispatch(withdrawRequest({
+            amount: amountNumber,
+            bankAccount
+          }));
         }
       }
     ]);
@@ -194,59 +265,68 @@ const WalletScreen: React.FC = () => {
   // 渲染用戶餘額頁面
   const renderBalanceTab = () => (
     <View style={styles.tabContent}>
-      <Card style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>當前餘額</Text>
-        <Text style={styles.balanceAmount}>${user?.balance || 0}</Text>
-        <Text style={styles.balanceUpdateTime}>最後更新: {new Date().toLocaleString('zh-TW')}</Text>
-      </Card>
-      
-      <View style={styles.quickActionsContainer}>
-        <TouchableOpacity 
-          style={styles.quickActionButton}
-          onPress={() => setActiveTab('deposit')}
-        >
-          <View style={[styles.quickActionIcon, { backgroundColor: COLORS.success }]}>
-            <Ionicons name="add" size={24} color="white" />
-          </View>
-          <Text style={styles.quickActionText}>充值</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.quickActionButton}
-          onPress={() => setActiveTab('withdraw')}
-        >
-          <View style={[styles.quickActionIcon, { backgroundColor: COLORS.accent }]}>
-            <Ionicons name="arrow-down" size={24} color="white" />
-          </View>
-          <Text style={styles.quickActionText}>提現</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.quickActionButton}
-          onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)}
-        >
-          <View style={[styles.quickActionIcon, { backgroundColor: COLORS.info }]}>
-            <Ionicons name="time" size={24} color="white" />
-          </View>
-          <Text style={styles.quickActionText}>交易記錄</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <View style={styles.transactionsContainer}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>最近交易</Text>
-          <TouchableOpacity onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)}>
-            <Text style={styles.viewAllText}>查看全部</Text>
-          </TouchableOpacity>
+      {balanceLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>載入中...</Text>
         </View>
-        
-        <FlatList
-          data={transactions}
-          renderItem={renderTransactionItem}
-          keyExtractor={item => item.id}
-          style={styles.transactionsList}
-        />
-      </View>
+      ) : (
+        <>
+          <Card style={styles.balanceCard}>
+            <Text style={styles.balanceLabel}>當前餘額</Text>
+            <Text style={styles.balanceAmount}>${walletData?.balance || 0}</Text>
+            <Text style={styles.balanceUpdateTime}>最後更新: {new Date().toLocaleString('zh-TW')}</Text>
+          </Card>
+          
+          <View style={styles.quickActionsContainer}>
+            <TouchableOpacity 
+              style={styles.quickActionButton}
+              onPress={() => setActiveTab('deposit')}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: COLORS.success }]}>
+                <Ionicons name="add" size={24} color="white" />
+              </View>
+              <Text style={styles.quickActionText}>充值</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickActionButton}
+              onPress={() => setActiveTab('withdraw')}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: COLORS.accent }]}>
+                <Ionicons name="arrow-down" size={24} color="white" />
+              </View>
+              <Text style={styles.quickActionText}>提現</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickActionButton}
+              onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: COLORS.info }]}>
+                <Ionicons name="time" size={24} color="white" />
+              </View>
+              <Text style={styles.quickActionText}>交易記錄</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.transactionsContainer}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>最近交易</Text>
+              <TouchableOpacity onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)}>
+                <Text style={styles.viewAllText}>查看全部</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={transactions}
+              renderItem={renderTransactionItem}
+              keyExtractor={item => item.id}
+              style={styles.transactionsList}
+            />
+          </View>
+        </>
+      )}
     </View>
   );
 
@@ -261,35 +341,106 @@ const WalletScreen: React.FC = () => {
           onChangeText={setAmount}
           placeholder="輸入金額"
           keyboardType="numeric"
+          editable={!depositLoading}
         />
         <Text style={styles.formHelp}>最低充值金額: $10</Text>
+        
+        <View style={styles.paymentMethodContainer}>
+          <Text style={styles.paymentMethodTitle}>選擇支付方式</Text>
+          <View style={styles.paymentOptions}>
+            <TouchableOpacity 
+              style={[
+                styles.paymentOption, 
+                paymentType === 'credit_card' && styles.selectedPaymentOption
+              ]}
+              onPress={() => setPaymentType('credit_card')}
+              disabled={depositLoading}
+            >
+              <Ionicons 
+                name="card-outline" 
+                size={24} 
+                color={paymentType === 'credit_card' ? COLORS.primary : '#666'} 
+              />
+              <Text style={[
+                styles.paymentOptionText,
+                paymentType === 'credit_card' && styles.selectedPaymentOptionText
+              ]}>信用卡</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.paymentOption, 
+                paymentType === 'bank_transfer' && styles.selectedPaymentOption
+              ]}
+              onPress={() => setPaymentType('bank_transfer')}
+              disabled={depositLoading}
+            >
+              <Ionicons 
+                name="business-outline" 
+                size={24} 
+                color={paymentType === 'bank_transfer' ? COLORS.primary : '#666'} 
+              />
+              <Text style={[
+                styles.paymentOptionText,
+                paymentType === 'bank_transfer' && styles.selectedPaymentOptionText
+              ]}>銀行轉賬</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.paymentOption, 
+                paymentType === 'e_wallet' && styles.selectedPaymentOption
+              ]}
+              onPress={() => setPaymentType('e_wallet')}
+              disabled={depositLoading}
+            >
+              <Ionicons 
+                name="wallet-outline" 
+                size={24} 
+                color={paymentType === 'e_wallet' ? COLORS.primary : '#666'} 
+              />
+              <Text style={[
+                styles.paymentOptionText,
+                paymentType === 'e_wallet' && styles.selectedPaymentOptionText
+              ]}>電子錢包</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         
         <View style={styles.quickAmounts}>
           <TouchableOpacity 
             style={styles.quickAmountButton}
             onPress={() => setAmount('50')}
+            disabled={depositLoading}
           >
             <Text style={styles.quickAmountText}>$50</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.quickAmountButton}
             onPress={() => setAmount('100')}
+            disabled={depositLoading}
           >
             <Text style={styles.quickAmountText}>$100</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.quickAmountButton}
             onPress={() => setAmount('200')}
+            disabled={depositLoading}
           >
             <Text style={styles.quickAmountText}>$200</Text>
           </TouchableOpacity>
         </View>
         
         <TouchableOpacity 
-          style={styles.submitButton}
+          style={[styles.submitButton, depositLoading && styles.disabledButton]}
           onPress={handleDeposit}
+          disabled={depositLoading}
         >
-          <Text style={styles.submitButtonText}>確認充值</Text>
+          {depositLoading ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Text style={styles.submitButtonText}>確認充值</Text>
+          )}
         </TouchableOpacity>
       </Card>
     </View>
@@ -300,46 +451,64 @@ const WalletScreen: React.FC = () => {
     <View style={styles.tabContent}>
       <Card style={styles.formCard}>
         <Text style={styles.formTitle}>提現金額</Text>
-        <Text style={styles.balanceInfo}>可提現餘額: ${user?.balance || 0}</Text>
+        <Text style={styles.balanceInfo}>可提現餘額: ${walletData?.balance || 0}</Text>
         <TextInput
           style={styles.amountInput}
           value={amount}
           onChangeText={setAmount}
           placeholder="輸入金額"
           keyboardType="numeric"
+          editable={!withdrawLoading}
         />
         <Text style={styles.formHelp}>最低提現金額: $20</Text>
+        
+        <Text style={styles.inputLabel}>銀行帳號</Text>
+        <TextInput
+          style={styles.amountInput}
+          value={bankAccount}
+          onChangeText={setBankAccount}
+          placeholder="輸入您的銀行帳號"
+          editable={!withdrawLoading}
+        />
         
         <View style={styles.quickAmounts}>
           <TouchableOpacity 
             style={styles.quickAmountButton}
             onPress={() => setAmount('50')}
+            disabled={withdrawLoading}
           >
             <Text style={styles.quickAmountText}>$50</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.quickAmountButton}
             onPress={() => setAmount('100')}
+            disabled={withdrawLoading}
           >
             <Text style={styles.quickAmountText}>$100</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.quickAmountButton}
             onPress={() => {
-              if (user?.balance) {
-                setAmount(user.balance.toString());
+              if (walletData?.balance) {
+                setAmount(walletData.balance.toString());
               }
             }}
+            disabled={withdrawLoading}
           >
             <Text style={styles.quickAmountText}>全部</Text>
           </TouchableOpacity>
         </View>
         
         <TouchableOpacity 
-          style={styles.submitButton}
+          style={[styles.submitButton, withdrawLoading && styles.disabledButton]}
           onPress={handleWithdraw}
+          disabled={withdrawLoading}
         >
-          <Text style={styles.submitButtonText}>確認提現</Text>
+          {withdrawLoading ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Text style={styles.submitButtonText}>確認提現</Text>
+          )}
         </TouchableOpacity>
       </Card>
     </View>
@@ -459,6 +628,15 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     padding: 16,
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
   },
   balanceCard: {
     padding: 20,
@@ -613,10 +791,52 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
+  disabledButton: {
+    backgroundColor: '#999',
+  },
   submitButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  paymentMethodContainer: {
+    marginBottom: 20,
+  },
+  paymentMethodTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 10,
+  },
+  paymentOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  paymentOption: {
+    width: '30%',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  selectedPaymentOption: {
+    borderColor: COLORS.primary,
+    backgroundColor: 'rgba(98, 0, 234, 0.05)',
+  },
+  paymentOptionText: {
+    marginTop: 5,
+    fontSize: 14,
+    color: '#666',
+  },
+  selectedPaymentOptionText: {
+    color: COLORS.primary,
+    fontWeight: '500',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 5,
+    marginTop: 10,
   },
 });
 

@@ -65,23 +65,20 @@ const LoginScreen: React.FC = () => {
 
     try {
       // 使用 Context API 進行登入
-      const success = await login(email, password);
-      
-      if (success) {
-        console.log('Context API 登入成功');
-      } else {
-        console.error('Context API 登入失敗');
-      }
-    } catch (error) {
-      console.error('Context API 登入錯誤:', error);
-    }
+      await login(email, password);
+      console.log('Context API 登入成功');
 
-    // 調用 Redux action 處理登入
-    dispatch(loginRequest({ 
-      email, 
-      password,
-      rememberMe
-    }));
+      // 調用 Redux action 處理登入
+      dispatch(loginRequest({ 
+        email, 
+        password,
+        rememberMe
+      }));
+    } catch (error) {
+      console.error('登入錯誤:', error);
+      const errorMessage = error instanceof Error ? error.message : '登入失敗，請稍後再試';
+      Alert.alert('登入失敗', errorMessage);
+    }
   };
 
   /**

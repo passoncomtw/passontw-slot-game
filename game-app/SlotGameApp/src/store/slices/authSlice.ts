@@ -6,6 +6,8 @@ export interface User {
   username: string;
   email: string;
   balance: number;
+  vipLevel?: number;
+  points?: number;
   avatar?: string;
 }
 

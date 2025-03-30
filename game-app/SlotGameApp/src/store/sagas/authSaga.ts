@@ -1,4 +1,4 @@
-import { takeLatest, put, call } from 'redux-saga/effects';
+import { takeLatest, put, call, all } from 'redux-saga/effects';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   loginRequest, 
@@ -10,76 +10,73 @@ import {
   logoutRequest, 
   logoutSuccess, 
   logoutFailure,
-  fetchUserRequest,
-  fetchUserSuccess,
-  fetchUserFailure,
   LoginRequest,
   RegisterRequest,
   User
 } from '../slices/authSlice';
-import apiClient from '../api/apiClient';
-
-// API 響應類型
-interface AuthResponse {
-  token: string;
-  user: User;
-}
-
-// 登入 API 調用
-const loginApi = async (data: LoginRequest): Promise<AuthResponse> => {
-  try {
-    console.log('調用登入 API:', data);
-    const response = await apiClient.post('/auth/login', data);
-    console.log('登入 API 響應:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('登入 API 錯誤:', error);
-    throw error;
-  }
-};
-
-// 註冊 API 調用
-const registerApi = async (data: RegisterRequest): Promise<AuthResponse> => {
-  try {
-    console.log('調用註冊 API:', data);
-    const response = await apiClient.post('/users', data);
-    console.log('註冊 API 響應:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('註冊 API 錯誤:', error);
-    throw error;
-  }
-};
-
-// 獲取用戶信息 API 調用
-const fetchUserApi = async (): Promise<{user: User}> => {
-  try {
-    console.log('調用獲取用戶信息 API');
-    const response = await apiClient.get('/users/profile');
-    console.log('獲取用戶信息 API 響應:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('獲取用戶信息 API 錯誤:', error);
-    throw error;
-  }
-};
+import { apiService, AUTH_TOKEN_KEY, USER_PROFILE_KEY } from '../api/apiClient';
+import userService, { TokenResponse, UserProfile } from '../api/userService';
 
 // 登入 Saga
 function* loginSaga(action: ReturnType<typeof loginRequest>) {
   try {
     console.log('開始登入流程:', action.payload);
+    
     // 調用 API
-    const response: AuthResponse = yield call(loginApi, action.payload);
+    const tokenResponse: TokenResponse = yield call(userService.login, {
+      email: action.payload.email,
+      password: action.payload.password
+    });
     
     // 保存 token 到 AsyncStorage
-    if (response.token) {
-      yield call([AsyncStorage, 'setItem'], 'auth_token', response.token);
+    if (tokenResponse.token) {
+      yield call(AsyncStorage.setItem, AUTH_TOKEN_KEY, tokenResponse.token);
       console.log('Token 已儲存');
+      
+      try {
+        // 獲取用戶資料
+        const profileData: UserProfile = yield call(userService.getProfile);
+        
+        // 映射 API 用戶資料到應用程式用戶模型
+        const user: User = {
+          id: profileData.userId,
+          username: profileData.username,
+          email: profileData.email,
+          balance: profileData.wallet?.balance || 0,
+          points: profileData.points || 0,
+          vipLevel: profileData.vipLevel || 1,
+          avatar: profileData.avatarUrl
+        };
+        
+        // 如果要記住登入狀態，也保存用戶資料
+        if (action.payload.rememberMe) {
+          yield call(AsyncStorage.setItem, USER_PROFILE_KEY, JSON.stringify(user));
+          console.log('用戶資料已儲存到本地');
+        }
+        
+        // 成功後派發 action
+        yield put(loginSuccess(user));
+        console.log('登入成功');
+      } catch (profileError) {
+        console.error('獲取用戶資料失敗:', profileError);
+        
+        // 創建一個基本用戶對象，使用已知的電子郵件
+        const basicUser: User = {
+          id: 'temp-id',
+          username: action.payload.email.split('@')[0], // 使用郵箱前綴作為用戶名
+          email: action.payload.email,
+          balance: 0,
+          points: 0,
+          vipLevel: 1
+        };
+        
+        // 派發登入成功 action，即使無法獲取完整用戶資料
+        yield put(loginSuccess(basicUser));
+        console.log('登入成功 (使用基本用戶資料)');
+      }
+    } else {
+      throw new Error('登入失敗：沒有收到有效的 token');
     }
-    
-    // 成功後派發 action
-    yield put(loginSuccess(response.user));
-    console.log('登入成功');
   } catch (error) {
     // 失敗後派發 action
     const errorMessage = error instanceof Error ? error.message : '登入失敗，請稍後再試';
@@ -92,18 +89,55 @@ function* loginSaga(action: ReturnType<typeof loginRequest>) {
 function* registerSaga(action: ReturnType<typeof registerRequest>) {
   try {
     console.log('開始註冊流程:', action.payload);
+    
     // 調用 API
-    const response: AuthResponse = yield call(registerApi, action.payload);
+    const tokenResponse: TokenResponse = yield call(userService.register, action.payload);
     
     // 保存 token 到 AsyncStorage
-    if (response.token) {
-      yield call([AsyncStorage, 'setItem'], 'auth_token', response.token);
+    if (tokenResponse.token) {
+      yield call(AsyncStorage.setItem, AUTH_TOKEN_KEY, tokenResponse.token);
       console.log('Token 已儲存');
+      
+      try {
+        // 獲取用戶資料
+        const profileData: UserProfile = yield call(userService.getProfile);
+        
+        // 映射 API 用戶資料到應用程式用戶模型
+        const user: User = {
+          id: profileData.userId,
+          username: profileData.username,
+          email: profileData.email,
+          balance: profileData.wallet?.balance || 0,
+          points: profileData.points || 0,
+          vipLevel: profileData.vipLevel || 1,
+          avatar: profileData.avatarUrl
+        };
+        
+        // 保存用戶資料到本地
+        yield call(AsyncStorage.setItem, USER_PROFILE_KEY, JSON.stringify(user));
+        
+        // 成功後派發 action
+        yield put(registerSuccess(user));
+        console.log('註冊成功');
+      } catch (profileError) {
+        console.error('獲取用戶資料失敗:', profileError);
+        
+        // 基本用戶數據
+        const basicUser: User = {
+          id: 'temp-id',
+          username: action.payload.username,
+          email: action.payload.email,
+          balance: 0,
+          points: 0,
+          vipLevel: 1
+        };
+        
+        yield put(registerSuccess(basicUser));
+        console.log('註冊成功 (使用基本用戶資料)');
+      }
+    } else {
+      throw new Error('註冊失敗：沒有收到有效的 token');
     }
-    
-    // 成功後派發 action
-    yield put(registerSuccess(response.user));
-    console.log('註冊成功');
   } catch (error) {
     // 失敗後派發 action
     const errorMessage = error instanceof Error ? error.message : '註冊失敗，請稍後再試';
@@ -116,8 +150,11 @@ function* registerSaga(action: ReturnType<typeof registerRequest>) {
 function* logoutSaga() {
   try {
     console.log('開始登出流程');
-    // 從 AsyncStorage 中移除 token
-    yield call([AsyncStorage, 'removeItem'], 'auth_token');
+    // 從 AsyncStorage 中移除 token 和用戶資料
+    yield all([
+      call(AsyncStorage.removeItem, AUTH_TOKEN_KEY),
+      call(AsyncStorage.removeItem, USER_PROFILE_KEY)
+    ]);
     
     // 成功後派發 action
     yield put(logoutSuccess());
@@ -130,37 +167,11 @@ function* logoutSaga() {
   }
 }
 
-// 獲取用戶信息 Saga
-function* fetchUserSaga() {
-  try {
-    console.log('開始獲取用戶信息流程');
-    // 檢查是否有 token
-    const token: string | null = yield call([AsyncStorage, 'getItem'], 'auth_token');
-    
-    if (!token) {
-      console.error('無效的驗證：沒有 token');
-      yield put(fetchUserFailure('無效的驗證'));
-      return;
-    }
-    
-    // 調用 API
-    const response: {user: User} = yield call(fetchUserApi);
-    
-    // 成功後派發 action
-    yield put(fetchUserSuccess(response.user));
-    console.log('獲取用戶信息成功');
-  } catch (error) {
-    // 失敗後派發 action
-    const errorMessage = error instanceof Error ? error.message : '獲取用戶信息失敗';
-    console.error('獲取用戶信息錯誤:', errorMessage);
-    yield put(fetchUserFailure(errorMessage));
-  }
-}
-
 // Auth Root Saga
-export function* authSaga() {
-  yield takeLatest(loginRequest.type, loginSaga);
-  yield takeLatest(registerRequest.type, registerSaga);
-  yield takeLatest(logoutRequest.type, logoutSaga);
-  yield takeLatest(fetchUserRequest.type, fetchUserSaga);
+export default function* authSaga() {
+  yield all([
+    takeLatest(loginRequest.type, loginSaga),
+    takeLatest(registerRequest.type, registerSaga),
+    takeLatest(logoutRequest.type, logoutSaga)
+  ]);
 } 

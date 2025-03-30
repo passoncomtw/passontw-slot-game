@@ -60,7 +60,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 // @Success 200 {object} models.TokenResponse
 // @Failure 401 {object} interfaces.ErrorResponse
 // @Failure 500 {object} interfaces.ErrorResponse
-// @Router /api/v1/users/login [post]
+// @Router /api/v1/auth/login [post]
 func (h *UserHandler) Login(c *gin.Context) {
 	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

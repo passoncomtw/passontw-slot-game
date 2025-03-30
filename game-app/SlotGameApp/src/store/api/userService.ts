@@ -94,7 +94,7 @@ export interface TransactionResponse {
 const userService = {
   // 登錄
   login: (data: LoginRequest): Promise<TokenResponse> => {
-    return apiService.post<TokenResponse>('/users/login', data);
+    return apiService.post<TokenResponse>('/auth/login', data);
   },
 
   // 註冊
@@ -119,17 +119,17 @@ const userService = {
 
   // 獲取錢包餘額
   getWalletBalance: (): Promise<UserWallet> => {
-    return apiService.get<UserWallet>('/app/wallet');
+    return apiService.get<UserWallet>('/wallet/balance');
   },
 
   // 請求充值
   requestDeposit: (data: DepositRequest): Promise<TransactionResponse> => {
-    return apiService.post<TransactionResponse>('/app/deposit', data);
+    return apiService.post<TransactionResponse>('/wallet/deposit', data);
   },
 
   // 請求提款
   requestWithdraw: (data: WithdrawRequest): Promise<TransactionResponse> => {
-    return apiService.post<TransactionResponse>('/app/withdraw', data);
+    return apiService.post<TransactionResponse>('/wallet/withdraw', data);
   },
 };
 

@@ -66,113 +66,121 @@ const LeaderboardScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
-        <View style={styles.topRankContainer}>
-          {/* 第二名 */}
-          <View style={styles.secondRankContainer}>
-            <View style={styles.rankBadge}>
-              <Text style={styles.rankText}>2</Text>
-            </View>
-            <View style={styles.avatarContainer}>
-              <Ionicons name="person" size={30} color="#666" />
-            </View>
-            <Text style={styles.rankName}>{leaderboardData[1].name}</Text>
-            <Text style={styles.rankAmount}>${leaderboardData[1].amount.toLocaleString()}</Text>
-          </View>
-
-          {/* 第一名 */}
-          <View style={styles.firstRankContainer}>
-            <View style={[styles.rankBadge, styles.firstRankBadge]}>
-              <Text style={styles.rankText}>1</Text>
-            </View>
-            <View style={[styles.avatarContainer, styles.firstRankAvatar]}>
-              <Ionicons name="person" size={40} color="#666" />
-            </View>
-            <Text style={styles.rankName}>{leaderboardData[0].name}</Text>
-            <Text style={styles.rankAmount}>${leaderboardData[0].amount.toLocaleString()}</Text>
-            <View style={styles.vipBadge}>
-              <Text style={styles.vipText}>VIP {leaderboardData[0].vipLevel}</Text>
-            </View>
-          </View>
-
-          {/* 第三名 */}
-          <View style={styles.thirdRankContainer}>
-            <View style={[styles.rankBadge, styles.thirdRankBadge]}>
-              <Text style={styles.rankText}>3</Text>
-            </View>
-            <View style={styles.avatarContainer}>
-              <Ionicons name="person" size={30} color="#666" />
-            </View>
-            <Text style={styles.rankName}>{leaderboardData[2].name}</Text>
-            <Text style={styles.rankAmount}>${leaderboardData[2].amount.toLocaleString()}</Text>
-          </View>
-        </View>
-
-        <View style={styles.listContainer}>
-          {leaderboardData.slice(3).map((item, index) => (
-            <View key={item.id} style={styles.listItem}>
-              <View style={styles.listRankContainer}>
-                <Text style={styles.listRankText}>{index + 4}</Text>
+      {/* 使用 FlatList 替換 ScrollView，避免嵌套 VirtualizedLists 警告 */}
+      <FlatList
+        style={styles.content}
+        data={[1]} // 單一項目作為內容容器
+        keyExtractor={() => 'leaderboard-content'}
+        renderItem={() => (
+          <View>
+            <View style={styles.topRankContainer}>
+              {/* 第二名 */}
+              <View style={styles.secondRankContainer}>
+                <View style={styles.rankBadge}>
+                  <Text style={styles.rankText}>2</Text>
+                </View>
+                <View style={styles.avatarContainer}>
+                  <Ionicons name="person" size={30} color="#666" />
+                </View>
+                <Text style={styles.rankName}>{leaderboardData[1].name}</Text>
+                <Text style={styles.rankAmount}>${leaderboardData[1].amount.toLocaleString()}</Text>
               </View>
-              <View style={styles.listAvatarContainer}>
-                <Ionicons name="person" size={20} color="#666" />
-              </View>
-              <View style={styles.listInfoContainer}>
-                <Text style={styles.listName}>{item.name}</Text>
-                <Text style={styles.listVipText}>VIP {item.vipLevel}</Text>
-              </View>
-              <Text style={styles.listAmount}>${item.amount.toLocaleString()}</Text>
-            </View>
-          ))}
-        </View>
 
-        <View style={styles.userRankCard}>
-          <Text style={styles.userRankTitle}>您的排名</Text>
-          <View style={styles.userRankContent}>
-            <View style={[styles.rankBadge, styles.userRankBadge]}>
-              <Text style={styles.rankText}>42</Text>
-            </View>
-            <View style={styles.listAvatarContainer}>
-              <Ionicons name="person" size={20} color="#666" />
-            </View>
-            <View style={styles.listInfoContainer}>
-              <Text style={styles.listName}>{user?.username || '用戶'} (您)</Text>
-              <Text style={styles.listVipText}>VIP {user?.vipLevel || 1}</Text>
-            </View>
-            <Text style={styles.listAmount}>${user?.balance || 0}</Text>
-          </View>
-          <View style={styles.nextRankContainer}>
-            <Text>距離上一名還差：</Text>
-            <Text style={styles.nextRankAmount}>$120</Text>
-          </View>
-        </View>
+              {/* 第一名 */}
+              <View style={styles.firstRankContainer}>
+                <View style={[styles.rankBadge, styles.firstRankBadge]}>
+                  <Text style={styles.rankText}>1</Text>
+                </View>
+                <View style={[styles.avatarContainer, styles.firstRankAvatar]}>
+                  <Ionicons name="person" size={40} color="#666" />
+                </View>
+                <Text style={styles.rankName}>{leaderboardData[0].name}</Text>
+                <Text style={styles.rankAmount}>${leaderboardData[0].amount.toLocaleString()}</Text>
+                <View style={styles.vipBadge}>
+                  <Text style={styles.vipText}>VIP {leaderboardData[0].vipLevel}</Text>
+                </View>
+              </View>
 
-        <View style={styles.rewardCard}>
-          <View style={styles.rewardHeader}>
-            <Ionicons name="trophy" size={24} color="gold" style={{ marginRight: 10 }} />
-            <View>
-              <Text style={styles.rewardTitle}>排行榜獎勵</Text>
-              <Text style={styles.rewardSubtitle}>每週更新</Text>
+              {/* 第三名 */}
+              <View style={styles.thirdRankContainer}>
+                <View style={[styles.rankBadge, styles.thirdRankBadge]}>
+                  <Text style={styles.rankText}>3</Text>
+                </View>
+                <View style={styles.avatarContainer}>
+                  <Ionicons name="person" size={30} color="#666" />
+                </View>
+                <Text style={styles.rankName}>{leaderboardData[2].name}</Text>
+                <Text style={styles.rankAmount}>${leaderboardData[2].amount.toLocaleString()}</Text>
+              </View>
+            </View>
+
+            <View style={styles.listContainer}>
+              {leaderboardData.slice(3).map((item, index) => (
+                <View key={item.id} style={styles.listItem}>
+                  <View style={styles.listRankContainer}>
+                    <Text style={styles.listRankText}>{index + 4}</Text>
+                  </View>
+                  <View style={styles.listAvatarContainer}>
+                    <Ionicons name="person" size={20} color="#666" />
+                  </View>
+                  <View style={styles.listInfoContainer}>
+                    <Text style={styles.listName}>{item.name}</Text>
+                    <Text style={styles.listVipText}>VIP {item.vipLevel}</Text>
+                  </View>
+                  <Text style={styles.listAmount}>${item.amount.toLocaleString()}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.userRankCard}>
+              <Text style={styles.userRankTitle}>您的排名</Text>
+              <View style={styles.userRankContent}>
+                <View style={[styles.rankBadge, styles.userRankBadge]}>
+                  <Text style={styles.rankText}>42</Text>
+                </View>
+                <View style={styles.listAvatarContainer}>
+                  <Ionicons name="person" size={20} color="#666" />
+                </View>
+                <View style={styles.listInfoContainer}>
+                  <Text style={styles.listName}>{user?.username || '用戶'} (您)</Text>
+                  <Text style={styles.listVipText}>VIP {user?.vipLevel || 1}</Text>
+                </View>
+                <Text style={styles.listAmount}>${user?.balance || 0}</Text>
+              </View>
+              <View style={styles.nextRankContainer}>
+                <Text>距離上一名還差：</Text>
+                <Text style={styles.nextRankAmount}>$120</Text>
+              </View>
+            </View>
+
+            <View style={styles.rewardCard}>
+              <View style={styles.rewardHeader}>
+                <Ionicons name="trophy" size={24} color="gold" style={{ marginRight: 10 }} />
+                <View>
+                  <Text style={styles.rewardTitle}>排行榜獎勵</Text>
+                  <Text style={styles.rewardSubtitle}>每週更新</Text>
+                </View>
+              </View>
+              <View style={styles.rewardItem}>
+                <Text>第1名：</Text>
+                <Text style={styles.rewardValue}>$1,000 + 500積分</Text>
+              </View>
+              <View style={styles.rewardItem}>
+                <Text>第2名：</Text>
+                <Text style={styles.rewardValue}>$500 + 300積分</Text>
+              </View>
+              <View style={styles.rewardItem}>
+                <Text>第3名：</Text>
+                <Text style={styles.rewardValue}>$200 + 200積分</Text>
+              </View>
+              <View style={styles.rewardItem}>
+                <Text>第4-10名：</Text>
+                <Text style={styles.rewardValue}>$100 + 100積分</Text>
+              </View>
             </View>
           </View>
-          <View style={styles.rewardItem}>
-            <Text>第1名：</Text>
-            <Text style={styles.rewardValue}>$1,000 + 500積分</Text>
-          </View>
-          <View style={styles.rewardItem}>
-            <Text>第2名：</Text>
-            <Text style={styles.rewardValue}>$500 + 300積分</Text>
-          </View>
-          <View style={styles.rewardItem}>
-            <Text>第3名：</Text>
-            <Text style={styles.rewardValue}>$200 + 200積分</Text>
-          </View>
-          <View style={styles.rewardItem}>
-            <Text>第4-10名：</Text>
-            <Text style={styles.rewardValue}>$100 + 100積分</Text>
-          </View>
-        </View>
-      </ScrollView>
+        )}
+      />
     </View>
   );
 };

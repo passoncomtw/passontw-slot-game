@@ -1660,7 +1660,7 @@
               }
           }
       },
-      "/api/v1/users/login": {
+      "/api/v1/auth/login": {
           "post": {
               "description": "使用電子郵件和密碼登入",
               "consumes": [

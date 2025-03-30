@@ -31,7 +31,7 @@ const RegisterScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   
   // 從 Redux 獲取驗證狀態
-  const { isLoading, isAuthenticated, error } = useAppSelector(state => state.auth);
+  const { loading, isAuthenticated, error } = useAppSelector(state => state.auth);
 
   // 當用戶成功註冊後，isAuthenticated 會變為 true
   useEffect(() => {
@@ -154,7 +154,7 @@ const RegisterScreen: React.FC = () => {
         <Button
           title="註冊"
           onPress={handleRegister}
-          isLoading={isLoading}
+          isLoading={loading}
         />
         
         <View style={styles.dividerContainer}>

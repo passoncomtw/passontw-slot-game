@@ -112,7 +112,7 @@ const gameSlice = createSlice({
     },
 
     // 開始遊戲會話
-    startGameSessionRequest: (state) => {
+    startGameSessionRequest: (state, action: PayloadAction<{ gameId: string; betAmount?: number }>) => {
       state.gameSession.isLoading = true;
       state.gameSession.error = null;
     },

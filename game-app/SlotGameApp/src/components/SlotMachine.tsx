@@ -39,6 +39,9 @@ const SlotMachine: React.FC = () => {
   
   // 輪盤旋轉動畫
   const getSpinInterpolation = (spinValue: Animated.Value) => {
+    if (!spinValue) {
+      return '0deg'; // 如果spinValue未定義，返回預設值
+    }
     return spinValue.interpolate({
       inputRange: [0, 1],
       outputRange: ['0deg', '1440deg'], // 旋轉多圈
@@ -60,7 +63,11 @@ const SlotMachine: React.FC = () => {
               styles.reel,
               {
                 transform: [
-                  { rotate: getSpinInterpolation(spinValues[index]) },
+                  { 
+                    rotate: spinValues[index] ? 
+                      getSpinInterpolation(spinValues[index]) : 
+                      '0deg'
+                  },
                 ],
               },
             ]}

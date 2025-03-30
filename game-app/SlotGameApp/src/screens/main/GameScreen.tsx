@@ -19,13 +19,15 @@ import {
   placeBetRequest, 
   getGameResultRequest, 
   resetBetState,
-  fetchBetHistoryRequest
+  fetchBetHistoryRequest,
+  startGameSessionRequest
 } from '../../store/slices/gameSlice';
 import { 
   PlaceBetRequest, 
   GameResultItem, 
   PlaceBetResponse,
-  BetHistoryParams
+  BetHistoryParams,
+  GameSessionRequest
 } from '../../store/api/gameService';
 
 /**
@@ -49,16 +51,61 @@ const GameScreen: React.FC = () => {
   const gameState = useAppSelector(state => state.game);
   const userState = useAppSelector(state => state.auth.user);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [gameSessionId, setGameSessionId] = useState<string>("session-123456");
+  const [gameSessionId, setGameSessionId] = useState<string>("");
 
-  // 頁面加載時獲取下注歷史
+  // 頁面加載時初始化遊戲會話並獲取下注歷史
   useEffect(() => {
+    // 初始化遊戲會話
+    initGameSession();
+    
+    // 獲取下注歷史
     const params: BetHistoryParams = {
       page: 1,
       pageSize: 10
     };
     dispatch(fetchBetHistoryRequest(params as any));
   }, [dispatch]);
+
+  // 初始化遊戲會話
+  const initGameSession = async () => {
+    try {
+      console.log('初始化遊戲會話...');
+      
+      // 根據gameSaga.ts中的定義，傳遞正確的參數格式
+      dispatch(startGameSessionRequest({ 
+        gameId: 'game-1', // 使用幸運七遊戲ID
+        betAmount: betAmount 
+      }));
+    } catch (error) {
+      console.error('初始化遊戲會話失敗:', error);
+      Toast.show({
+        type: 'error',
+        text1: '錯誤',
+        text2: '初始化遊戲失敗，請刷新頁面。',
+        position: 'bottom'
+      });
+    }
+  };
+
+  // 監聽遊戲會話狀態變化
+  useEffect(() => {
+    const { gameSession } = gameState;
+    
+    if (gameSession.data && gameSession.data.sessionId) {
+      console.log('遊戲會話已建立:', gameSession.data.sessionId);
+      setGameSessionId(gameSession.data.sessionId);
+    }
+    
+    if (!gameSession.isLoading && gameSession.error) {
+      console.error('遊戲會話初始化失敗:', gameSession.error);
+      Toast.show({
+        type: 'error',
+        text1: '錯誤',
+        text2: '遊戲會話初始化失敗，請稍後再試。',
+        position: 'bottom'
+      });
+    }
+  }, [gameState.gameSession]);
 
   // 監聽下注狀態變化
   useEffect(() => {
@@ -79,7 +126,12 @@ const GameScreen: React.FC = () => {
   useEffect(() => {
     const { bet } = gameState;
     if (!bet.isPlacing && bet.error) {
-      Alert.alert('下注失敗', bet.error);
+      Toast.show({
+        type: 'error',
+        text1: '下注失敗',
+        text2: bet.error,
+        position: 'bottom'
+      });
       dispatch(resetBetState());
     }
   }, [gameState.bet.error]);
@@ -98,16 +150,26 @@ const GameScreen: React.FC = () => {
    * 執行下注並獲取結果
    */
   const handleSpin = async () => {
-    if (isSpinning || actualBalance < betAmount) return;
+    if (isSpinning || actualBalance < betAmount || !gameSessionId) {
+      if (!gameSessionId) {
+        Toast.show({
+          type: 'error',
+          text1: '錯誤',
+          text2: '遊戲會話未初始化，請等待或刷新頁面。',
+          position: 'bottom'
+        });
+      }
+      return;
+    }
     
     try {
       setIsLoading(true);
-      console.log('開始下注...');
+      console.log('開始下注...', gameSessionId);
       
       // 生成下注請求
       const betRequest: PlaceBetRequest = {
         sessionId: gameSessionId,
-        gameId: 'slot-lucky-seven',
+        gameId: 'game-1', // 使用幸運七遊戲ID
         betAmount: betAmount,
         betOptions: {
           lines: 1,
@@ -213,11 +275,11 @@ const GameScreen: React.FC = () => {
           <TouchableOpacity 
             style={[
               styles.spinButton, 
-              (isSpinning || isLoading || gameState.bet.isPlacing || gameState.bet.isProcessing) 
+              (isSpinning || isLoading || gameState.bet.isPlacing || gameState.bet.isProcessing || !gameSessionId) 
                 && styles.spinButtonDisabled
             ]} 
             onPress={handleSpin}
-            disabled={isSpinning || isLoading || actualBalance < betAmount || gameState.bet.isPlacing || gameState.bet.isProcessing}
+            disabled={isSpinning || isLoading || actualBalance < betAmount || gameState.bet.isPlacing || gameState.bet.isProcessing || !gameSessionId}
           >
             <Ionicons name="play" size={18} color="white" style={styles.spinIcon} />
             <Text style={styles.spinButtonText}>

@@ -8,8 +8,6 @@ import gameService, {
   GameSessionRequest, 
   GameSessionResponse,
   PlaceBetRequest,
-  PlaceBetResponse,
-  GameResultItem,
   BetHistoryParams
 } from '../api/gameService';
 import {

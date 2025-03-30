@@ -22,7 +22,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
@@ -45,17 +45,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        console.log('檢查持久化登入狀態...');
         // 檢查本地存儲中是否有令牌和用戶資料
         const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
         const userJson = await AsyncStorage.getItem(USER_PROFILE_KEY);
         
         if (token && userJson) {
-          const userData = JSON.parse(userJson);
-          setUser(userData);
-          setIsAuthenticated(true);
-          
-          // 觸發從 API 獲取最新用戶數據的操作
-          dispatch(fetchUserRequest());
+          console.log('找到已保存的登入資料，正在恢復會話');
+          try {
+            const userData = JSON.parse(userJson);
+            setUser(userData);
+            setIsAuthenticated(true);
+            
+            // 觸發從 API 獲取最新用戶數據的操作
+            dispatch(fetchUserRequest());
+            console.log('已恢復用戶會話並請求最新數據');
+          } catch (parseError) {
+            console.error('解析本地用戶資料失敗:', parseError);
+            await AsyncStorage.removeItem(USER_PROFILE_KEY);
+            await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+          }
+        } else {
+          console.log('沒有找到持久化登入資料');
         }
       } catch (error) {
         console.error('檢查身份驗證時出錯:', error);
@@ -68,13 +79,88 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [dispatch]);
 
   // 登入方法
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (email: string, password: string, rememberMe: boolean = true): Promise<void> => {
     try {
       setIsLoading(true);
       setError(null);
       
+      console.log(`開始登入: ${email}, 記住登入狀態: ${rememberMe}`);
+      
       // 調用 API 登入
       const response = await userService.login({ email, password });
+      
+      if (response && response.token) {
+        // 保存 token - 無論 rememberMe 設置如何，都需要保存 token
+        await AsyncStorage.setItem(AUTH_TOKEN_KEY, response.token);
+        console.log('Token 已保存到本地存儲');
+        
+        try {
+          // 嘗試獲取用戶資料
+          const userProfile = await userService.getProfile();
+          
+          // 建立用戶對象
+          const userData: User = {
+            id: userProfile.userId,
+            username: userProfile.username,
+            email: userProfile.email,
+            balance: userProfile.wallet?.balance || 0,
+            points: userProfile.points || 0,
+            vipLevel: userProfile.vipLevel || 1,
+            avatar: userProfile.avatarUrl
+          };
+          
+          // 設置用戶狀態
+          setUser(userData);
+          setIsAuthenticated(true);
+          
+          // 始終保存用戶資料到本地存儲，以支持持久化登入
+          await AsyncStorage.setItem(USER_PROFILE_KEY, JSON.stringify(userData));
+          console.log(`用戶資料已保存到本地存儲，持久化登入已啟用`);
+        } catch (profileError) {
+          console.error('獲取用戶資料失敗:', profileError);
+          
+          // 使用基本用戶信息
+          const basicUser: User = {
+            id: 'temp-id',
+            username: email.split('@')[0], // 使用郵箱名作為用戶名
+            email,
+            balance: 0,
+            points: 0,
+            vipLevel: 1
+          };
+          
+          setUser(basicUser);
+          setIsAuthenticated(true);
+          
+          // 即使使用基本用戶資料，也保存到本地存儲
+          await AsyncStorage.setItem(USER_PROFILE_KEY, JSON.stringify(basicUser));
+          console.log('基本用戶資料已保存到本地存儲');
+        }
+      } else {
+        throw new Error('登入失敗：無法獲取身份認證令牌');
+      }
+    } catch (error) {
+      console.error('登入失敗:', error);
+      setError(error instanceof Error ? error.message : '登入失敗，請稍後再試');
+      setIsAuthenticated(false);
+      setUser(null);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 註冊方法
+  const register = async (username: string, email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      
+      // 調用 API 進行註冊
+      const response = await userService.register({
+        username,
+        email,
+        password
+      });
       
       if (response && response.token) {
         // 保存 token
@@ -98,13 +184,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // 設置用戶狀態
           setUser(userData);
           setIsAuthenticated(true);
+          
+          // 保存用戶資料到本地存儲
+          await AsyncStorage.setItem(USER_PROFILE_KEY, JSON.stringify(userData));
+          console.log('註冊成功，用戶資料已保存');
         } catch (profileError) {
           console.error('獲取用戶資料失敗:', profileError);
           
           // 使用基本用戶信息
           const basicUser: User = {
             id: 'temp-id',
-            username: email.split('@')[0], // 使用郵箱名作為用戶名
+            username,
             email,
             balance: 0,
             points: 0,
@@ -113,42 +203,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           setUser(basicUser);
           setIsAuthenticated(true);
+          
+          // 保存基本用戶資料
+          await AsyncStorage.setItem(USER_PROFILE_KEY, JSON.stringify(basicUser));
+          console.log('註冊成功，基本用戶資料已保存');
         }
       } else {
-        throw new Error('登入失敗：無法獲取身份認證令牌');
+        throw new Error('註冊失敗：無法獲取身份認證令牌');
       }
-    } catch (error) {
-      console.error('登入失敗:', error);
-      setError(error instanceof Error ? error.message : '登入失敗，請稍後再試');
-      setIsAuthenticated(false);
-      setUser(null);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 註冊方法
-  const register = async (username: string, email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      
-      // 這裡模擬 API 調用成功，實際應用中應該使用 Redux Actions
-      const mockUser: User = {
-        id: '1',
-        username: username,
-        email: email,
-        balance: 100, // 新用戶初始餘額
-        points: 0,
-        vipLevel: 1
-      };
-      
-      // 保存用戶數據到本地存儲
-      await AsyncStorage.setItem(USER_PROFILE_KEY, JSON.stringify(mockUser));
-      await AsyncStorage.setItem(AUTH_TOKEN_KEY, 'mock-jwt-token');
-      
-      setUser(mockUser);
-      setIsAuthenticated(true);
     } catch (error) {
       console.error('註冊時出錯:', error);
       throw error;
@@ -168,6 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setUser(null);
       setIsAuthenticated(false);
+      console.log('用戶已成功登出');
     } catch (error) {
       console.error('登出時出錯:', error);
       throw error;
@@ -183,7 +246,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(updatedUser);
       // 更新本地存儲
       AsyncStorage.setItem(USER_PROFILE_KEY, JSON.stringify(updatedUser))
-        .catch(error => console.error('更新用戶數據時出錯:', error));
+        .then(() => console.log('用戶資料已更新並保存'))
+        .catch(error => console.error('更新用戶資料時出錯:', error));
     }
   };
 

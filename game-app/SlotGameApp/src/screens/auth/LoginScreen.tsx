@@ -64,8 +64,8 @@ const LoginScreen: React.FC = () => {
     console.log('開始登入流程:', { email, rememberMe });
 
     try {
-      // 使用 Context API 進行登入
-      await login(email, password);
+      // 使用 Context API 進行登入，傳遞 rememberMe 參數啟用持久化登入
+      await login(email, password, rememberMe);
       console.log('Context API 登入成功');
 
       // 調用 Redux action 處理登入
@@ -131,6 +131,7 @@ const LoginScreen: React.FC = () => {
               {rememberMe && <Ionicons name="checkmark" size={16} color="white" />}
             </View>
             <Text style={styles.rememberText}>記住我</Text>
+            <Text style={styles.rememberHint}>(應用關閉後保持登入)</Text>
           </TouchableOpacity>
           
           <TouchableOpacity>
@@ -223,21 +224,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
+    width: 20,
+    height: 20,
     borderRadius: 4,
-    marginRight: 10,
-    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    marginRight: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   checkboxChecked: {
     backgroundColor: COLORS.primary,
   },
   rememberText: {
-    color: '#333',
-    fontSize: 14,
+    color: '#666',
+    marginRight: 5,
+  },
+  rememberHint: {
+    color: '#999',
+    fontSize: 12,
+    fontStyle: 'italic',
   },
   forgotText: {
     color: COLORS.primary,

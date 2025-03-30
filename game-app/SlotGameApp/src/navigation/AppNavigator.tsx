@@ -15,6 +15,7 @@ import WalletScreen from '../screens/main/WalletScreen';
 import TransactionsScreen from '../screens/main/TransactionsScreen';
 import AIAssistantScreen from '../screens/main/AIAssistantScreen';
 import ReduxDebugScreen from '../screens/debug/ReduxDebugScreen';
+import SplashScreen from '../screens/SplashScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 調試模式存儲鍵
@@ -34,24 +35,31 @@ const screenOptions = {
 const AppNavigator: React.FC = () => {
   const { isAuthenticated, loading } = useAppSelector((state) => state.auth);
   const [showDebug, setShowDebug] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  // 從 AsyncStorage 加載調試設置
+  // 從 AsyncStorage 加載調試設置和檢查初始狀態
   useEffect(() => {
-    const loadDebugSettings = async () => {
+    const loadSettings = async () => {
       try {
         const debugMode = await AsyncStorage.getItem(DEBUG_MODE_KEY);
         // 僅在開發模式下或存儲的設置為 true 時啟用調試
         setShowDebug(__DEV__ && (debugMode === 'true'));
+        
+        // 短暫顯示啟動畫面後關閉初始化狀態
+        setTimeout(() => {
+          setIsInitializing(false);
+        }, 1000); // 使主要路由系統在 SplashScreen 的導航後執行
       } catch (error) {
-        console.error('加載調試設置錯誤:', error);
+        console.error('加載設置錯誤:', error);
         // 在出錯時，如果是開發模式，啟用調試功能
         if (__DEV__) {
           setShowDebug(true);
         }
+        setIsInitializing(false);
       }
     };
 
-    loadDebugSettings();
+    loadSettings();
   }, []);
 
   // 身份驗證堆疊導航器
@@ -157,7 +165,7 @@ const AppNavigator: React.FC = () => {
     </MainStack.Navigator>
   );
 
-  if (loading) {
+  if (loading && !isInitializing) {
     // 在載入狀態時，返回空元素或載入指示器
     return null;
   }
@@ -165,8 +173,11 @@ const AppNavigator: React.FC = () => {
   // 移除 NavigationContainer，直接返回 Stack.Navigator
   return (
     <Stack.Navigator screenOptions={screenOptions}>
-      {showDebug && __DEV__ && !isAuthenticated ? (
-        // 如果啟用了調試模式且用戶未登入，顯示調試頁面作為初始畫面
+      {isInitializing ? (
+        // 首先顯示啟動頁面
+        <Stack.Screen name={ROUTES.SPLASH} component={SplashScreen} />
+      ) : showDebug && __DEV__ && !isAuthenticated ? (
+        // 如果啟用了調試模式且用戶未登入，顯示調試頁面
         <Stack.Screen name="DebugRoot" component={DebugStackNavigator} />
       ) : isAuthenticated ? (
         // 如果用戶已登入，顯示主應用

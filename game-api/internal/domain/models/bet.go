@@ -22,22 +22,6 @@ type GameSession struct {
 	IPAddress      string    `json:"ip_address"`
 }
 
-type GameRound struct {
-	RoundID           uuid.UUID `json:"round_id"`
-	SessionID         uuid.UUID `json:"session_id"`
-	UserID            uuid.UUID `json:"user_id"`
-	GameID            uuid.UUID `json:"game_id"`
-	BetAmount         float64   `json:"bet_amount"`
-	WinAmount         float64   `json:"win_amount"`
-	Multiplier        float64   `json:"multiplier"`
-	Symbols           string    `json:"symbols"`
-	Paylines          string    `json:"paylines"`
-	FeaturesTriggered string    `json:"features_triggered"`
-	BalanceBefore     float64   `json:"balance_before"`
-	BalanceAfter      float64   `json:"balance_after"`
-	CreatedAt         time.Time `json:"created_at"`
-}
-
 type BetHistoryResponse struct {
 	TotalCount int64         `json:"total_count"`
 	Items      []GameSession `json:"items"`

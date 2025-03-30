@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"game-api/internal/domain/entity"
 	"game-api/internal/domain/models"
 	"game-api/internal/interfaces"
+	"game-api/pkg/databaseManager"
 	"game-api/pkg/logger"
 	"time"
 
@@ -15,19 +17,28 @@ import (
 	"gorm.io/gorm"
 )
 
+// AppServiceImpl 實現AppService接口
 type AppServiceImpl struct {
-	db     *gorm.DB
-	logger logger.Logger
+	db          databaseManager.DatabaseManager
+	logger      logger.Logger
+	userService interfaces.UserService
+	gameService interfaces.GameService
+	gameEngine  interfaces.GameEngine
 }
 
-// NewAppService 創建應用服務實例
+// NewAppService 創建應用服務
 func NewAppService(
-	db *gorm.DB,
+	db databaseManager.DatabaseManager,
 	logger logger.Logger,
+	userService interfaces.UserService,
+	gameService interfaces.GameService,
 ) interfaces.AppService {
 	return &AppServiceImpl{
-		db:     db,
-		logger: logger,
+		db:          db,
+		logger:      logger,
+		userService: userService,
+		gameService: gameService,
+		gameEngine:  NewSlotGameEngine(logger),
 	}
 }
 
@@ -35,6 +46,8 @@ func NewAppService(
 func (s *AppServiceImpl) GetGameList(ctx context.Context, req models.AppGameListRequest) (*models.AppGameListResponse, error) {
 	var games []entity.Game
 	var total int64
+
+	db := s.db.GetDB()
 
 	// 設置默認值
 	if req.Page <= 0 {
@@ -56,7 +69,7 @@ func (s *AppServiceImpl) GetGameList(ctx context.Context, req models.AppGameList
 	}
 
 	// 構建查詢
-	query := s.db.Model(&entity.Game{}).Where("is_active = ?", true)
+	query := db.Model(&entity.Game{}).Where("is_active = ?", true)
 
 	// 應用過濾條件
 	if req.Type != "" {
@@ -124,6 +137,7 @@ func (s *AppServiceImpl) GetGameList(ctx context.Context, req models.AppGameList
 // GetGameDetail 獲取遊戲詳情
 func (s *AppServiceImpl) GetGameDetail(ctx context.Context, gameID string) (*models.AppGameResponse, error) {
 	var game entity.Game
+	db := s.db.GetDB()
 
 	// 將字符串轉換為UUID
 	id, err := uuid.Parse(gameID)
@@ -132,7 +146,7 @@ func (s *AppServiceImpl) GetGameDetail(ctx context.Context, gameID string) (*mod
 	}
 
 	// 查詢遊戲
-	if err := s.db.Where("game_id = ? AND is_active = ?", id, true).First(&game).Error; err != nil {
+	if err := db.Where("game_id = ? AND is_active = ?", id, true).First(&game).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("找不到該遊戲")
 		}
@@ -148,7 +162,7 @@ func (s *AppServiceImpl) GetGameDetail(ctx context.Context, gameID string) (*mod
 
 	// 獲取遊戲評分（可選）
 	var avgRating float64
-	s.db.Table("game_ratings").
+	db.Table("game_ratings").
 		Select("COALESCE(AVG(rating), 0) as avg_rating").
 		Where("game_id = ?", id).
 		Scan(&avgRating)
@@ -204,7 +218,8 @@ func (s *AppServiceImpl) StartGameSession(ctx context.Context, userID string, re
 
 			newWalletID := uuid.New().String()
 			// 創建一個新的用戶錢包
-			if err := s.db.Exec(
+			db := s.db.GetDB()
+			if err := db.Exec(
 				"INSERT INTO user_wallets (wallet_id, user_id, balance, total_deposit, total_withdraw, total_bet, total_win, created_at, updated_at) VALUES (?, ?, 0, 0, 0, 0, 0, ?, ?)",
 				newWalletID, uid, time.Now(), time.Now(),
 			).Error; err != nil {
@@ -212,7 +227,7 @@ func (s *AppServiceImpl) StartGameSession(ctx context.Context, userID string, re
 			}
 
 			// 獲取新創建的錢包
-			if err := s.db.Where("user_id = ?", uid).First(&wallet).Error; err != nil {
+			if err := db.Where("user_id = ?", uid).First(&wallet).Error; err != nil {
 				return nil, fmt.Errorf("獲取新創建的錢包失敗: %w", err)
 			}
 		} else {
@@ -255,7 +270,8 @@ func (s *AppServiceImpl) StartGameSession(ctx context.Context, userID string, re
 	}
 
 	// 保存會話
-	if err := s.db.Table("game_sessions").Create(&session).Error; err != nil {
+	db := s.db.GetDB()
+	if err := db.Table("game_sessions").Create(&session).Error; err != nil {
 		return nil, fmt.Errorf("創建遊戲會話失敗: %w", err)
 	}
 
@@ -267,7 +283,7 @@ func (s *AppServiceImpl) StartGameSession(ctx context.Context, userID string, re
 
 	// 獲取遊戲評分（可選）
 	var avgRating float64
-	s.db.Table("game_ratings").
+	db.Table("game_ratings").
 		Select("COALESCE(AVG(rating), 0) as avg_rating").
 		Where("game_id = ?", gameID).
 		Scan(&avgRating)
@@ -319,7 +335,8 @@ func (s *AppServiceImpl) PlaceBet(ctx context.Context, userID string, req models
 		EndTime   *time.Time `gorm:"column:end_time"`
 	}
 
-	if err := s.db.Table("game_sessions").Where("session_id = ? AND user_id = ?", sessionID, uid).First(&session).Error; err != nil {
+	db := s.db.GetDB()
+	if err := db.Table("game_sessions").Where("session_id = ? AND user_id = ?", sessionID, uid).First(&session).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("找不到該遊戲會話或會話不屬於當前用戶")
 		}
@@ -333,7 +350,7 @@ func (s *AppServiceImpl) PlaceBet(ctx context.Context, userID string, req models
 
 	// 獲取遊戲信息
 	var game entity.Game
-	if err := s.db.Where("game_id = ?", session.GameID).First(&game).Error; err != nil {
+	if err := db.Where("game_id = ?", session.GameID).First(&game).Error; err != nil {
 		return nil, fmt.Errorf("獲取遊戲信息失敗: %w", err)
 	}
 
@@ -344,7 +361,7 @@ func (s *AppServiceImpl) PlaceBet(ctx context.Context, userID string, req models
 
 	// 獲取用戶錢包信息
 	var wallet entity.UserWallet
-	if err := s.db.Where("user_id = ?", uid).First(&wallet).Error; err != nil {
+	if err := db.Where("user_id = ?", uid).First(&wallet).Error; err != nil {
 		return nil, fmt.Errorf("獲取用戶錢包信息失敗: %w", err)
 	}
 
@@ -354,7 +371,7 @@ func (s *AppServiceImpl) PlaceBet(ctx context.Context, userID string, req models
 	}
 
 	// 開始交易
-	tx := s.db.Begin()
+	tx := db.Begin()
 	if tx.Error != nil {
 		return nil, fmt.Errorf("開始交易失敗: %w", tx.Error)
 	}
@@ -385,19 +402,19 @@ func (s *AppServiceImpl) PlaceBet(ctx context.Context, userID string, req models
 	// 創建交易記錄 (投注)
 	betTransactionID := uuid.New()
 	betTransaction := struct {
-		TransactionID string    `gorm:"column:transaction_id;type:uuid;primaryKey"`
-		UserID        uuid.UUID `gorm:"column:user_id;type:uuid;not null"`
-		WalletID      string    `gorm:"column:wallet_id;type:uuid;not null"`
-		Amount        float64   `gorm:"column:amount;type:decimal(15,2);not null"`
-		Type          string    `gorm:"column:type;type:transaction_type;not null"`
-		Status        string    `gorm:"column:status;type:varchar(20);not null;default:'completed'"`
-		GameID        uuid.UUID `gorm:"column:game_id;type:uuid"`
-		SessionID     uuid.UUID `gorm:"column:session_id;type:uuid"`
-		RoundID       uuid.UUID `gorm:"column:round_id;type:uuid"`
-		BalanceBefore float64   `gorm:"column:balance_before;type:decimal(15,2);not null"`
-		BalanceAfter  float64   `gorm:"column:balance_after;type:decimal(15,2);not null"`
-		CreatedAt     time.Time `gorm:"column:created_at;not null;default:now()"`
-		UpdatedAt     time.Time `gorm:"column:updated_at;not null;default:now()"`
+		TransactionID string     `gorm:"column:transaction_id;type:uuid;primaryKey"`
+		UserID        uuid.UUID  `gorm:"column:user_id;type:uuid;not null"`
+		WalletID      string     `gorm:"column:wallet_id;type:uuid;not null"`
+		Amount        float64    `gorm:"column:amount;type:decimal(15,2);not null"`
+		Type          string     `gorm:"column:type;type:transaction_type;not null"`
+		Status        string     `gorm:"column:status;type:varchar(20);not null;default:'completed'"`
+		GameID        uuid.UUID  `gorm:"column:game_id;type:uuid"`
+		SessionID     uuid.UUID  `gorm:"column:session_id;type:uuid"`
+		RoundID       *uuid.UUID `gorm:"column:round_id;type:uuid"`
+		BalanceBefore float64    `gorm:"column:balance_before;type:decimal(15,2);not null"`
+		BalanceAfter  float64    `gorm:"column:balance_after;type:decimal(15,2);not null"`
+		CreatedAt     time.Time  `gorm:"column:created_at;not null;default:now()"`
+		UpdatedAt     time.Time  `gorm:"column:updated_at;not null;default:now()"`
 	}{
 		TransactionID: betTransactionID.String(),
 		UserID:        uid,
@@ -407,6 +424,7 @@ func (s *AppServiceImpl) PlaceBet(ctx context.Context, userID string, req models
 		Status:        "completed",
 		GameID:        session.GameID,
 		SessionID:     session.SessionID,
+		RoundID:       nil,
 		BalanceBefore: balanceBefore,
 		BalanceAfter:  wallet.Balance,
 		CreatedAt:     time.Now(),
@@ -427,42 +445,67 @@ func (s *AppServiceImpl) PlaceBet(ctx context.Context, userID string, req models
 		return nil, fmt.Errorf("更新會話統計失敗: %w", err)
 	}
 
-	// 生成遊戲結果 (這裡應該調用遊戲邏輯服務)
-	// 為簡化，我們模擬一個隨機結果
+	// 生成遊戲結果
 	roundID := uuid.New()
 	now := time.Now()
 
-	// 模擬遊戲結果，這裡應該有實際的遊戲邏輯
-	// 75%概率贏，投注額的1.1到2.5倍
-	var winAmount float64 = 0
-	var multiplier float64 = 0
-	var isWin bool = false
+	// 使用遊戲引擎生成結果
+	betLines := 1 // 默認為1條投注線
+	if req.BetLines > 0 {
+		betLines = req.BetLines
+	}
 
-	// 隨機概率贏得獎金 (實際應用中應有更複雜的遊戲邏輯)
-	// 使用當前時間的納秒來模擬隨機數
-	if now.UnixNano()%4 != 0 { // 75%概率贏
-		minMultiplier := 1.1
-		maxMultiplier := 2.5
-		multiplier = minMultiplier + (float64(now.UnixNano()%100)/100)*(maxMultiplier-minMultiplier)
-		winAmount = req.BetAmount * multiplier
-		isWin = true
+	result, err := s.gameEngine.GenerateGameResult(
+		ctx,
+		game.RTP,
+		string(game.Volatility),
+		req.BetAmount,
+		betLines,
+		req.BetOptions,
+	)
+	if err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("生成遊戲結果失敗: %w", err)
+	}
+
+	winAmount := result.WinAmount
+	multiplier := result.Multiplier
+	isWin := result.IsWin
+
+	// 將結果保存為JSON
+	symbolsJSON, err := json.Marshal(result.Symbols)
+	if err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("序列化符號數據失敗: %w", err)
+	}
+
+	paylinesJSON, err := json.Marshal(result.PayLines)
+	if err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("序列化支付線數據失敗: %w", err)
+	}
+
+	featuresJSON, err := json.Marshal(result.Features)
+	if err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("序列化特殊功能數據失敗: %w", err)
 	}
 
 	// 如果贏了，增加用戶錢包餘額
 	var winTransaction *struct {
-		TransactionID string    `gorm:"column:transaction_id;type:uuid;primaryKey"`
-		UserID        uuid.UUID `gorm:"column:user_id;type:uuid;not null"`
-		WalletID      string    `gorm:"column:wallet_id;type:uuid;not null"`
-		Amount        float64   `gorm:"column:amount;type:decimal(15,2);not null"`
-		Type          string    `gorm:"column:type;type:transaction_type;not null"`
-		Status        string    `gorm:"column:status;type:varchar(20);not null;default:'completed'"`
-		GameID        uuid.UUID `gorm:"column:game_id;type:uuid"`
-		SessionID     uuid.UUID `gorm:"column:session_id;type:uuid"`
-		RoundID       uuid.UUID `gorm:"column:round_id;type:uuid"`
-		BalanceBefore float64   `gorm:"column:balance_before;type:decimal(15,2);not null"`
-		BalanceAfter  float64   `gorm:"column:balance_after;type:decimal(15,2);not null"`
-		CreatedAt     time.Time `gorm:"column:created_at;not null;default:now()"`
-		UpdatedAt     time.Time `gorm:"column:updated_at;not null;default:now()"`
+		TransactionID string     `gorm:"column:transaction_id;type:uuid;primaryKey"`
+		UserID        uuid.UUID  `gorm:"column:user_id;type:uuid;not null"`
+		WalletID      string     `gorm:"column:wallet_id;type:uuid;not null"`
+		Amount        float64    `gorm:"column:amount;type:decimal(15,2);not null"`
+		Type          string     `gorm:"column:type;type:transaction_type;not null"`
+		Status        string     `gorm:"column:status;type:varchar(20);not null;default:'completed'"`
+		GameID        uuid.UUID  `gorm:"column:game_id;type:uuid"`
+		SessionID     uuid.UUID  `gorm:"column:session_id;type:uuid"`
+		RoundID       *uuid.UUID `gorm:"column:round_id;type:uuid"`
+		BalanceBefore float64    `gorm:"column:balance_before;type:decimal(15,2);not null"`
+		BalanceAfter  float64    `gorm:"column:balance_after;type:decimal(15,2);not null"`
+		CreatedAt     time.Time  `gorm:"column:created_at;not null;default:now()"`
+		UpdatedAt     time.Time  `gorm:"column:updated_at;not null;default:now()"`
 	}
 
 	if isWin {
@@ -486,19 +529,19 @@ func (s *AppServiceImpl) PlaceBet(ctx context.Context, userID string, req models
 		// 創建交易記錄 (贏錢)
 		winTransactionID := uuid.New()
 		winTransaction = &struct {
-			TransactionID string    `gorm:"column:transaction_id;type:uuid;primaryKey"`
-			UserID        uuid.UUID `gorm:"column:user_id;type:uuid;not null"`
-			WalletID      string    `gorm:"column:wallet_id;type:uuid;not null"`
-			Amount        float64   `gorm:"column:amount;type:decimal(15,2);not null"`
-			Type          string    `gorm:"column:type;type:transaction_type;not null"`
-			Status        string    `gorm:"column:status;type:varchar(20);not null;default:'completed'"`
-			GameID        uuid.UUID `gorm:"column:game_id;type:uuid"`
-			SessionID     uuid.UUID `gorm:"column:session_id;type:uuid"`
-			RoundID       uuid.UUID `gorm:"column:round_id;type:uuid"`
-			BalanceBefore float64   `gorm:"column:balance_before;type:decimal(15,2);not null"`
-			BalanceAfter  float64   `gorm:"column:balance_after;type:decimal(15,2);not null"`
-			CreatedAt     time.Time `gorm:"column:created_at;not null;default:now()"`
-			UpdatedAt     time.Time `gorm:"column:updated_at;not null;default:now()"`
+			TransactionID string     `gorm:"column:transaction_id;type:uuid;primaryKey"`
+			UserID        uuid.UUID  `gorm:"column:user_id;type:uuid;not null"`
+			WalletID      string     `gorm:"column:wallet_id;type:uuid;not null"`
+			Amount        float64    `gorm:"column:amount;type:decimal(15,2);not null"`
+			Type          string     `gorm:"column:type;type:transaction_type;not null"`
+			Status        string     `gorm:"column:status;type:varchar(20);not null;default:'completed'"`
+			GameID        uuid.UUID  `gorm:"column:game_id;type:uuid"`
+			SessionID     uuid.UUID  `gorm:"column:session_id;type:uuid"`
+			RoundID       *uuid.UUID `gorm:"column:round_id;type:uuid"`
+			BalanceBefore float64    `gorm:"column:balance_before;type:decimal(15,2);not null"`
+			BalanceAfter  float64    `gorm:"column:balance_after;type:decimal(15,2);not null"`
+			CreatedAt     time.Time  `gorm:"column:created_at;not null;default:now()"`
+			UpdatedAt     time.Time  `gorm:"column:updated_at;not null;default:now()"`
 		}{
 			TransactionID: winTransactionID.String(),
 			UserID:        uid,
@@ -508,7 +551,7 @@ func (s *AppServiceImpl) PlaceBet(ctx context.Context, userID string, req models
 			Status:        "completed",
 			GameID:        session.GameID,
 			SessionID:     session.SessionID,
-			RoundID:       roundID,
+			RoundID:       nil,
 			BalanceBefore: balanceBefore,
 			BalanceAfter:  wallet.Balance,
 			CreatedAt:     time.Now(),
@@ -553,9 +596,9 @@ func (s *AppServiceImpl) PlaceBet(ctx context.Context, userID string, req models
 		BetAmount:       req.BetAmount,
 		WinAmount:       winAmount,
 		Multiplier:      multiplier,
-		Symbols:         `{"symbols": [["7", "A", "B"], ["7", "7", "7"], ["C", "A", "B"]]}`, // 模擬
-		PayLines:        `{"paylines": [{"line": 2, "symbols": "7", "count": 3}]}`,
-		FeaturesTrigger: `{"free_spins": 0, "bonus_round": false}`,
+		Symbols:         string(symbolsJSON),
+		PayLines:        string(paylinesJSON),
+		FeaturesTrigger: string(featuresJSON),
 		BalanceBefore:   betTransaction.BalanceBefore,
 		BalanceAfter:    wallet.Balance,
 		CreatedAt:       now,
@@ -566,30 +609,35 @@ func (s *AppServiceImpl) PlaceBet(ctx context.Context, userID string, req models
 		return nil, fmt.Errorf("創建遊戲回合記錄失敗: %w", err)
 	}
 
+	// 在創建了 game_rounds 記錄後，更新交易記錄的 RoundID
+	if err := tx.Table("transactions").Where("transaction_id = ?", betTransactionID.String()).Update("round_id", roundID).Error; err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("更新投注交易記錄的 RoundID 失敗: %w", err)
+	}
+
+	// 如果有贏金交易，也更新其 RoundID
+	if isWin && winTransaction != nil {
+		if err := tx.Table("transactions").Where("transaction_id = ?", winTransaction.TransactionID).Update("round_id", roundID).Error; err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("更新贏金交易記錄的 RoundID 失敗: %w", err)
+		}
+	}
+
 	// 提交交易
 	if err := tx.Commit().Error; err != nil {
 		return nil, fmt.Errorf("提交交易失敗: %w", err)
 	}
 
 	// 構建響應
-	symbols := [][]string{{"7", "A", "B"}, {"7", "7", "7"}, {"C", "A", "B"}}
-	payLines := []map[string]interface{}{
-		{"line": 2, "symbols": "7", "count": 3},
-	}
-	features := map[string]interface{}{
-		"free_spins":  0,
-		"bonus_round": false,
-	}
-
 	response := &models.BetResponse{
 		RoundID:       roundID.String(),
 		SessionID:     session.SessionID.String(),
 		BetAmount:     req.BetAmount,
 		WinAmount:     winAmount,
 		Multiplier:    multiplier,
-		Symbols:       symbols,
-		PayLines:      payLines,
-		Features:      features,
+		Symbols:       result.Symbols,
+		PayLines:      result.PayLines,
+		Features:      result.Features,
 		BalanceBefore: betTransaction.BalanceBefore,
 		BalanceAfter:  wallet.Balance,
 		TransactionID: betTransactionID.String(),
@@ -627,7 +675,8 @@ func (s *AppServiceImpl) EndGameSession(ctx context.Context, userID string, req 
 		WinCount       int        `gorm:"column:win_count"`
 	}
 
-	if err := s.db.Table("game_sessions").Where("session_id = ? AND user_id = ?", sessionID, uid).First(&session).Error; err != nil {
+	db := s.db.GetDB()
+	if err := db.Table("game_sessions").Where("session_id = ? AND user_id = ?", sessionID, uid).First(&session).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("找不到該遊戲會話或會話不屬於當前用戶")
 		}
@@ -651,7 +700,7 @@ func (s *AppServiceImpl) EndGameSession(ctx context.Context, userID string, req 
 	finalBalance := wallet.Balance
 
 	// 更新會話
-	if err := s.db.Table("game_sessions").Where("session_id = ?", sessionID).Updates(map[string]interface{}{
+	if err := db.Table("game_sessions").Where("session_id = ?", sessionID).Updates(map[string]interface{}{
 		"end_time":      now,
 		"final_balance": finalBalance,
 	}).Error; err != nil {
@@ -686,7 +735,8 @@ func (s *AppServiceImpl) GetTransactionHistory(ctx context.Context, userID strin
 	}
 
 	// 構建查詢
-	query := s.db.Table("transactions").Where("user_id = ?", uid)
+	db := s.db.GetDB()
+	query := db.Table("transactions").Where("user_id = ?", uid)
 
 	// 根據交易類型篩選
 	if req.Type != "" {
@@ -812,7 +862,8 @@ func (s *AppServiceImpl) GetWalletBalance(ctx context.Context, userID string) (*
 		CreatedAt     time.Time `gorm:"column:created_at"`
 	}
 
-	if err := s.db.Table("transactions").
+	db := s.db.GetDB()
+	if err := db.Table("transactions").
 		Where("user_id = ?", uid).
 		Order("created_at DESC").
 		Limit(5).
@@ -854,7 +905,8 @@ func (s *AppServiceImpl) RequestDeposit(ctx context.Context, userID string, req 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// 找不到錢包時，檢查用戶是否存在
 			var userExists int64
-			if err := s.db.Table("users").Where("user_id = ?", uid).Count(&userExists).Error; err != nil {
+			db := s.db.GetDB()
+			if err := db.Table("users").Where("user_id = ?", uid).Count(&userExists).Error; err != nil {
 				s.logger.Error("檢查用戶是否存在失敗", zap.Error(err), zap.String("userId", userID))
 				return nil, fmt.Errorf("檢查用戶是否存在失敗: %w", err)
 			}
@@ -882,7 +934,7 @@ func (s *AppServiceImpl) RequestDeposit(ctx context.Context, userID string, req 
 			}
 
 			// 創建一個新的用戶錢包
-			if err := s.db.Create(&wallet).Error; err != nil {
+			if err := db.Create(&wallet).Error; err != nil {
 				s.logger.Error("創建用戶錢包失敗", zap.Error(err), zap.String("userId", userID))
 				return nil, fmt.Errorf("創建用戶錢包失敗: %w", err)
 			}
@@ -896,7 +948,8 @@ func (s *AppServiceImpl) RequestDeposit(ctx context.Context, userID string, req 
 	}
 
 	// 開始交易
-	tx := s.db.Begin()
+	db := s.db.GetDB()
+	tx := db.Begin()
 	if tx.Error != nil {
 		return nil, fmt.Errorf("開始交易失敗: %w", tx.Error)
 	}
@@ -1006,7 +1059,8 @@ func (s *AppServiceImpl) RequestWithdraw(ctx context.Context, userID string, req
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// 找不到錢包時，檢查用戶是否存在
 			var userExists int64
-			if err := s.db.Table("users").Where("user_id = ?", uid).Count(&userExists).Error; err != nil {
+			db := s.db.GetDB()
+			if err := db.Table("users").Where("user_id = ?", uid).Count(&userExists).Error; err != nil {
 				s.logger.Error("檢查用戶是否存在失敗", zap.Error(err), zap.String("userId", userID))
 				return nil, fmt.Errorf("檢查用戶是否存在失敗: %w", err)
 			}
@@ -1034,7 +1088,7 @@ func (s *AppServiceImpl) RequestWithdraw(ctx context.Context, userID string, req
 			}
 
 			// 創建一個新的用戶錢包
-			if err := s.db.Create(&wallet).Error; err != nil {
+			if err := db.Create(&wallet).Error; err != nil {
 				s.logger.Error("創建用戶錢包失敗", zap.Error(err), zap.String("userId", userID))
 				return nil, fmt.Errorf("創建用戶錢包失敗: %w", err)
 			}
@@ -1053,7 +1107,8 @@ func (s *AppServiceImpl) RequestWithdraw(ctx context.Context, userID string, req
 	}
 
 	// 開始交易
-	tx := s.db.Begin()
+	db := s.db.GetDB()
+	tx := db.Begin()
 	if tx.Error != nil {
 		return nil, fmt.Errorf("開始交易失敗: %w", tx.Error)
 	}

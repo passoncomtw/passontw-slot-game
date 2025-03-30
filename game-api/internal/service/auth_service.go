@@ -9,24 +9,29 @@ import (
 	"game-api/internal/config"
 	"game-api/internal/domain/models"
 	"game-api/internal/interfaces"
+	"game-api/pkg/databaseManager"
 	"game-api/pkg/logger"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // AuthService 提供身份驗證功能
 type AuthService struct {
 	config *config.Config
 	log    logger.Logger
+	db     databaseManager.DatabaseManager
 }
 
 // NewAuthService 創建一個新的 AuthService 實例
-func NewAuthService(config *config.Config, log logger.Logger) interfaces.AuthService {
+func NewAuthService(config *config.Config, log logger.Logger, db databaseManager.DatabaseManager) interfaces.AuthService {
 	return &AuthService{
 		config: config,
 		log:    log,
+		db:     db,
 	}
 }
 
@@ -36,10 +41,102 @@ func (s *AuthService) AdminLogin(ctx context.Context, req models.AdminLoginReque
 	return nil, errors.New("請使用AdminService進行管理員登入")
 }
 
-// AppLogin 應用登入功能
+// AppLogin 處理行動應用登入，進行認證並返回JWT令牌
 func (s *AuthService) AppLogin(ctx context.Context, req models.AppLoginRequest) (*models.LoginResponse, error) {
-	// 實現應用登入邏輯
-	return nil, errors.New("請實現應用登入邏輯")
+	// 檢查是否提供了用户名或郵箱
+	if req.Username == "" && req.Email == "" {
+		s.log.Error("缺少用戶名或電子郵件")
+		return nil, errors.New("缺少用戶名或電子郵件")
+	}
+
+	if req.Password == "" {
+		s.log.Error("密碼不能為空")
+		return nil, errors.New("密碼不能為空")
+	}
+
+	s.log.Info("嘗試登入", zap.Any("request", req))
+
+	// 從資料庫查詢用戶
+	db := s.db.GetDB().WithContext(ctx)
+	var user struct {
+		UserID       string `gorm:"column:user_id"`
+		Username     string `gorm:"column:username"`
+		Email        string `gorm:"column:email"`
+		PasswordHash string `gorm:"column:password_hash"`
+		Role         string `gorm:"column:role"`
+	}
+
+	// 建立查詢
+	query := db.Table("users")
+
+	// 添加條件
+	if req.Email != "" {
+		query = query.Where("email = ?", req.Email)
+	} else {
+		query = query.Where("username = ?", req.Username)
+	}
+
+	// 執行查詢，確保資料返回到 user 結構中
+	result := query.First(&user)
+	if err := result.Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.log.Warn("使用者不存在", zap.String("email", req.Email), zap.String("username", req.Username))
+			return nil, errors.New("使用者不存在")
+		}
+		s.log.Error("查詢使用者失敗", zap.Error(err))
+		return nil, fmt.Errorf("查詢使用者失敗: %w", err)
+	}
+
+	// 檢查是否有找到記錄
+	if result.RowsAffected == 0 {
+		s.log.Warn("未找到用戶記錄")
+		return nil, errors.New("使用者不存在")
+	}
+
+	// 確保用戶ID不為空
+	if user.UserID == "" {
+		s.log.Error("查詢到的用戶ID為空")
+		return nil, errors.New("使用者不存在")
+	}
+
+	// 驗證密碼
+	if !s.verifyPassword(user.PasswordHash, req.Password) {
+		s.log.Warn("密碼不正確", zap.String("userID", user.UserID))
+		return nil, errors.New("密碼不正確")
+	}
+
+	// 生成 JWT token
+	tokenData := models.TokenData{
+		UserID: user.UserID,
+		Role:   user.Role,
+	}
+
+	token, expiry, err := s.GenerateToken(tokenData)
+	if err != nil {
+		s.log.Error("創建令牌失敗", zap.Error(err))
+		return nil, err
+	}
+
+	// 更新最後登入時間
+	updateResult := db.Table("users").Where("user_id = ?", user.UserID).
+		Update("last_login_at", time.Now())
+	if err := updateResult.Error; err != nil {
+		s.log.Warn("更新最後登入時間失敗", zap.Error(err), zap.String("userID", user.UserID))
+	}
+
+	s.log.Info("登入成功", zap.String("userID", user.UserID), zap.String("username", user.Username))
+	return &models.LoginResponse{
+		Token:     token,
+		TokenType: "Bearer",
+		ExpiresIn: expiry,
+	}, nil
+}
+
+// 驗證密碼
+func (s *AuthService) verifyPassword(hashedPassword, plainPassword string) bool {
+	// 使用 bcrypt 進行密碼驗證
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(plainPassword))
+	return err == nil
 }
 
 // Claims 是 JWT 的標準聲明

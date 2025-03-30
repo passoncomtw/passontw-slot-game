@@ -61,6 +61,9 @@ func NewRouter(
 		authorized := api.Group("/")
 		authorized.Use(authHandler.AuthMiddleware())
 		{
+			// 認證相關
+			authorized.GET("/auth/profile", authHandler.GetUserProfile)
+
 			// 用戶相關
 			authorized.GET("/users/profile", userHandler.GetProfile)
 			authorized.PUT("/users/profile", userHandler.UpdateProfile)
@@ -165,6 +168,9 @@ func StartServer(
 		authorized := api.Group("/")
 		authorized.Use(authHandler.AuthMiddleware())
 		{
+			// 認證相關
+			authorized.GET("/auth/profile", authHandler.GetUserProfile)
+
 			// 用戶相關
 			authorized.GET("/users/profile", userHandler.GetProfile)
 			authorized.PUT("/users/profile", userHandler.UpdateProfile)

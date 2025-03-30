@@ -12,11 +12,12 @@ import (
 // UserHandler 處理用戶相關的HTTP請求
 type UserHandler struct {
 	userService interfaces.UserService
+	authService interfaces.AuthService
 	logger      *zap.Logger
 }
 
 // NewUserHandler 創建一個新的用戶處理器
-func NewUserHandler(userService interfaces.UserService, logger *zap.Logger) *UserHandler {
+func NewUserHandler(userService interfaces.UserService, authService interfaces.AuthService, logger *zap.Logger) *UserHandler {
 	return &UserHandler{
 		userService: userService,
 		logger:      logger,
@@ -62,19 +63,19 @@ func (h *UserHandler) Register(c *gin.Context) {
 // @Failure 500 {object} interfaces.ErrorResponse
 // @Router /api/v1/auth/login [post]
 func (h *UserHandler) Login(c *gin.Context) {
-	var req models.LoginRequest
+	var req models.AppLoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, interfaces.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	token, err := h.userService.Login(c.Request.Context(), &req)
+	token, err := h.authService.AppLogin(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, interfaces.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.TokenResponse{Token: token})
+	c.JSON(http.StatusOK, models.TokenResponse{Token: token.Token})
 }
 
 // GetProfile godoc

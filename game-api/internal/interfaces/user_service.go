@@ -18,9 +18,6 @@ type UserService interface {
 	// 用戶註冊
 	Register(ctx context.Context, req *models.RegisterRequest) (*models.User, error)
 
-	// 用戶登入
-	Login(ctx context.Context, req *models.LoginRequest) (string, error)
-
 	// 獲取用戶資料
 	GetProfile(ctx context.Context, userID string) (*models.UserProfileResponse, error)
 

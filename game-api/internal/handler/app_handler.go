@@ -249,6 +249,131 @@ func (h *AppHandler) GetWalletBalance(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// RequestDeposit godoc
+// @Summary 請求存款
+// @Description 創建一個新的存款請求
+// @Tags wallet
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body models.AppDepositRequest true "存款請求參數"
+// @Success 200 {object} models.TransactionResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/wallet/deposit [post]
+func (h *AppHandler) RequestDeposit(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "未授權訪問"})
+		return
+	}
+
+	var req models.AppDepositRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "無效的請求參數: " + err.Error()})
+		return
+	}
+
+	if req.Amount <= 0 {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "存款金額必須大於零"})
+		return
+	}
+
+	response, err := h.appService.RequestDeposit(c.Request.Context(), userID.(string), req)
+	if err != nil {
+		h.logger.Error("請求存款失敗", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// RequestWithdraw godoc
+// @Summary 請求提現
+// @Description 創建一個新的提現請求
+// @Tags wallet
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body models.WithdrawRequest true "提現請求參數"
+// @Success 200 {object} models.TransactionResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/wallet/withdraw [post]
+func (h *AppHandler) RequestWithdraw(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "未授權訪問"})
+		return
+	}
+
+	var req models.WithdrawRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "無效的請求參數: " + err.Error()})
+		return
+	}
+
+	if req.Amount <= 0 {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "提現金額必須大於零"})
+		return
+	}
+
+	response, err := h.appService.RequestWithdraw(c.Request.Context(), userID.(string), req)
+	if err != nil {
+		h.logger.Error("請求提現失敗", zap.Error(err))
+		if err.Error() == "餘額不足" {
+			c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetTransactionHistory godoc
+// @Summary 獲取交易歷史
+// @Description 獲取當前用戶的交易歷史
+// @Tags wallet
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param type query string false "交易類型 (deposit, withdraw, bet, win, all)"
+// @Param start_date query string false "開始日期 (YYYY-MM-DD)"
+// @Param end_date query string false "結束日期 (YYYY-MM-DD)"
+// @Param page query int false "頁碼" default(1)
+// @Param page_size query int false "每頁數量" default(10)
+// @Success 200 {object} models.TransactionHistoryResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/wallet/transactions [get]
+func (h *AppHandler) GetTransactionHistory(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "未授權訪問"})
+		return
+	}
+
+	var req models.TransactionHistoryRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	response, err := h.appService.GetTransactionHistory(c.Request.Context(), userID.(string), req)
+	if err != nil {
+		h.logger.Error("獲取交易歷史失敗", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 // RegisterRoutes 註冊路由
 func (h *AppHandler) RegisterRoutes(router *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	// 公開路由
@@ -272,5 +397,8 @@ func (h *AppHandler) RegisterRoutes(router *gin.RouterGroup, authMiddleware gin.
 	wallet.Use(authMiddleware)
 	{
 		wallet.GET("/balance", h.GetWalletBalance)
+		wallet.POST("/deposit", h.RequestDeposit)
+		wallet.POST("/withdraw", h.RequestWithdraw)
+		wallet.GET("/transactions", h.GetTransactionHistory)
 	}
 }

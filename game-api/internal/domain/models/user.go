@@ -29,8 +29,8 @@ type CreateUserRequest struct {
 	Balance  *float64 `json:"initial_balance" example:"1000.00"`
 }
 
-// 用戶儲值請求
-type DepositRequest struct {
+// UserDepositRequest 用戶儲值請求（避免與其他文件的 DepositRequest 衝突）
+type UserDepositRequest struct {
 	UserID        string  `json:"user_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Amount        float64 `json:"amount" binding:"required,gt=0" example:"500.00"`
 	PaymentMethod string  `json:"payment_method" example:"信用卡"`
@@ -128,12 +128,14 @@ type RegisterRequest struct {
 	Password string `json:"password" binding:"required,min=8"`
 }
 
+// 登入請求
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
 }
 
-type UserProfileResponse struct {
+// DetailedUserProfileResponse 包含詳細用戶資料的響應
+type DetailedUserProfileResponse struct {
 	User     User         `json:"user"`
 	Settings UserSettings `json:"settings"`
 	Wallet   UserWallet   `json:"wallet"`

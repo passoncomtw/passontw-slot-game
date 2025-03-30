@@ -1,7 +1,8 @@
 import { apiService } from './apiClient';
 
 export interface LoginRequest {
-  email: string;
+  username?: string;
+  email?: string;
   password: string;
 }
 
@@ -11,20 +12,30 @@ export interface RegisterRequest {
   password: string;
 }
 
-export interface TokenResponse {
+export interface AuthResponse {
   token: string;
+  token_type: string;
+  expires_in: number;
 }
 
-export interface UserProfileSettings {
-  userId: string;
-  sound: boolean;
-  music: boolean;
-  vibration: boolean;
-  highQuality: boolean;
-  aiAssistant: boolean;
-  gameRecommendation: boolean;
-  dataCollection: boolean;
-  updatedAt: string;
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  avatar_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  balance: number;
+  role: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface UserWallet {
@@ -37,100 +48,68 @@ export interface UserWallet {
   updatedAt: string;
 }
 
-export interface UserProfile {
-  userId: string;
-  username: string;
-  email: string;
-  vipLevel: number;
-  points: number;
-  avatarUrl?: string;
-  isVerified: boolean;
-  createdAt: string;
-  lastLogin?: string;
-  wallet?: UserWallet;
-}
-
-export interface UpdateProfileRequest {
-  username?: string;
-  avatarUrl?: string;
-}
-
-export interface UpdateSettingsRequest {
-  sound?: boolean;
-  music?: boolean;
-  vibration?: boolean;
-  highQuality?: boolean;
-  aiAssistant?: boolean;
-  gameRecommendation?: boolean;
-  dataCollection?: boolean;
-}
-
 export interface DepositRequest {
   amount: number;
-  paymentType: string;
-  referenceId?: string;
+  payment_type: string;
+  reference_id?: string;
 }
 
 export interface WithdrawRequest {
   amount: number;
-  bankAccount?: string;
-  bankCode?: string;
-  bankName?: string;
+  bank_account: string;
+  bank_code: string;
+  account_name: string;
 }
 
 export interface TransactionResponse {
-  transactionId: string;
+  transaction_id: string;
   type: string;
   amount: number;
   status: string;
   description?: string;
-  gameId?: string;
-  gameTitle?: string;
-  balanceBefore: number;
-  balanceAfter: number;
-  createdAt: string;
+  balance_before: number;
+  balance_after: number;
+  created_at: string;
 }
 
-const userService = {
-  // 登錄
-  login: (data: LoginRequest): Promise<TokenResponse> => {
-    return apiService.post<TokenResponse>('/auth/login', data);
-  },
+export interface TransactionHistoryRequest {
+  type?: string;
+  start_date?: string;
+  end_date?: string;
+  page?: number;
+  page_size?: number;
+}
 
-  // 註冊
-  register: (data: RegisterRequest): Promise<TokenResponse> => {
-    return apiService.post<TokenResponse>('/users', data);
-  },
+export interface TransactionHistoryResponse {
+  transactions: TransactionResponse[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
 
-  // 獲取用戶個人資料
-  getProfile: (): Promise<UserProfile> => {
-    return apiService.get<UserProfile>('/users/profile');
-  },
-
-  // 更新用戶個人資料
-  updateProfile: (data: UpdateProfileRequest): Promise<void> => {
-    return apiService.put<void>('/users/profile', data);
-  },
-
-  // 更新用戶設定
-  updateSettings: (data: UpdateSettingsRequest): Promise<void> => {
-    return apiService.put<void>('/users/settings', data);
-  },
-
-  // 獲取錢包餘額
-  getWalletBalance: (): Promise<UserWallet> => {
-    return apiService.get<UserWallet>('/wallet/balance');
-  },
-
-  // 請求充值
-  requestDeposit: (data: DepositRequest): Promise<TransactionResponse> => {
-    return apiService.post<TransactionResponse>('/wallet/deposit', data);
-  },
-
-  // 請求提款
-  requestWithdraw: (data: WithdrawRequest): Promise<TransactionResponse> => {
-    return apiService.post<TransactionResponse>('/wallet/withdraw', data);
-  },
+// 用戶驗證相關 API
+export const loginUser = async (data: LoginRequest): Promise<AuthResponse> => {
+  return apiService.post<AuthResponse>('/api/v1/auth/login', data);
 };
 
-export default userService; 
+export const registerUser = async (data: RegisterRequest): Promise<AuthResponse> => {
+  return apiService.post<AuthResponse>('/api/v1/auth/register', data);
+};
+
+// 錢包相關 API
+export const getWalletBalance = async (): Promise<UserWallet> => {
+  return apiService.get<UserWallet>('/api/v1/wallet/balance');
+};
+
+export const requestDeposit = async (data: DepositRequest): Promise<TransactionResponse> => {
+  return apiService.post<TransactionResponse>('/api/v1/wallet/deposit', data);
+};
+
+export const requestWithdraw = async (data: WithdrawRequest): Promise<TransactionResponse> => {
+  return apiService.post<TransactionResponse>('/api/v1/wallet/withdraw', data);
+};
+
+export const getTransactionHistory = async (params: TransactionHistoryRequest): Promise<TransactionHistoryResponse> => {
+  return apiService.get<TransactionHistoryResponse>('/api/v1/wallet/transactions', {params});
+}; 

@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch } from 'react-redux';
 import { fetchUserRequest } from '../store/slices/authSlice';
 import { AUTH_TOKEN_KEY, USER_PROFILE_KEY } from '../store/api/apiClient';
-import userService from '../store/api/userService';
+import * as userService from '../store/api/userService';
 
 // 這是一個假設內容，根據實際文件內容進行修改
 // User 類型定義（確保與 store 中的 User 定義一致）
@@ -87,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log(`開始登入: ${email}, 記住登入狀態: ${rememberMe}`);
       
       // 調用 API 登入
-      const response = await userService.login({ email, password });
+      const response = await userService.loginUser({ email, password });
       
       if (response && response.token) {
         // 保存 token - 無論 rememberMe 設置如何，都需要保存 token
@@ -96,17 +96,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         try {
           // 嘗試獲取用戶資料
-          const userProfile = await userService.getProfile();
+          const userProfile = await userService.getWalletBalance();
           
           // 建立用戶對象
           const userData: User = {
-            id: userProfile.userId,
-            username: userProfile.username,
-            email: userProfile.email,
-            balance: userProfile.wallet?.balance || 0,
-            points: userProfile.points || 0,
-            vipLevel: userProfile.vipLevel || 1,
-            avatar: userProfile.avatarUrl
+            id: userProfile.walletId || 'temp-id',
+            username: email.split('@')[0], // 使用郵箱名作為用戶名
+            email: email,
+            balance: userProfile.balance || 0,
+            points: 0,
+            vipLevel: 1,
           };
           
           // 設置用戶狀態
@@ -156,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       
       // 調用 API 進行註冊
-      const response = await userService.register({
+      const response = await userService.registerUser({
         username,
         email,
         password
@@ -168,17 +167,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         try {
           // 嘗試獲取用戶資料
-          const userProfile = await userService.getProfile();
+          const userProfile = await userService.getWalletBalance();
           
           // 建立用戶對象
           const userData: User = {
-            id: userProfile.userId,
-            username: userProfile.username,
-            email: userProfile.email,
-            balance: userProfile.wallet?.balance || 0,
-            points: userProfile.points || 0,
-            vipLevel: userProfile.vipLevel || 1,
-            avatar: userProfile.avatarUrl
+            id: userProfile.walletId || 'temp-id',
+            username,
+            email,
+            balance: userProfile.balance || 0,
+            points: 0,
+            vipLevel: 1,
           };
           
           // 設置用戶狀態

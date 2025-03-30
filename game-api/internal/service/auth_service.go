@@ -44,12 +44,6 @@ func (s *AuthService) AdminLogin(ctx context.Context, req models.AdminLoginReque
 
 // AppLogin 處理行動應用登入，進行認證並返回JWT令牌
 func (s *AuthService) AppLogin(ctx context.Context, req models.AppLoginRequest) (*models.LoginResponse, error) {
-	// 檢查是否提供了用户名或郵箱
-	if req.Username == "" && req.Email == "" {
-		s.log.Error("缺少用戶名或電子郵件")
-		return nil, errors.New("缺少用戶名或電子郵件")
-	}
-
 	if req.Password == "" {
 		s.log.Error("密碼不能為空")
 		return nil, errors.New("密碼不能為空")
@@ -73,15 +67,13 @@ func (s *AuthService) AppLogin(ctx context.Context, req models.AppLoginRequest) 
 	// 添加條件
 	if req.Email != "" {
 		query = query.Where("email = ?", req.Email)
-	} else {
-		query = query.Where("username = ?", req.Username)
 	}
 
 	// 執行查詢，確保資料返回到 user 結構中
 	result := query.First(&user)
 	if err := result.Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			s.log.Warn("使用者不存在", zap.String("email", req.Email), zap.String("username", req.Username))
+			s.log.Warn("使用者不存在", zap.String("email", req.Email))
 			return nil, errors.New("使用者不存在")
 		}
 		s.log.Error("查詢使用者失敗", zap.Error(err))
@@ -266,8 +258,6 @@ func (s *AuthService) Login(identifier string, password string) (string, error) 
 	// 如果包含 @ 符號，視為 email
 	if s.isEmail(identifier) {
 		req.Email = identifier
-	} else {
-		req.Username = identifier
 	}
 
 	response, err := s.AppLogin(ctx, req)

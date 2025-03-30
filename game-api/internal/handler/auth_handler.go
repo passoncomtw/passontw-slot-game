@@ -42,7 +42,7 @@ type AppLoginRequest struct {
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /v1/auth/login [post]
+// @Router /api/v1/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req models.AppLoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -70,7 +70,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Success 200 {object} models.UserProfileResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /v1/auth/profile [get]
+// @Router /api/v1/auth/profile [get]
 func (h *AuthHandler) GetUserProfile(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {

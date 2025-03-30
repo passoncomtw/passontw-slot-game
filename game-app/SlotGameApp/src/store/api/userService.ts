@@ -90,7 +90,7 @@ export interface TransactionHistoryResponse {
 
 // 用戶驗證相關 API
 export const loginUser = async (data: LoginRequest): Promise<AuthResponse> => {
-  return apiService.post<AuthResponse>('/api/v1/auth/login', data);
+  return apiService.post<AuthResponse>('/api/api//v1/auth/login', data);
 };
 
 export const registerUser = async (data: RegisterRequest): Promise<AuthResponse> => {

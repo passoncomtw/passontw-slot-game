@@ -71,6 +71,10 @@ func StartServer(
 		// 用戶公開路由
 		api.POST("/users", userHandler.Register)
 
+		// 遊戲公開路由 (不需要認證)
+		api.GET("/games", appHandler.GetGameList)
+		api.GET("/games/:game_id", appHandler.GetGameDetail)
+
 		// 需要認證的路由
 		authorized := api.Group("/")
 		authorized.Use(authHandler.AuthMiddleware())
@@ -86,10 +90,18 @@ func StartServer(
 			// 投注相關
 			authorized.GET("/bets/history", betHandler.GetBetHistory)
 			authorized.GET("/bets/:session_id", betHandler.GetBetDetail)
-		}
 
-		// 註冊 AppHandler 的路由
-		appHandler.RegisterRoutes(api, authHandler.AuthMiddleware())
+			// 遊戲相關 (需要認證)
+			authorized.POST("/games/sessions", appHandler.StartGameSession)
+			authorized.POST("/games/bets", appHandler.PlaceBet)
+			authorized.POST("/games/sessions/end", appHandler.EndGameSession)
+
+			// 錢包相關
+			authorized.GET("/wallet/balance", appHandler.GetWalletBalance)
+			authorized.POST("/wallet/deposit", appHandler.RequestDeposit)
+			authorized.POST("/wallet/withdraw", appHandler.RequestWithdraw)
+			authorized.GET("/wallet/transactions", appHandler.GetTransactionHistory)
+		}
 	}
 
 	// 添加管理員路由

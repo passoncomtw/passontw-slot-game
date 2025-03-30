@@ -2,7 +2,6 @@ package models
 
 // LoginRequest App用戶登入請求
 type AppLoginRequest struct {
-	Username string `json:"username,omitempty" example:"user123"`
 	Email    string `json:"email,omitempty" example:"user@example.com"`
 	Password string `json:"password" binding:"required" example:"password123"`
 }

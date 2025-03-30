@@ -90,26 +90,26 @@ export interface TransactionHistoryResponse {
 
 // 用戶驗證相關 API
 export const loginUser = async (data: LoginRequest): Promise<AuthResponse> => {
-  return apiService.post<AuthResponse>('/api/api//v1/auth/login', data);
+  return apiService.post<AuthResponse>('/auth/login', data);
 };
 
 export const registerUser = async (data: RegisterRequest): Promise<AuthResponse> => {
-  return apiService.post<AuthResponse>('/api/v1/auth/register', data);
+  return apiService.post<AuthResponse>('/auth/register', data);
 };
 
 // 錢包相關 API
 export const getWalletBalance = async (): Promise<UserWallet> => {
-  return apiService.get<UserWallet>('/api/v1/wallet/balance');
+  return apiService.get<UserWallet>('/wallet/balance');
 };
 
 export const requestDeposit = async (data: DepositRequest): Promise<TransactionResponse> => {
-  return apiService.post<TransactionResponse>('/api/v1/wallet/deposit', data);
+  return apiService.post<TransactionResponse>('/wallet/deposit', data);
 };
 
 export const requestWithdraw = async (data: WithdrawRequest): Promise<TransactionResponse> => {
-  return apiService.post<TransactionResponse>('/api/v1/wallet/withdraw', data);
+  return apiService.post<TransactionResponse>('/wallet/withdraw', data);
 };
 
 export const getTransactionHistory = async (params: TransactionHistoryRequest): Promise<TransactionHistoryResponse> => {
-  return apiService.get<TransactionHistoryResponse>('/api/v1/wallet/transactions', {params});
+  return apiService.get<TransactionHistoryResponse>('/wallet/transactions', {params});
 }; 

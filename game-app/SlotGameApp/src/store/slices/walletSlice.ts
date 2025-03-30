@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { DepositRequest, TransactionResponse, UserWallet, WithdrawRequest } from '../api/userService';
+import { DepositRequest, TransactionHistoryRequest, TransactionHistoryResponse, TransactionResponse, UserWallet, WithdrawRequest } from '../api/userService';
 
 interface WalletState {
   balance: {
@@ -18,6 +18,11 @@ interface WalletState {
     success: boolean;
     error: string | null;
     transaction: TransactionResponse | null;
+  };
+  transactions: {
+    data: TransactionHistoryResponse | null;
+    isLoading: boolean;
+    error: string | null;
   };
 }
 
@@ -38,6 +43,11 @@ const initialState: WalletState = {
     success: false,
     error: null,
     transaction: null,
+  },
+  transactions: {
+    data: null,
+    isLoading: false,
+    error: null,
   },
 };
 
@@ -82,7 +92,7 @@ const walletSlice = createSlice({
       
       // 更新餘額
       if (state.balance.data) {
-        state.balance.data.balance = action.payload.balanceAfter;
+        state.balance.data.balance = action.payload.balance_after;
         state.balance.data.totalDeposit += action.payload.amount;
       }
     },
@@ -113,7 +123,7 @@ const walletSlice = createSlice({
       
       // 更新餘額
       if (state.balance.data) {
-        state.balance.data.balance = action.payload.balanceAfter;
+        state.balance.data.balance = action.payload.balance_after;
         state.balance.data.totalWithdraw += action.payload.amount;
       }
     },
@@ -127,6 +137,21 @@ const walletSlice = createSlice({
       state.withdraw.success = false;
       state.withdraw.error = null;
       state.withdraw.transaction = null;
+    },
+
+    // 交易歷史
+    fetchTransactionsRequest: (state, action: PayloadAction<TransactionHistoryRequest>) => {
+      state.transactions.isLoading = true;
+      state.transactions.error = null;
+    },
+    fetchTransactionsSuccess: (state, action: PayloadAction<TransactionHistoryResponse>) => {
+      state.transactions.data = action.payload;
+      state.transactions.isLoading = false;
+      state.transactions.error = null;
+    },
+    fetchTransactionsFailure: (state, action: PayloadAction<string>) => {
+      state.transactions.isLoading = false;
+      state.transactions.error = action.payload;
     },
   },
 });
@@ -144,6 +169,9 @@ export const {
   withdrawSuccess,
   withdrawFailure,
   resetWithdraw,
+  fetchTransactionsRequest,
+  fetchTransactionsSuccess,
+  fetchTransactionsFailure,
 } = walletSlice.actions;
 
 export default walletSlice.reducer; 

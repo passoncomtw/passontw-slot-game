@@ -8,14 +8,22 @@ import {
   TextInput,
   Alert,
   FlatList,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, ROUTES } from '../../utils/constants';
 import { useAuth } from '../../context/AuthContext';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { depositRequest, fetchBalanceRequest, resetDeposit, resetWithdraw, withdrawRequest } from '../../store/slices/walletSlice';
+import { 
+  depositRequest, 
+  fetchBalanceRequest, 
+  fetchTransactionsRequest,
+  resetDeposit, 
+  resetWithdraw, 
+  withdrawRequest 
+} from '../../store/slices/walletSlice';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Card from '../../components/Card';
 
@@ -48,7 +56,8 @@ const WalletScreen: React.FC = () => {
   const { 
     balance: { data: walletData, isLoading: balanceLoading, error: balanceError },
     deposit: { isLoading: depositLoading, success: depositSuccess, error: depositError },
-    withdraw: { isLoading: withdrawLoading, success: withdrawSuccess, error: withdrawError }
+    withdraw: { isLoading: withdrawLoading, success: withdrawSuccess, error: withdrawError },
+    transactions: { data: transactionsData, isLoading: transactionsLoading, error: transactionsError }
   } = useAppSelector(state => state.wallet);
   
   const [activeTab, setActiveTab] = useState<'balance' | 'deposit' | 'withdraw'>('balance');
@@ -56,9 +65,13 @@ const WalletScreen: React.FC = () => {
   const [paymentType, setPaymentType] = useState('credit_card'); // 'credit_card', 'bank_transfer', 'e_wallet'
   const [bankAccount, setBankAccount] = useState('');
 
-  // 在組件掛載時獲取餘額
+  // 在組件掛載時獲取餘額和交易紀錄
   useEffect(() => {
     dispatch(fetchBalanceRequest());
+    dispatch(fetchTransactionsRequest({
+      page: 1,
+      page_size: 20
+    }));
   }, [dispatch]);
 
   // 處理存款/提款結果
@@ -91,40 +104,6 @@ const WalletScreen: React.FC = () => {
     }
   }, [depositSuccess, withdrawSuccess, depositError, withdrawError, dispatch]);
 
-  // 模擬交易記錄
-  const transactions: Transaction[] = [
-    {
-      id: '1',
-      type: 'deposit',
-      amount: 100,
-      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      status: 'completed'
-    },
-    {
-      id: '2',
-      type: 'win',
-      amount: 50,
-      date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      status: 'completed',
-      gameTitle: '幸運七'
-    },
-    {
-      id: '3',
-      type: 'lose',
-      amount: 30,
-      date: new Date(Date.now() - 12 * 60 * 60 * 1000),
-      status: 'completed',
-      gameTitle: '水果派對'
-    },
-    {
-      id: '4',
-      type: 'withdraw',
-      amount: 75,
-      date: new Date(Date.now() - 5 * 60 * 60 * 1000),
-      status: 'pending'
-    }
-  ];
-
   const navigateBack = () => {
     navigation.goBack();
   };
@@ -151,7 +130,7 @@ const WalletScreen: React.FC = () => {
         onPress: () => {
           dispatch(depositRequest({
             amount: amountNumber,
-            paymentType
+            payment_type: paymentType
           }));
         }
       }
@@ -191,7 +170,9 @@ const WalletScreen: React.FC = () => {
         onPress: () => {
           dispatch(withdrawRequest({
             amount: amountNumber,
-            bankAccount
+            bank_account: bankAccount,
+            bank_code: "123", // 預設銀行代碼
+            account_name: user?.username || "用戶" // 預設帳戶名稱
           }));
         }
       }
@@ -199,7 +180,7 @@ const WalletScreen: React.FC = () => {
   };
 
   // 渲染交易記錄項目
-  const renderTransactionItem = ({ item }: { item: Transaction }) => {
+  const renderTransactionItem = ({ item }: { item: any }) => {
     let iconName = 'arrow-down';
     let iconColor = COLORS.success;
     let amountPrefix = '+';
@@ -208,7 +189,7 @@ const WalletScreen: React.FC = () => {
       iconName = 'arrow-up';
       iconColor = COLORS.error;
       amountPrefix = '-';
-    } else if (item.type === 'lose') {
+    } else if (item.type === 'bet') {
       iconName = 'close-circle';
       iconColor = COLORS.error;
       amountPrefix = '-';
@@ -228,11 +209,11 @@ const WalletScreen: React.FC = () => {
           <Text style={styles.transactionType}>
             {item.type === 'deposit' ? '充值' : 
              item.type === 'withdraw' ? '提現' : 
-             item.type === 'win' ? `贏取 (${item.gameTitle})` : 
-             `投注 (${item.gameTitle})`}
+             item.type === 'win' ? `贏取 (${item.game_title || '遊戲'})` : 
+             `投注 (${item.game_title || '遊戲'})`}
           </Text>
           <Text style={styles.transactionDate}>
-            {new Date(item.date).toLocaleString('zh-TW', {
+            {new Date(item.created_at).toLocaleString('zh-TW', {
               month: 'short',
               day: 'numeric',
               hour: '2-digit',
@@ -248,14 +229,17 @@ const WalletScreen: React.FC = () => {
             {amountPrefix}${item.amount}
           </Text>
           <Text style={[
-            styles.statusText, 
+            styles.transactionStatusText,
             { 
-              color: item.status === 'completed' ? COLORS.success : 
-                     item.status === 'pending' ? COLORS.warning : COLORS.error 
+              color: 
+                item.status === 'completed' ? COLORS.success : 
+                item.status === 'pending' ? COLORS.warning : 
+                COLORS.error 
             }
           ]}>
             {item.status === 'completed' ? '已完成' : 
-             item.status === 'pending' ? '處理中' : '失敗'}
+             item.status === 'pending' ? '處理中' : 
+             '失敗'}
           </Text>
         </View>
       </View>
@@ -265,68 +249,60 @@ const WalletScreen: React.FC = () => {
   // 渲染用戶餘額頁面
   const renderBalanceTab = () => (
     <View style={styles.tabContent}>
-      {balanceLoading ? (
-        <View style={styles.loadingContainer}>
+      <Card style={styles.balanceCard}>
+        <Text style={styles.balanceLabel}>我的餘額</Text>
+        {balanceLoading ? (
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>載入中...</Text>
-        </View>
-      ) : (
-        <>
-          <Card style={styles.balanceCard}>
-            <Text style={styles.balanceLabel}>當前餘額</Text>
-            <Text style={styles.balanceAmount}>${walletData?.balance || 0}</Text>
-            <Text style={styles.balanceUpdateTime}>最後更新: {new Date().toLocaleString('zh-TW')}</Text>
-          </Card>
-          
-          <View style={styles.quickActionsContainer}>
-            <TouchableOpacity 
-              style={styles.quickActionButton}
-              onPress={() => setActiveTab('deposit')}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: COLORS.success }]}>
-                <Ionicons name="add" size={24} color="white" />
-              </View>
-              <Text style={styles.quickActionText}>充值</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickActionButton}
-              onPress={() => setActiveTab('withdraw')}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: COLORS.accent }]}>
-                <Ionicons name="arrow-down" size={24} color="white" />
-              </View>
-              <Text style={styles.quickActionText}>提現</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickActionButton}
-              onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: COLORS.info }]}>
-                <Ionicons name="time" size={24} color="white" />
-              </View>
-              <Text style={styles.quickActionText}>交易記錄</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.transactionsContainer}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>最近交易</Text>
-              <TouchableOpacity onPress={() => navigation.navigate(ROUTES.TRANSACTIONS)}>
-                <Text style={styles.viewAllText}>查看全部</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <FlatList
-              data={transactions}
-              renderItem={renderTransactionItem}
-              keyExtractor={item => item.id}
-              style={styles.transactionsList}
-            />
-          </View>
-        </>
-      )}
+        ) : (
+          <Text style={styles.balanceValue}>
+            ${walletData?.balance?.toFixed(2) || '0.00'}
+          </Text>
+        )}
+      </Card>
+
+      <View style={styles.actionsContainer}>
+        <TouchableOpacity 
+          style={[styles.actionButton, {backgroundColor: COLORS.success}]}
+          onPress={() => setActiveTab('deposit')}
+        >
+          <Ionicons name="add-circle" size={24} color="white" />
+          <Text style={styles.actionButtonText}>充值</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.actionButton, {backgroundColor: COLORS.warning}]}
+          onPress={() => setActiveTab('withdraw')}
+        >
+          <Ionicons name="cash" size={24} color="white" />
+          <Text style={styles.actionButtonText}>提現</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.transactionsContainer}>
+        <Text style={styles.sectionTitle}>最近交易</Text>
+        
+        {transactionsLoading ? (
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        ) : transactionsData?.transactions && transactionsData.transactions.length > 0 ? (
+          <FlatList
+            data={transactionsData.transactions}
+            renderItem={renderTransactionItem}
+            keyExtractor={item => item.transaction_id}
+            style={styles.transactionsList}
+            refreshControl={
+              <RefreshControl
+                refreshing={transactionsLoading}
+                onRefresh={() => dispatch(fetchTransactionsRequest({
+                  page: 1,
+                  page_size: 20
+                }))}
+              />
+            }
+          />
+        ) : (
+          <Text style={styles.noTransactionsText}>沒有交易記錄</Text>
+        )}
+      </View>
     </View>
   );
 
@@ -582,7 +558,7 @@ const WalletScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#F5F7FA'
   },
   header: {
     backgroundColor: COLORS.primary,
@@ -590,126 +566,104 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20
   },
   backButton: {
-    marginRight: 10,
+    padding: 8
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
     color: 'white',
-  },
-  content: {
-    flex: 1,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginLeft: 10
   },
   tabBar: {
     flexDirection: 'row',
     backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3
   },
   tabButton: {
     flex: 1,
     paddingVertical: 15,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   activeTabButton: {
     borderBottomWidth: 2,
-    borderBottomColor: COLORS.primary,
+    borderBottomColor: COLORS.primary
   },
   tabButtonText: {
     fontSize: 16,
-    color: '#666',
+    fontWeight: 'bold',
+    color: '#888'
   },
   activeTabButtonText: {
-    color: COLORS.primary,
-    fontWeight: '600',
+    color: COLORS.primary
   },
   tabContent: {
-    padding: 16,
-  },
-  loadingContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
+    flex: 1,
+    padding: 20
   },
   balanceCard: {
     padding: 20,
-    alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+    borderRadius: 10,
+    backgroundColor: 'white'
   },
   balanceLabel: {
     fontSize: 16,
     color: '#666',
-    marginBottom: 10,
+    marginBottom: 10
   },
-  balanceAmount: {
-    fontSize: 36,
+  balanceValue: {
+    fontSize: 32,
     fontWeight: 'bold',
-    color: COLORS.primary,
-    marginBottom: 5,
+    color: COLORS.primary
   },
-  balanceUpdateTime: {
-    fontSize: 12,
-    color: '#999',
-  },
-  quickActionsContainer: {
+  actionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginBottom: 16,
   },
-  quickActionButton: {
+  actionButton: {
     alignItems: 'center',
+    padding: 15,
+    borderRadius: 10
   },
-  quickActionIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  quickActionText: {
-    fontSize: 14,
-    color: '#333',
+  actionButtonText: {
+    fontSize: 16,
+    color: 'white',
+    marginTop: 5,
+    fontWeight: 'bold'
   },
   transactionsContainer: {
-    marginBottom: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
+    flex: 1,
+    marginTop: 20
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-  },
-  viewAllText: {
-    fontSize: 14,
-    color: COLORS.primary,
+    fontWeight: 'bold',
+    marginBottom: 15
   },
   transactionsList: {
-    marginTop: 10,
+    flex: 1
   },
   transactionItem: {
     flexDirection: 'row',
-    alignItems: 'center',
+    padding: 15,
+    borderRadius: 10,
     backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+    marginBottom: 10,
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 2,
+    elevation: 2
   },
   transactionIcon: {
     width: 36,
@@ -717,30 +671,92 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 15
   },
   transactionDetails: {
-    flex: 1,
+    flex: 1
   },
   transactionType: {
     fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 3,
+    fontWeight: 'bold',
+    marginBottom: 5
   },
   transactionDate: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: 14,
+    color: '#888'
   },
   transactionStatus: {
-    alignItems: 'flex-end',
+    alignItems: 'flex-end'
   },
   transactionAmount: {
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 3,
+    fontWeight: 'bold',
+    marginBottom: 5
   },
-  statusText: {
+  transactionStatusText: {
     fontSize: 12,
+    fontWeight: 'bold'
+  },
+  inputContainer: {
+    marginBottom: 20
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 5,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    fontSize: 16,
+    backgroundColor: 'white'
+  },
+  buttonContainer: {
+    marginTop: 20
+  },
+  button: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 15,
+    borderRadius: 5,
+    alignItems: 'center'
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  paymentMethodContainer: {
+    marginVertical: 20
+  },
+  paymentMethodTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10
+  },
+  paymentOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap'
+  },
+  paymentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 5,
+    marginRight: 10,
+    marginBottom: 10
+  },
+  selectedPaymentOption: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryLight
+  },
+  paymentOptionText: {
+    marginLeft: 5
+  },
+  noTransactionsText: {
+    fontSize: 16,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 20
   },
   formCard: {
     padding: 20,
@@ -798,39 +814,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-  },
-  paymentMethodContainer: {
-    marginBottom: 20,
-  },
-  paymentMethodTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 10,
-  },
-  paymentOptions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  paymentOption: {
-    width: '30%',
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  selectedPaymentOption: {
-    borderColor: COLORS.primary,
-    backgroundColor: 'rgba(98, 0, 234, 0.05)',
-  },
-  paymentOptionText: {
-    marginTop: 5,
-    fontSize: 14,
-    color: '#666',
-  },
-  selectedPaymentOptionText: {
-    color: COLORS.primary,
-    fontWeight: '500',
   },
   inputLabel: {
     fontSize: 14,

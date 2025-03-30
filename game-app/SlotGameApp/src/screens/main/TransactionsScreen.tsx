@@ -48,7 +48,8 @@ const TransactionsScreen: React.FC = () => {
   const { user } = useAuth();
   
   // 從 Redux 獲取交易記錄
-  const { data: transactions, isLoading, error } = useAppSelector((state: RootState) => state.transactions);
+  const transactions = useAppSelector((state: RootState) => state.transactions);
+  const { data: transactionData, isLoading, error } = transactions || { data: null, isLoading: false, error: null };
   
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -76,14 +77,14 @@ const TransactionsScreen: React.FC = () => {
 
   // 上拉加載更多
   const loadMoreTransactions = useCallback(() => {
-    if (isLoading || loadingMore || !transactions || transactions.length < 20) return;
+    if (isLoading || loadingMore || !transactionData || transactionData.length < 20) return;
     
     setLoadingMore(true);
     const nextPage = page + 1;
     setPage(nextPage);
     
     dispatch(fetchTransactionsRequest({ page: nextPage, limit: 20 }));
-  }, [dispatch, isLoading, loadingMore, page, transactions]);
+  }, [dispatch, isLoading, loadingMore, page, transactionData]);
   
   // 處理加載更多狀態
   useEffect(() => {
@@ -94,24 +95,24 @@ const TransactionsScreen: React.FC = () => {
 
   // 過濾交易記錄
   const filteredTransactions = useMemo(() => {
-    if (!transactions) return [];
+    if (!transactionData) return [];
     
-    if (activeFilter === 'all') return transactions;
+    if (activeFilter === 'all') return transactionData;
     
     if (activeFilter === 'deposit') {
-      return transactions.filter((tx: Transaction) => tx.type === 'deposit');
+      return transactionData.filter((tx: Transaction) => tx.type === 'deposit');
     }
     
     if (activeFilter === 'withdraw') {
-      return transactions.filter((tx: Transaction) => tx.type === 'withdraw');
+      return transactionData.filter((tx: Transaction) => tx.type === 'withdraw');
     }
     
     if (activeFilter === 'game') {
-      return transactions.filter((tx: Transaction) => tx.type === 'win' || tx.type === 'lose');
+      return transactionData.filter((tx: Transaction) => tx.type === 'win' || tx.type === 'lose');
     }
     
-    return transactions;
-  }, [transactions, activeFilter]);
+    return transactionData;
+  }, [transactionData, activeFilter]);
 
   // 根據日期分組交易記錄
   const groupedTransactions = useMemo(() => {

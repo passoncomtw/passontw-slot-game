@@ -32,5 +32,5 @@ type BetHistoryRequest struct {
 	PageSize  int       `form:"page_size" binding:"required,min=1,max=100"`
 	StartDate time.Time `form:"start_date" time_format:"2006-01-02"`
 	EndDate   time.Time `form:"end_date" time_format:"2006-01-02"`
-	GameID    uuid.UUID `form:"game_id"`
+	GameID    string    `form:"game_id"`
 }

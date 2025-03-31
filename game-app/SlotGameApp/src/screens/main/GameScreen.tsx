@@ -90,6 +90,12 @@ class GameScreen extends PureComponent<GameScreenProps, GameScreenState> {
   get betHistoryRecords() {
     const { gameState } = this.props;
     
+    // 確保 gameState.betHistory.bets 存在並且有數據
+    if (gameState?.betHistory?.bets && gameState.betHistory.bets.length > 0) {
+      console.log('使用 API 返回的下注歷史:', gameState.betHistory.bets.length, '條記錄');
+      return gameState.betHistory.bets;
+    }
+    
     // 確保 gameState.betHistory.data 存在並且有數據
     if (gameState?.betHistory?.data && gameState.betHistory.data.length > 0) {
       console.log('使用 API 返回的下注歷史:', gameState.betHistory.data.length, '條記錄');
@@ -144,19 +150,13 @@ class GameScreen extends PureComponent<GameScreenProps, GameScreenState> {
   
   // 刷新下注歷史記錄
   refreshBetHistory = () => {
-    const { dispatch, gameState } = this.props;
-    const gameId = gameState?.gameDetail?.data?.game_id || this.gameIdFromRoute;
-    
-    // 確保 gameId 有值
-    if (!gameId) {
-      console.error('無法刷新下注歷史：找不到遊戲ID');
-      return;
-    }
+    const { dispatch } = this.props;
+    const gameId = this.gameIdFromRoute; // 從路由或預設值獲取 gameId
     
     const historyParams: BetHistoryParams = {
       Page: 1,
       PageSize: 10,
-      game_id: gameId
+      game_id: gameId // 添加 game_id 參數，後端已修改為接受字符串形式
     };
     
     console.log('正在刷新下注歷史，參數:', historyParams);

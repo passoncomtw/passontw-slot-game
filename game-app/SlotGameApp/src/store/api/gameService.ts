@@ -265,6 +265,7 @@ const gameService = {
 
   getBetHistory: async (params?: BetHistoryParams): Promise<BetHistoryResponse> => {
     try {
+      // 構建請求參數
       const historyParams = {
         page: params?.Page || 1,
         page_size: params?.PageSize || 10,
@@ -277,11 +278,51 @@ const gameService = {
       console.log('獲取下注歷史參數:', historyParams);
       
       // 使用正確的 API 路徑
-      const response = await apiService.get<BetHistoryResponse>('/bets/history', { params: historyParams });
-      console.log('獲取下注歷史回應:', response);
-      return response;
-    } catch (error) {
-      console.error('獲取下注歷史失敗:', error);
+      const response = await apiService.get<{ items: any[], total_count: number }>('/bets/history', { params: historyParams });
+      console.log('獲取下注歷史原始回應:', response);
+      
+      // 轉換回應格式為前端預期的格式
+      const convertedResponse: BetHistoryResponse = {
+        bets: response.items?.map(session => ({
+          betId: session.session_id,
+          sessionId: session.session_id,
+          gameId: session.game_id,
+          betAmount: session.total_bets || 0,
+          isWin: session.win_count > 0,
+          winAmount: session.total_wins || 0,
+          currentBalance: session.final_balance || 0,
+          timestamp: session.start_time,
+          results: [], // 會話記錄中沒有詳細的遊戲結果
+          jackpotWon: false,
+          multiplier: 1,
+          transactionId: session.session_id
+        })) || [],
+        total: response.total_count || 0,
+        page: params?.Page || 1,
+        pageSize: params?.PageSize || 10,
+        totalPages: Math.ceil((response.total_count || 0) / (params?.PageSize || 10))
+      };
+      
+      console.log('獲取下注歷史轉換後回應:', convertedResponse);
+      return convertedResponse;
+    } catch (error: any) {
+      // 提供更詳細的錯誤信息
+      if (error.response) {
+        // 請求已發出，服務器回應狀態碼超出 2xx 範圍
+        console.error('獲取下注歷史 API 錯誤:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      } else if (error.request) {
+        // 請求已發出，但沒有收到回應
+        console.error('獲取下注歷史請求無回應:', error.request);
+      } else {
+        // 設置請求時發生錯誤
+        console.error('獲取下注歷史請求配置錯誤:', error.message);
+      }
+      
       // 返回一個空的響應結構，讓應用可以繼續運行
       return {
         bets: [],

@@ -64,6 +64,7 @@ interface GameState {
   };
   betHistory: {
     data: PlaceBetResponse[];
+    bets: PlaceBetResponse[];
     total: number;
     page: number;
     pageSize: number;
@@ -106,6 +107,7 @@ const initialState: GameState = {
   },
   betHistory: {
     data: [],
+    bets: [],
     total: 0,
     page: 1,
     pageSize: 10,
@@ -216,14 +218,17 @@ const gameSlice = createSlice({
       state.bet.error = action.payload;
     },
 
-    // 獲取下注歷史記錄
+    // 獲取下注歷史
     fetchBetHistoryRequest: (state, action: PayloadAction<BetHistoryParams>) => {
       state.betHistory.isLoading = true;
       state.betHistory.error = null;
     },
     fetchBetHistorySuccess: (state, action: PayloadAction<BetHistoryResponse>) => {
       state.betHistory.isLoading = false;
-      state.betHistory.data = action.payload.bets;
+      
+      // 處理新的回應格式，確保數據可以在舊代碼和新代碼中使用
+      state.betHistory.data = action.payload.bets || [];
+      state.betHistory.bets = action.payload.bets || []; // 添加 bets 屬性以兼容新的代碼
       state.betHistory.total = action.payload.total;
       state.betHistory.page = action.payload.page;
       state.betHistory.pageSize = action.payload.pageSize;

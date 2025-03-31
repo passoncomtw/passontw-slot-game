@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"game-api/internal/domain/models"
 	"game-api/internal/interfaces"
 	"game-api/pkg/databaseManager"
@@ -42,8 +43,16 @@ func (s *betService) GetBetHistory(ctx context.Context, userID string, req *mode
 		query = query.Where("start_time <= ?", req.EndDate)
 	}
 
-	if req.GameID != uuid.Nil {
-		query = query.Where("game_id = ?", req.GameID)
+	// 處理遊戲 ID 過濾
+	if req.GameID != "" {
+		gameID, err := uuid.Parse(req.GameID)
+		if err != nil {
+			// 簡單記錄錯誤訊息
+			s.logger.Warn(fmt.Sprintf("解析 game_id 為 UUID 失敗: %v, game_id: %s", err, req.GameID))
+			// 不將此錯誤返回給用戶，僅記錄日誌
+		} else {
+			query = query.Where("game_id = ?", gameID)
+		}
 	}
 
 	// 獲取總數

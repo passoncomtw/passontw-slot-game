@@ -2,11 +2,13 @@ import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ApiError } from '../types';
 
 // 設定 API 的基本 URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
+const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT || 30000);
 
 // 創建 axios 實例
 const apiClient = axios.create({
   baseURL: API_URL,
+  timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -21,8 +23,8 @@ interface ApiErrorResponse {
 // 請求攔截器
 apiClient.interceptors.request.use(
   (config) => {
-    // 從 localStorage 獲取 token
-    const token = localStorage.getItem('auth_token');
+    // 從 localStorage 或 sessionStorage 獲取 token
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     
     // 如果有 token，將其加入到請求頭中
     if (token && config.headers) {
@@ -46,6 +48,8 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_info');
+      sessionStorage.removeItem('auth_token');
+      sessionStorage.removeItem('user_info');
       window.location.href = '/login';
     }
     
@@ -56,6 +60,7 @@ apiClient.interceptors.response.use(
       errors: error.response?.data?.errors,
     };
     
+    console.error('API 錯誤:', apiError);
     return Promise.reject(apiError);
   }
 );

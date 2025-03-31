@@ -29,21 +29,85 @@ import {
   PlaceBetRequest,
   PlaceBetResponse,
   BetHistoryParams,
-  GameResultItem
+  GameResultItem,
+  GameResponse
 } from '../../store/api/gameService';
+import { User } from '../../store/slices/authSlice';
+import { EndSessionResponse } from '../../store/slices/gameSlice';
+import { Action } from 'redux';
+import { ThunkDispatch } from 'redux-thunk';
+
+// 從 gameSlice 推導出 GameState 型別
+interface GameState {
+  gameList: {
+    data: GameResponse[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    isLoading: boolean;
+    error: string | null;
+  };
+  gameDetail: {
+    data: GameResponse | null;
+    isLoading: boolean;
+    error: string | null;
+  };
+  gameSession: {
+    data: {
+      sessionId?: string;
+      session_id?: string;
+      gameId?: string;
+      startTime?: string;
+      initialBalance?: number;
+      gameInfo?: GameResponse;
+    } | null;
+    isLoading: boolean;
+    error: string | null;
+  };
+  endSession: {
+    data: EndSessionResponse | null;
+    isEnding: boolean;
+    error: string | null;
+  };
+  bet: {
+    isPlacing: boolean;
+    isProcessing: boolean;
+    currentBet: PlaceBetResponse | null;
+    error: string | null;
+  };
+  betHistory: {
+    data: PlaceBetResponse[];
+    bets: PlaceBetResponse[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    isLoading: boolean;
+    error: string | null;
+  };
+}
 
 // 定義路由參數類型
 type GameScreenParams = {
   gameId?: string;
-  route?: any;
-  navigation?: any;
+  route?: {
+    params?: {
+      gameId?: string;
+    }
+  };
+  navigation?: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    navigate: (screen: string, params?: any) => void;
+    goBack: () => void;
+  };
 };
 
 // 定義 Props 類型
 interface GameScreenProps extends GameScreenParams {
-  gameState: any;
-  userState: any;
-  dispatch: any;
+  gameState: GameState;
+  userState: User | null;
+  dispatch: ThunkDispatch<RootState, undefined, Action<string>>;
 }
 
 // 定義 State 類型
@@ -51,6 +115,16 @@ interface GameScreenState {
   isLoading: boolean;
   spinAnimation: Animated.Value;
   winAnimation: Animated.Value;
+}
+
+// 定義本地歷史記錄項目類型
+interface LocalHistoryItem {
+  id?: string;
+  betAmount?: number | string;
+  isWin?: boolean;
+  winAmount?: number | string;
+  timestamp?: Date | string;
+  gameType?: string;
 }
 
 /**
@@ -86,44 +160,76 @@ class GameScreen extends PureComponent<GameScreenProps, GameScreenState> {
     return userState?.balance !== undefined ? userState.balance : this.typedContext.balance;
   }
   
+  // 格式化日期時間
+  formatDateTime = (date: Date | string): string => {
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      
+      // 檢查日期是否有效
+      if (isNaN(dateObj.getTime())) {
+        return '無效日期';
+      }
+      
+      const hours = dateObj.getHours().toString().padStart(2, '0');
+      const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+      const day = dateObj.getDate().toString().padStart(2, '0');
+      const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+      
+      return `${month}/${day} ${hours}:${minutes}`;
+    } catch (error) {
+      console.error('日期格式化錯誤:', error, date);
+      return '格式錯誤';
+    }
+  };
+  
   // 取得下注歷史記錄，優先使用API返回的歷史
-  get betHistoryRecords() {
+  get betHistoryRecords(): PlaceBetResponse[] {
     const { gameState } = this.props;
     
-    // 確保 gameState.betHistory.bets 存在並且有數據
-    if (gameState?.betHistory?.bets && gameState.betHistory.bets.length > 0) {
-      console.log('使用 API 返回的下注歷史:', gameState.betHistory.bets.length, '條記錄');
-      return gameState.betHistory.bets;
+    try {
+      // 確保 gameState.betHistory.bets 存在並且有數據
+      if (gameState?.betHistory?.bets && Array.isArray(gameState.betHistory.bets) && gameState.betHistory.bets.length > 0) {
+        console.log('使用 API 返回的下注歷史:', gameState.betHistory.bets.length, '條記錄');
+        return gameState.betHistory.bets;
+      }
+      
+      // 確保 gameState.betHistory.data 存在並且有數據
+      if (gameState?.betHistory?.data && Array.isArray(gameState.betHistory.data) && gameState.betHistory.data.length > 0) {
+        console.log('使用 API 返回的下注歷史:', gameState.betHistory.data.length, '條記錄');
+        return gameState.betHistory.data;
+      } else if (gameState?.betHistory?.data) {
+        console.log('API 返回的下注歷史為空');
+      } else {
+        console.log('API 下注歷史數據不存在，嘗試使用本地歷史');
+      }
+      
+      // 使用本地歷史記錄作為備份
+      const localHistory = this.typedContext?.gameHistory || [];
+      if (Array.isArray(localHistory) && localHistory.length > 0) {
+        console.log('使用本地下注歷史:', localHistory.length, '條記錄');
+        return localHistory.map((item: LocalHistoryItem) => ({
+          betId: item.id || `local-${Math.random().toString(36).substring(2, 9)}`,
+          gameId: gameState?.gameDetail?.data?.game_id || this.gameIdFromRoute,
+          betAmount: typeof item.betAmount === 'number' ? item.betAmount : Number(item.betAmount) || 0,
+          isWin: Boolean(item.isWin),
+          winAmount: typeof item.winAmount === 'number' ? item.winAmount : Number(item.winAmount) || 0,
+          timestamp: (item.timestamp instanceof Date) ? item.timestamp.toISOString() : String(item.timestamp) || new Date().toISOString(),
+          transactionId: item.id || `local-${Date.now()}`, // 確保有唯一識別碼
+          sessionId: '',
+          currentBalance: 0,
+          results: [],
+          jackpotWon: false,
+          multiplier: 1
+        }));
+      }
+      
+      // 如果都沒有，返回空數組
+      console.log('無下注歷史記錄可用');
+      return [];
+    } catch (error) {
+      console.error('獲取下注歷史記錄時出錯:', error);
+      return [];
     }
-    
-    // 確保 gameState.betHistory.data 存在並且有數據
-    if (gameState?.betHistory?.data && gameState.betHistory.data.length > 0) {
-      console.log('使用 API 返回的下注歷史:', gameState.betHistory.data.length, '條記錄');
-      return gameState.betHistory.data;
-    } else if (gameState?.betHistory?.data) {
-      console.log('API 返回的下注歷史為空');
-    } else {
-      console.log('API 下注歷史數據不存在，嘗試使用本地歷史');
-    }
-    
-    // 使用本地歷史記錄作為備份
-    const localHistory = this.typedContext?.gameHistory || [];
-    if (localHistory.length > 0) {
-      console.log('使用本地下注歷史:', localHistory.length, '條記錄');
-      return localHistory.map((item: any) => ({
-        betId: item.id,
-        gameId: gameState?.gameDetail?.data?.game_id || this.gameIdFromRoute,
-        betAmount: item.betAmount,
-        isWin: item.isWin,
-        winAmount: item.winAmount,
-        timestamp: (item.timestamp instanceof Date) ? item.timestamp.toISOString() : item.timestamp,
-        transactionId: item.id // 確保有唯一識別碼
-      } as PlaceBetResponse));
-    }
-    
-    // 如果都沒有，返回空數組
-    console.log('無下注歷史記錄可用');
-    return [];
   }
   
   // 啟動旋轉動畫
@@ -365,14 +471,6 @@ class GameScreen extends PureComponent<GameScreenProps, GameScreenState> {
   // ==========================================================
   // 輔助方法
   // ==========================================================
-  // 格式化日期時間
-  formatDateTime = (date: Date | string): string => {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    const hours = dateObj.getHours().toString().padStart(2, '0');
-    const minutes = dateObj.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-  };
-  
   // ==========================================================
   // 渲染方法
   // ==========================================================
@@ -535,22 +633,24 @@ class GameScreen extends PureComponent<GameScreenProps, GameScreenState> {
                 <Text style={styles.noHistoryText}>暫無下注記錄</Text>
               ) : (
                 this.betHistoryRecords.map((item: PlaceBetResponse, index: number) => (
-                  <View key={item.betId || item.transactionId || index} style={styles.historyItem}>
+                  <View key={item.betId || item.transactionId || `history-${index}`} style={styles.historyItem}>
                     <View style={styles.historyItemHeader}>
                       <Text style={styles.historyItemId}>#{index + 1}</Text>
                       <Text style={styles.historyItemDate}>
-                        {item.timestamp ? this.formatDateTime(new Date(item.timestamp)) : '未知時間'}
+                        {item.timestamp ? this.formatDateTime(item.timestamp) : '未知時間'}
                       </Text>
                     </View>
                     <View style={styles.historyItemDetails}>
                       <Text style={styles.historyItemAmount}>
-                        下注: ¥ {item.betAmount?.toFixed(2) || '0.00'}
+                        下注: ¥ {typeof item.betAmount === 'number' ? item.betAmount.toFixed(2) : '0.00'}
                       </Text>
                       <Text style={[
                         styles.historyItemResult,
                         item.isWin ? styles.winResult : styles.loseResult
                       ]}>
-                        {item.isWin ? `贏 ¥ ${item.winAmount?.toFixed(2) || '0.00'}` : '輸'}
+                        {item.isWin 
+                          ? `贏 ¥ ${typeof item.winAmount === 'number' ? item.winAmount.toFixed(2) : '0.00'}` 
+                          : '輸'}
                       </Text>
                     </View>
                   </View>

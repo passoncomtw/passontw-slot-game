@@ -12,20 +12,43 @@ export const authService = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
     try {
       // 實際連接到 API 進行登入
-      const response = await api.post<LoginResponse>('/api/admin/login', data);
+      const apiResponse = await api.post<{token: string, token_type: string, expires_in: number}>('/admin/login', data);
       
-      // 根據 remember_me 選項決定存儲方式
-      if (data.remember_me) {
-        // 長期保存到 localStorage
-        localStorage.setItem('auth_token', response.token);
-        localStorage.setItem('user_info', JSON.stringify(response.user));
+      // 解析 JWT token 取得用戶資訊
+      const tokenParts = apiResponse.token.split('.');
+      if (tokenParts.length === 3) {
+        const payload = JSON.parse(atob(tokenParts[1]));
+        
+        // 構建標準化的回應格式
+        const response: LoginResponse = {
+          token: apiResponse.token,
+          user: {
+            admin_id: payload.admin_id || '',
+            username: payload.username || '',
+            email: payload.email || '',
+            full_name: payload.full_name || '',
+            role: payload.role || 'viewer',
+            is_active: true,
+            last_login_at: new Date().toISOString()
+          },
+          expires_at: new Date(payload.exp * 1000).toISOString()
+        };
+        
+        // 根據 remember_me 選項決定存儲方式
+        if (data.remember_me) {
+          // 長期保存到 localStorage
+          localStorage.setItem('auth_token', response.token);
+          localStorage.setItem('user_info', JSON.stringify(response.user));
+        } else {
+          // 會話期間保存到 sessionStorage
+          sessionStorage.setItem('auth_token', response.token);
+          sessionStorage.setItem('user_info', JSON.stringify(response.user));
+        }
+        
+        return response;
       } else {
-        // 會話期間保存到 sessionStorage
-        sessionStorage.setItem('auth_token', response.token);
-        sessionStorage.setItem('user_info', JSON.stringify(response.user));
+        throw new Error('無效的 JWT token 格式');
       }
-      
-      return response;
     } catch (error) {
       console.error('登入失敗:', error);
       // 重新拋出錯誤以便在 saga 中處理

@@ -1,59 +1,234 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import authService from '../../services/authService';
 
 // 定義遊戲類型
 interface Game {
   id: string;
   title: string;
   icon: string;
+  type?: string;
+  description?: string;
   createdAt: string;
   isActive: boolean;
 }
 
-const GamesPage: React.FC = () => {
-  // 模擬遊戲數據
-  const [games, setGames] = useState<Game[]>([
-    { id: 'G001', title: '幸運七', icon: 'fa-dice', createdAt: '2024/05/10', isActive: true },
-    { id: 'G002', title: '金幣樂園', icon: 'fa-coins', createdAt: '2024/05/15', isActive: true },
-    { id: 'G003', title: '水果派對', icon: 'fa-fire', createdAt: '2024/05/20', isActive: true },
-    { id: 'G004', title: '寶石迷情', icon: 'fa-gem', createdAt: '2024/06/01', isActive: false },
-  ]);
+// API 返回的遊戲數據格式
+interface ApiGame {
+  game_id: string;
+  title: string;
+  icon: string;
+  game_type?: string;
+  description?: string;
+  created_at: string;
+  is_active: boolean;
+}
 
-  // 搜尋和模態框狀態
+// API 回應類型
+interface ApiResponse<T> {
+  success?: boolean;
+  data?: T;
+  message?: string;
+  games?: ApiGame[];
+  total?: number;
+}
+
+const GamesPage: React.FC = () => {
+  // 遊戲數據狀態
+  const [games, setGames] = useState<Game[]>([]);
+  
+  // UI 狀態
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // 新遊戲表單狀態
   const [newGameName, setNewGameName] = useState('');
   const [newGameType, setNewGameType] = useState('老虎機');
   const [newGameDesc, setNewGameDesc] = useState('');
   const [newGameStatus, setNewGameStatus] = useState('active');
+  
+  // API 基礎 URL
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
+  
+  // 獲取 token
+  const getAuthToken = () => {
+    return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  };
+  
+  // 設定 API 請求頭
+  const getRequestConfig = () => {
+    const token = getAuthToken();
+    return {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    };
+  };
+
+  // 載入遊戲資料
+  useEffect(() => {
+    fetchGames();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 獲取遊戲列表
+  const fetchGames = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // 使用完整 URL 路徑
+      const response = await axios.get<ApiResponse<Game[]>>(
+        `${API_BASE_URL}/admin/games/list`,
+        getRequestConfig()
+      );
+      
+      console.log('API響應:', response.data);
+      
+      // 檢查回應中是否有 games 屬性
+      if (response.data.games && Array.isArray(response.data.games)) {
+        // 將 API 回傳的屬性名稱轉換為我們組件中使用的屬性名稱
+        const formattedGames = response.data.games.map(game => ({
+          id: game.game_id,
+          title: game.title,
+          icon: game.icon,
+          type: game.game_type,
+          description: game.description,
+          createdAt: game.created_at,
+          isActive: game.is_active
+        }));
+        
+        setGames(formattedGames);
+        console.log('處理後的遊戲數據:', formattedGames);
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        // 如果 API 回傳中使用 data 屬性
+        setGames(response.data.data);
+      } else {
+        setError('獲取遊戲列表失敗: 無效的數據格式');
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      console.error('獲取遊戲列表錯誤:', err);
+      // 顯示詳細錯誤消息
+      if (err.response) {
+        setError(`獲取遊戲列表失敗: ${err.response.data?.error || err.response.statusText}`);
+      } else {
+        setError('獲取遊戲列表時發生錯誤，請稍後再試');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // 遊戲狀態切換處理
-  const toggleGameStatus = (id: string) => {
-    setGames(games.map(game => 
-      game.id === id ? { ...game, isActive: !game.isActive } : game
-    ));
+  const toggleGameStatus = async (id: string) => {
+    try {
+      const gameToUpdate = games.find(game => game.id === id);
+      if (!gameToUpdate) return;
+      
+      setIsLoading(true);
+      setError(null);
+      
+      const newStatus = !gameToUpdate.isActive;
+      const response = await axios.patch<ApiResponse<Game>>(
+        `${API_BASE_URL}/admin/games/status`,
+        { gameId: id, isActive: newStatus },
+        getRequestConfig()
+      );
+      
+      if (response.data.success) {
+        // 更新本地狀態
+        setGames(games.map(game => 
+          game.id === id ? { ...game, isActive: newStatus } : game
+        ));
+        
+        // 顯示成功提示
+        alert(newStatus ? '遊戲已成功上架！' : '遊戲已成功下架！');
+      } else {
+        setError(response.data.message || '更新遊戲狀態失敗');
+      }
+       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      console.error('更新遊戲狀態錯誤:', err);
+      // 顯示詳細錯誤消息
+      if (err.response) {
+        setError(`更新遊戲狀態失敗: ${err.response.data?.error || err.response.statusText}`);
+      } else {
+        setError('更新遊戲狀態時發生錯誤，請稍後再試');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // 添加新遊戲
-  const handleAddGame = () => {
-    if (!newGameName.trim()) return;
-
-    const newGame: Game = {
-      id: `G${Math.floor(1000 + Math.random() * 9000)}`,
-      title: newGameName,
-      icon: getRandomIcon(),
-      createdAt: new Date().toISOString().split('T')[0].replace(/-/g, '/'),
-      isActive: newGameStatus === 'active',
-    };
-
-    setGames([...games, newGame]);
-    setShowModal(false);
-    resetForm();
+  const handleAddGame = async () => {
+    if (!validateForm()) return;
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const newGame = {
+        title: newGameName,
+        type: newGameType,
+        description: newGameDesc,
+        isActive: newGameStatus === 'active'
+      };
+      
+      const response = await axios.post<ApiResponse<Game>>(
+        `${API_BASE_URL}/admin/games/create`,
+        newGame,
+        getRequestConfig()
+      );
+      
+      if (response.data.success) {
+        // 將新遊戲添加到列表
+        if (response.data.data) {
+          setGames([...games, response.data.data]);
+        }
+        
+        // 重置表單並關閉模態框
+        setShowModal(false);
+        resetForm();
+        
+        // 顯示成功提示
+        alert('遊戲已成功新增！');
+      } else {
+        setError(response.data.message || '新增遊戲失敗');
+      }
+       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      console.error('新增遊戲錯誤:', err);
+      // 顯示詳細錯誤消息
+      if (err.response) {
+        setError(`新增遊戲失敗: ${err.response.data?.error || err.response.statusText}`);
+      } else {
+        setError('新增遊戲時發生錯誤，請稍後再試');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // 隨機選擇圖標
-  const getRandomIcon = () => {
-    const icons = ['fa-dice', 'fa-coins', 'fa-fire', 'fa-gem', 'fa-gamepad', 'fa-rocket'];
-    return icons[Math.floor(Math.random() * icons.length)];
+  // 表單驗證
+  const validateForm = () => {
+    if (!newGameName.trim()) {
+      alert('請輸入遊戲名稱');
+      return false;
+    }
+    
+    // 檢查是否有登入
+    if (!authService.isAuthenticated()) {
+      setError('您尚未登入或登入已過期，請重新登入');
+      return false;
+    }
+    
+    return true;
   };
 
   // 重設表單
@@ -72,6 +247,16 @@ const GamesPage: React.FC = () => {
 
   return (
     <div>
+      {/* 錯誤提示 */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="text-red-700">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
+      
       {/* 搜尋和功能區 */}
       <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -87,23 +272,51 @@ const GamesPage: React.FC = () => {
           </div>
           <button
             className="btn btn-primary w-full md:w-auto"
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              if (!authService.isAuthenticated()) {
+                setError('您尚未登入或登入已過期，請重新登入');
+                return;
+              }
+              setShowModal(true);
+            }}
+            disabled={isLoading}
           >
             <i className="fas fa-plus mr-2"></i> 新增遊戲
           </button>
         </div>
       </div>
       
+      {/* 載入中提示 */}
+      {isLoading && !showModal && (
+        <div className="flex justify-center items-center my-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      )}
+      
       {/* 遊戲卡片網格 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {filteredGames.map(game => (
-          <GameCard
-            key={game.id}
-            game={game}
-            onToggleStatus={toggleGameStatus}
-          />
-        ))}
-      </div>
+      {!isLoading && (
+        <>
+          {filteredGames.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {filteredGames.map(game => (
+                <GameCard
+                  key={game.id}
+                  game={game}
+                  onToggleStatus={toggleGameStatus}
+                  isLoading={isLoading}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white p-8 rounded-lg shadow-sm text-center">
+              <i className="fas fa-search text-gray-400 text-4xl mb-3"></i>
+              <p className="text-gray-500">
+                {searchTerm ? '沒有找到符合條件的遊戲' : '沒有任何遊戲，請新增遊戲'}
+              </p>
+            </div>
+          )}
+        </>
+      )}
       
       {/* 新增遊戲模態框 */}
       {showModal && (
@@ -118,6 +331,7 @@ const GamesPage: React.FC = () => {
                   setShowModal(false);
                   resetForm();
                 }}
+                disabled={isLoading}
               >
                 <i className="fas fa-times"></i>
               </button>
@@ -126,13 +340,14 @@ const GamesPage: React.FC = () => {
             {/* 表單 */}
             <div className="mb-6">
               <div className="mb-4">
-                <label className="block mb-2 text-sm font-medium text-gray-700">遊戲名稱</label>
+                <label className="block mb-2 text-sm font-medium text-gray-700">遊戲名稱 <span className="text-red-500">*</span></label>
                 <input 
                   type="text" 
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   placeholder="請輸入遊戲名稱"
                   value={newGameName}
                   onChange={(e) => setNewGameName(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
               
@@ -142,6 +357,7 @@ const GamesPage: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   value={newGameType}
                   onChange={(e) => setNewGameType(e.target.value)}
+                  disabled={isLoading}
                 >
                   <option>老虎機</option>
                   <option>卡牌遊戲</option>
@@ -158,6 +374,7 @@ const GamesPage: React.FC = () => {
                   placeholder="請輸入遊戲描述"
                   value={newGameDesc}
                   onChange={(e) => setNewGameDesc(e.target.value)}
+                  disabled={isLoading}
                 ></textarea>
               </div>
               
@@ -171,6 +388,7 @@ const GamesPage: React.FC = () => {
                       checked={newGameStatus === 'active'} 
                       onChange={() => setNewGameStatus('active')}
                       className="mr-2"
+                      disabled={isLoading}
                     />
                     立即上架
                   </label>
@@ -181,6 +399,7 @@ const GamesPage: React.FC = () => {
                       checked={newGameStatus === 'inactive'} 
                       onChange={() => setNewGameStatus('inactive')}
                       className="mr-2"
+                      disabled={isLoading}
                     />
                     暫不上架
                   </label>
@@ -196,13 +415,16 @@ const GamesPage: React.FC = () => {
                   setShowModal(false);
                   resetForm();
                 }}
+                disabled={isLoading}
               >
                 取消
               </button>
               <button 
-                className="bg-primary hover:bg-primary-dark text-white py-2 px-4 rounded-lg transition-colors"
+                className="bg-primary hover:bg-primary-dark text-white py-2 px-4 rounded-lg transition-colors flex items-center"
                 onClick={handleAddGame}
+                disabled={isLoading}
               >
+                {isLoading && <div className="animate-spin h-4 w-4 border-b-2 border-white rounded-full mr-2"></div>}
                 確認新增
               </button>
             </div>
@@ -217,13 +439,23 @@ const GamesPage: React.FC = () => {
 interface GameCardProps {
   game: Game;
   onToggleStatus: (id: string) => void;
+  isLoading?: boolean;
 }
 
-const GameCard: React.FC<GameCardProps> = ({ game, onToggleStatus }) => {
+const GameCard: React.FC<GameCardProps> = ({ game, onToggleStatus, isLoading }) => {
+  // 獲取隨機圖標，如果沒有指定
+  const icon = game.icon || getRandomIcon();
+  
+  // 隨機選擇圖標
+  function getRandomIcon() {
+    const icons = ['fa-dice', 'fa-coins', 'fa-fire', 'fa-gem', 'fa-gamepad', 'fa-rocket'];
+    return icons[Math.floor(Math.random() * icons.length)];
+  }
+  
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden transition-all hover:shadow-md hover:-translate-y-1">
       <div className="h-40 bg-gray-100 flex items-center justify-center">
-        <i className={`fas ${game.icon} text-5xl text-primary`}></i>
+        <i className={`fas ${icon} text-5xl text-primary`}></i>
       </div>
       <div className="p-4">
         <h3 className="text-lg font-semibold mb-2">{game.title}</h3>
@@ -253,8 +485,13 @@ const GameCard: React.FC<GameCardProps> = ({ game, onToggleStatus }) => {
                 : 'bg-green-100 hover:bg-green-200 text-success'
             }`}
             onClick={() => onToggleStatus(game.id)}
+            disabled={isLoading}
           >
-            <i className="fas fa-power-off"></i> 
+            {isLoading ? (
+              <div className="animate-spin h-3 w-3 border-b-2 border-current rounded-full mr-1"></div>
+            ) : (
+              <i className="fas fa-power-off"></i>
+            )}
             {game.isActive ? '下架' : '上架'}
           </button>
         </div>

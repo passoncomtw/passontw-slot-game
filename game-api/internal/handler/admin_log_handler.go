@@ -57,7 +57,7 @@ func (h *AdminLogHandler) RegisterRoutes(router *gin.RouterGroup, adminAuth gin.
 // @Failure 401 {object} handler.ErrorResponse
 // @Failure 500 {object} handler.ErrorResponse
 // @Router /api/admin/logs/list [get]
-// @Security BearerAuth
+// @Security Bearer
 func (h *AdminLogHandler) GetLogList(ctx *gin.Context) {
 	var req models.AdminLogListRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
@@ -96,7 +96,7 @@ func (h *AdminLogHandler) GetLogList(ctx *gin.Context) {
 // @Failure 401 {object} handler.ErrorResponse
 // @Failure 500 {object} handler.ErrorResponse
 // @Router /api/admin/logs/stats [get]
-// @Security BearerAuth
+// @Security Bearer
 func (h *AdminLogHandler) GetLogStats(ctx *gin.Context) {
 	startDate := ctx.Query("start_date")
 	endDate := ctx.Query("end_date")
@@ -133,7 +133,7 @@ func (h *AdminLogHandler) GetLogStats(ctx *gin.Context) {
 // @Failure 401 {object} handler.ErrorResponse
 // @Failure 500 {object} handler.ErrorResponse
 // @Router /api/admin/logs/export [get]
-// @Security BearerAuth
+// @Security Bearer
 func (h *AdminLogHandler) ExportLogs(ctx *gin.Context) {
 	var req models.LogExportRequest
 

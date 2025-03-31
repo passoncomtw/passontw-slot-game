@@ -38,7 +38,8 @@ func AdminAuthMiddleware(authService interfaces.AuthService) gin.HandlerFunc {
 		}
 
 		// 檢查是否有管理員角色
-		if tokenData.Role == "" || !strings.HasPrefix(tokenData.Role, "admin") {
+		// 檢查角色是否為 super_admin 或包含 admin 字樣
+		if tokenData.Role == "" || (tokenData.Role != "super_admin" && !strings.Contains(tokenData.Role, "admin")) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "權限不足"})
 			c.Abort()
 			return

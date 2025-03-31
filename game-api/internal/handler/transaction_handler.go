@@ -57,7 +57,7 @@ func (h *TransactionHandler) RegisterRoutes(router *gin.RouterGroup, adminAuth g
 // @Failure 401 {object} handler.ErrorResponse
 // @Failure 500 {object} handler.ErrorResponse
 // @Router /api/admin/transactions/list [get]
-// @Security BearerAuth
+// @Security Bearer
 func (h *TransactionHandler) GetTransactionList(ctx *gin.Context) {
 	var req models.AdminTransactionListRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
@@ -96,7 +96,7 @@ func (h *TransactionHandler) GetTransactionList(ctx *gin.Context) {
 // @Failure 401 {object} handler.ErrorResponse
 // @Failure 500 {object} handler.ErrorResponse
 // @Router /api/admin/transactions/stats [get]
-// @Security BearerAuth
+// @Security Bearer
 func (h *TransactionHandler) GetTransactionStats(ctx *gin.Context) {
 	startDate := ctx.Query("start_date")
 	endDate := ctx.Query("end_date")
@@ -132,7 +132,7 @@ func (h *TransactionHandler) GetTransactionStats(ctx *gin.Context) {
 // @Failure 401 {object} handler.ErrorResponse
 // @Failure 500 {object} handler.ErrorResponse
 // @Router /api/admin/transactions/export [get]
-// @Security BearerAuth
+// @Security Bearer
 func (h *TransactionHandler) ExportTransactions(ctx *gin.Context) {
 	var req models.TransactionExportRequest
 

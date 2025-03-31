@@ -51,7 +51,7 @@ func (h *GameHandler) RegisterRoutes(router *gin.RouterGroup, adminAuth gin.Hand
 // @Failure 401 {object} handler.ErrorResponse
 // @Failure 500 {object} handler.ErrorResponse
 // @Router /api/admin/games/list [get]
-// @Security BearerAuth
+// @Security Bearer
 func (h *GameHandler) GetGameList(ctx *gin.Context) {
 	var req models.GameListRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
@@ -81,7 +81,7 @@ func (h *GameHandler) GetGameList(ctx *gin.Context) {
 // @Failure 401 {object} handler.ErrorResponse
 // @Failure 500 {object} handler.ErrorResponse
 // @Router /api/admin/games/create [post]
-// @Security BearerAuth
+// @Security Bearer
 func (h *GameHandler) CreateGame(ctx *gin.Context) {
 	var req models.CreateGameRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -112,7 +112,7 @@ func (h *GameHandler) CreateGame(ctx *gin.Context) {
 // @Failure 404 {object} handler.ErrorResponse
 // @Failure 500 {object} handler.ErrorResponse
 // @Router /api/admin/games/status [post]
-// @Security BearerAuth
+// @Security Bearer
 func (h *GameHandler) ChangeGameStatus(ctx *gin.Context) {
 	var req models.GameStatusChangeRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -147,7 +147,7 @@ func (h *GameHandler) ChangeGameStatus(ctx *gin.Context) {
 // @Failure 404 {object} handler.ErrorResponse
 // @Failure 500 {object} handler.ErrorResponse
 // @Router /api/admin/games/detail/{id} [get]
-// @Security BearerAuth
+// @Security Bearer
 func (h *GameHandler) GetGameDetail(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	gameID, err := uuid.Parse(idStr)

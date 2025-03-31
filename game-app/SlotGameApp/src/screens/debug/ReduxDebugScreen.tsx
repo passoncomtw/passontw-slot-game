@@ -17,12 +17,13 @@ import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { loginRequest, registerRequest, logoutRequest } from '../../store/slices/authSlice';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ROUTES } from '../../utils/constants';
 
 // 調試模式存儲鍵
 const DEBUG_MODE_KEY = '@SlotGame:debug_mode';
 // Saga 監控開關鍵
 const SAGA_MONITOR_KEY = '@SlotGame:saga_monitor_enabled';
+// Redux DevTools 開關鍵
+const REDUX_DEVTOOLS_KEY = '@SlotGame:redux_devtools_enabled';
 
 // 定義導航參數類型
 type RootStackParamList = {
@@ -51,6 +52,7 @@ const ReduxDebugScreen: React.FC = () => {
   // 調試模式設置
   const [debugModeEnabled, setDebugModeEnabled] = useState(false);
   const [sagaMonitorEnabled, setSagaMonitorEnabled] = useState(false);
+  const [reduxDevToolsEnabled, setReduxDevToolsEnabled] = useState(false);
   
   // 從 AsyncStorage 加載調試設置
   useEffect(() => {
@@ -125,6 +127,32 @@ const ReduxDebugScreen: React.FC = () => {
     }
   };
   
+  // 保存 Redux DevTools 設置
+  const saveReduxDevToolsSettings = async (enabled: boolean) => {
+    try {
+      await AsyncStorage.setItem(REDUX_DEVTOOLS_KEY, enabled.toString());
+      setReduxDevToolsEnabled(enabled);
+      
+      Alert.alert(
+        enabled ? 'Redux DevTools 已啟用' : 'Redux DevTools 已禁用',
+        enabled ? '現在可以使用 Redux DevTools 擴展查看 Redux 狀態' : 'Redux DevTools 擴展將不再顯示 Redux 狀態',
+        [{ text: '確定' }]
+      );
+      
+      // 提示用戶需要重新啟動應用
+      setTimeout(() => {
+        Alert.alert(
+          '需要重新啟動應用',
+          '要使 Redux DevTools 設置生效，請重新啟動應用',
+          [{ text: '確定' }]
+        );
+      }, 500);
+    } catch (error) {
+      console.error('保存 Redux DevTools 設置錯誤:', error);
+      Alert.alert('錯誤', '無法保存設置');
+    }
+  };
+  
   // 測試按鈕操作
   const runLoginTest = () => {
     dispatch(loginRequest({
@@ -177,7 +205,8 @@ const ReduxDebugScreen: React.FC = () => {
         <TouchableOpacity style={styles.backButton} onPress={navigateBack}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Redux 調試工具</Text>
+        <Text style={styles.headerTitle}>Redux 調試器</Text>
+        <Text style={styles.version}>版本 1.0.0</Text>
         <TouchableOpacity style={styles.devToolsButton} onPress={openDevTools}>
           <Ionicons name="construct-outline" size={24} color="#fff" />
         </TouchableOpacity>
@@ -189,9 +218,9 @@ const ReduxDebugScreen: React.FC = () => {
           
           <View style={styles.settingRow}>
             <View style={styles.settingTextContainer}>
-              <Text style={styles.settingLabel}>啟動時顯示調試頁面</Text>
+              <Text style={styles.settingLabel}>啟用調試模式</Text>
               <Text style={styles.settingDescription}>
-                啟用後，下次啟動應用時將直接顯示此頁面
+                啟動應用時直接顯示此調試螢幕
               </Text>
             </View>
             
@@ -205,9 +234,9 @@ const ReduxDebugScreen: React.FC = () => {
           
           <View style={styles.settingRow}>
             <View style={styles.settingTextContainer}>
-              <Text style={styles.settingLabel}>啟用 Saga 監控</Text>
+              <Text style={styles.settingLabel}>啟用 Saga 監控器</Text>
               <Text style={styles.settingDescription}>
-                在控制台輸出所有 Saga 效果的詳細信息
+                在控制台中顯示 Saga 效果的詳細日誌
               </Text>
             </View>
             
@@ -219,19 +248,40 @@ const ReduxDebugScreen: React.FC = () => {
             />
           </View>
           
+          <View style={styles.settingRow}>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingLabel}>啟用 Redux DevTools</Text>
+              <Text style={styles.settingDescription}>
+                使用 Redux DevTools 擴展查看 Redux 狀態
+              </Text>
+            </View>
+            
+            <Switch
+              value={reduxDevToolsEnabled}
+              onValueChange={saveReduxDevToolsSettings}
+              trackColor={{ false: '#555', true: '#6200EA' }}
+              thumbColor={reduxDevToolsEnabled ? '#B388FF' : '#f4f3f4'}
+            />
+          </View>
+          
           <TouchableOpacity 
-            style={styles.devToolsHintButton}
-            onPress={() => Alert.alert(
-              'DevTools 使用提示',
-              '1. 在終端按 "j" 鍵打開 React Native DevTools\n' +
-              '2. 使用 Chrome DevTools 查看 Redux 日誌\n' +
-              '3. 啟用 Saga 監控在控制台查看 Saga 效果\n' +
-              '4. 使用 React Native Debugger 進行高級調試'
-            )}
+            style={styles.docsButton}
+            onPress={() => Linking.openURL('https://github.com/reduxjs/redux-devtools')}
           >
-            <Ionicons name="information-circle-outline" size={18} color="#fff" />
-            <Text style={styles.devToolsHintText}>查看使用提示</Text>
+            <Text style={styles.docsButtonText}>查看 Redux DevTools 文檔</Text>
           </TouchableOpacity>
+        </View>
+        
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Redux DevTools 使用說明</Text>
+          
+          <View style={styles.infoContainer}>
+            <Text style={styles.infoText}>1. 啟用 Redux DevTools 後需要重新啟動應用</Text>
+            <Text style={styles.infoText}>2. 開啟 Remote JS Debugging</Text>
+            <Text style={styles.infoText}>3. 在瀏覽器中安裝 Redux DevTools 擴展</Text>
+            <Text style={styles.infoText}>4. 在瀏覽器開發者工具中打開 Redux DevTools 面板</Text>
+            <Text style={styles.infoText}>5. 您可以在 Redux DevTools 面板中查看狀態變化</Text>
+          </View>
         </View>
         
         <View style={styles.section}>
@@ -378,7 +428,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  devToolsHintButton: {
+  docsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#444',
@@ -387,7 +437,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     justifyContent: 'center',
   },
-  devToolsHintText: {
+  docsButtonText: {
     color: '#fff',
     fontSize: 14,
     marginLeft: 8,
@@ -436,6 +486,18 @@ const styles = StyleSheet.create({
     color: '#ddd',
     fontFamily: 'monospace',
     fontSize: 12,
+  },
+  version: {
+    color: '#aaa',
+    fontSize: 12,
+  },
+  infoContainer: {
+    padding: 12,
+  },
+  infoText: {
+    color: '#aaa',
+    fontSize: 12,
+    marginBottom: 4,
   },
 });
 

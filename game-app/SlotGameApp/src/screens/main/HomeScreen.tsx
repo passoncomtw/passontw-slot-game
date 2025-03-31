@@ -11,6 +11,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, ROUTES } from '../../utils/constants';
 import { useAuth } from '../../context/AuthContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { DEFAULT_GAME_ID } from '../../store/api/apiClient';
 
 // 定義導航參數類型
 type RootStackParamList = {
@@ -28,17 +29,18 @@ interface GameCardProps {
   color: string;
   rating: number;
   tag: string;
-  onPress: () => void;
+  gameId: string;
+  onPress: (gameId: string) => void;
 }
 
 /**
  * 遊戲卡片組件
  */
-const GameCard: React.FC<GameCardProps> = ({ title, iconName, color, rating, tag, onPress }) => {
+const GameCard: React.FC<GameCardProps> = ({ title, iconName, color, rating, tag, gameId, onPress }) => {
   return (
     <TouchableOpacity 
       style={styles.gameCard} 
-      onPress={onPress}
+      onPress={() => onPress(gameId)}
       activeOpacity={0.7}
     >
       <View 
@@ -76,8 +78,8 @@ const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { user } = useAuth();
 
-  const navigateToGame = () => {
-    navigation.navigate('Game');
+  const navigateToGame = (gameId: string) => {
+    navigation.navigate('GameDetail', { gameId });
   };
 
   return (
@@ -124,6 +126,7 @@ const HomeScreen: React.FC = () => {
             color={COLORS.primary}
             rating={4.5}
             tag="熱門"
+            gameId={DEFAULT_GAME_ID}
             onPress={navigateToGame}
           />
           <GameCard 
@@ -132,6 +135,7 @@ const HomeScreen: React.FC = () => {
             color={COLORS.secondary}
             rating={4.0}
             tag="新遊戲"
+            gameId="game-2"
             onPress={navigateToGame}
           />
           <GameCard 
@@ -140,6 +144,7 @@ const HomeScreen: React.FC = () => {
             color="#F44336"
             rating={4.9}
             tag="高獎金"
+            gameId="game-3"
             onPress={navigateToGame}
           />
         </ScrollView>
@@ -160,6 +165,7 @@ const HomeScreen: React.FC = () => {
             color="#009688"
             rating={4.1}
             tag="推薦"
+            gameId="game-4"
             onPress={navigateToGame}
           />
           <GameCard 
@@ -168,6 +174,7 @@ const HomeScreen: React.FC = () => {
             color="#FF5722"
             rating={3.5}
             tag="推薦"
+            gameId="game-5"
             onPress={navigateToGame}
           />
           <GameCard 
@@ -176,6 +183,7 @@ const HomeScreen: React.FC = () => {
             color="#3F51B5"
             rating={4.0}
             tag="推薦"
+            gameId="game-6"
             onPress={navigateToGame}
           />
         </ScrollView>

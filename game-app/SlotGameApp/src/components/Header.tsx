@@ -9,6 +9,8 @@ interface HeaderProps {
   title: string;
   showBackButton?: boolean;
   rightComponent?: React.ReactNode;
+  backgroundColor?: string;
+  titleColor?: string;
 }
 
 /**
@@ -18,22 +20,24 @@ const Header: React.FC<HeaderProps> = ({
   title,
   showBackButton = false,
   rightComponent,
+  backgroundColor = COLORS.primary,
+  titleColor = 'white',
 }) => {
   const navigation = useNavigation();
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      <View style={styles.container}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor }]} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={backgroundColor} />
+      <View style={[styles.container, { backgroundColor }]}>
         {showBackButton ? (
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+            <Ionicons name="arrow-back" size={24} color={titleColor} />
           </TouchableOpacity>
         ) : (
           <View style={styles.leftPlaceholder} />
         )}
         
-        <Text style={styles.title}>{title}</Text>
+        <Text style={[styles.title, { color: titleColor }]}>{title}</Text>
         
         {rightComponent ? (
           <View style={styles.rightComponent}>{rightComponent}</View>

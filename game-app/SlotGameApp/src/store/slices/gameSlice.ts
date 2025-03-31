@@ -1,6 +1,36 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { GameListParams, GameListResponse, GameResponse, GameSessionResponse, PlaceBetRequest, PlaceBetResponse, BetHistoryParams, BetHistoryResponse } from '../api/gameService';
 
+// 添加結束會話請求介面
+export interface EndSessionRequest {
+  sessionId: string;
+}
+
+// 添加結束會話回應介面
+export interface EndSessionResponse {
+  sessionId: string;
+  endTime: string;
+  duration: number;
+  totalBets: number;
+  totalWins: number;
+  netGain: number;
+  spinCount: number;
+  winCount: number;
+  finalBalance: number;
+}
+
+// 更新 GameSessionRequest 定義以匹配 API 接口
+export interface GameSessionRequest {
+  GameID: string;
+  BetAmount?: number;
+}
+
+// 定義初始化遊戲會話的請求介面，將用於簡化流程
+export interface InitGameSessionRequest {
+  gameId: string; 
+  betAmount: number;
+}
+
 interface GameState {
   gameList: {
     data: GameResponse[];
@@ -19,6 +49,11 @@ interface GameState {
   gameSession: {
     data: GameSessionResponse | null;
     isLoading: boolean;
+    error: string | null;
+  };
+  endSession: {
+    data: EndSessionResponse | null;
+    isEnding: boolean;
     error: string | null;
   };
   bet: {
@@ -56,6 +91,11 @@ const initialState: GameState = {
   gameSession: {
     data: null,
     isLoading: false,
+    error: null,
+  },
+  endSession: {
+    data: null,
+    isEnding: false,
     error: null,
   },
   bet: {
@@ -111,8 +151,16 @@ const gameSlice = createSlice({
       state.gameDetail.error = action.payload;
     },
 
+    // 初始化遊戲會話（包含取得遊戲詳情、建立會話、取得下注歷史）
+    initGameSessionRequest: (state, action: PayloadAction<InitGameSessionRequest>) => {
+      state.gameDetail.isLoading = true;
+      state.gameDetail.error = null;
+      state.gameSession.isLoading = true;
+      state.gameSession.error = null;
+    },
+
     // 開始遊戲會話
-    startGameSessionRequest: (state, action: PayloadAction<{ gameId: string; betAmount?: number }>) => {
+    startGameSessionRequest: (state, action: PayloadAction<GameSessionRequest>) => {
       state.gameSession.isLoading = true;
       state.gameSession.error = null;
     },
@@ -123,6 +171,21 @@ const gameSlice = createSlice({
     startGameSessionFailure: (state, action: PayloadAction<string>) => {
       state.gameSession.isLoading = false;
       state.gameSession.error = action.payload;
+    },
+    
+    // 結束遊戲會話
+    endGameSessionRequest: (state, action: PayloadAction<EndSessionRequest>) => {
+      state.endSession.isEnding = true;
+      state.endSession.error = null;
+    },
+    endGameSessionSuccess: (state, action: PayloadAction<EndSessionResponse>) => {
+      state.endSession.isEnding = false;
+      state.endSession.data = action.payload;
+      state.gameSession.data = null; // 清空會話數據
+    },
+    endGameSessionFailure: (state, action: PayloadAction<string>) => {
+      state.endSession.isEnding = false;
+      state.endSession.error = action.payload;
     },
 
     // 下注動作
@@ -154,7 +217,7 @@ const gameSlice = createSlice({
     },
 
     // 獲取下注歷史記錄
-    fetchBetHistoryRequest: (state, action?: PayloadAction<BetHistoryParams>) => {
+    fetchBetHistoryRequest: (state, action: PayloadAction<BetHistoryParams>) => {
       state.betHistory.isLoading = true;
       state.betHistory.error = null;
     },
@@ -190,9 +253,13 @@ export const {
   fetchGameDetailRequest,
   fetchGameDetailSuccess,
   fetchGameDetailFailure,
+  initGameSessionRequest,
   startGameSessionRequest,
   startGameSessionSuccess,
   startGameSessionFailure,
+  endGameSessionRequest,
+  endGameSessionSuccess,
+  endGameSessionFailure,
   placeBetRequest,
   placeBetSuccess,
   placeBetFailure,

@@ -1,174 +1,126 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { COLORS } from '../utils/constants';
-import { useGame } from '../context/GameContext';
-import Card from './Card';
+import { GameContext } from '../context/GameContext';
 
-/**
- * 老虎機遊戲組件
- */
-const SlotMachine: React.FC = () => {
-  const { reels, isSpinning, winAmount, jackpot, aiSuggestion } = useGame();
+const SlotMachine = () => {
+  const { reels, isSpinning } = useContext(GameContext);
+  const [displayReels, setDisplayReels] = useState<string[]>(reels || ['7', '7', '7']);
   
-  // 動畫值
-  const spinValues = [
-    useRef(new Animated.Value(0)).current,
-    useRef(new Animated.Value(0)).current,
-    useRef(new Animated.Value(0)).current,
-  ];
+  // 創建旋轉動畫的引用
+  const spinAnimations = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0)
+  ]).current;
   
-  // 旋轉動畫
+  // 當 reels 變化時更新顯示
+  useEffect(() => {
+    if (reels && reels.length > 0) {
+      setDisplayReels(reels);
+      console.log('顯示輪盤符號:', reels);
+    }
+  }, [reels]);
+  
+  // 當 isSpinning 狀態變化時開始旋轉動畫
   useEffect(() => {
     if (isSpinning) {
-      // 三個滾輪分別執行不同時長的動畫
-      spinValues.forEach((value, index) => {
-        Animated.timing(value, {
-          toValue: 1,
-          duration: 1500 + (index * 300), // 滾輪依次停止
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }).start();
-      });
-    } else {
-      // 重置動畫
-      spinValues.forEach(value => {
-        value.setValue(0);
-      });
+      startSpinAnimation();
     }
   }, [isSpinning]);
   
-  // 輪盤旋轉動畫
-  const getSpinInterpolation = (spinValue: Animated.Value) => {
-    if (!spinValue) {
-      return '0deg'; // 如果spinValue未定義，返回預設值
-    }
-    return spinValue.interpolate({
-      inputRange: [0, 1],
-      outputRange: ['0deg', '1440deg'], // 旋轉多圈
+  // 旋轉動畫函數
+  const startSpinAnimation = () => {
+    // 重置動畫
+    spinAnimations.forEach(anim => anim.setValue(0));
+    
+    // 建立動畫序列，每個輪盤依次停止
+    spinAnimations.forEach((anim, index) => {
+      Animated.sequence([
+        // 延遲開始，讓每個輪盤有不同的開始時間
+        Animated.delay(index * 100),
+        // 開始旋轉
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 1500 + index * 500, // 每個輪盤持續時間不同
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true
+        })
+      ]).start();
     });
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.jackpotContainer}>
-        <Text style={styles.jackpotTitle}>頭獎</Text>
-        <Text style={styles.jackpotAmount}>${jackpot.toLocaleString()}</Text>
+      <View style={styles.slotReels}>
+        {displayReels.map((symbol, index) => {
+          // 建立旋轉動畫
+          const translateY = spinAnimations[index].interpolate({
+            inputRange: [0, 0.2, 0.8, 1],
+            outputRange: [0, -300, 300, 0]
+          });
+          
+          const rotateX = spinAnimations[index].interpolate({
+            inputRange: [0, 1],
+            outputRange: ['0deg', '720deg']
+          });
+          
+          return (
+            <Animated.View
+              key={index}
+              style={[
+                styles.slotReel,
+                {
+                  transform: [
+                    { translateY },
+                    { rotateX }
+                  ]
+                }
+              ]}
+            >
+              <Text style={styles.symbolText}>{symbol || '?'}</Text>
+            </Animated.View>
+          );
+        })}
       </View>
-      
-      <View style={styles.reelsContainer}>
-        {reels.map((symbol, index) => (
-          <Animated.View
-            key={index}
-            style={[
-              styles.reel,
-              {
-                transform: [
-                  { 
-                    rotate: spinValues[index] ? 
-                      getSpinInterpolation(spinValues[index]) : 
-                      '0deg'
-                  },
-                ],
-              },
-            ]}
-          >
-            <Text style={styles.reelText}>{symbol}</Text>
-          </Animated.View>
-        ))}
-      </View>
-      
-      {winAmount > 0 && (
-        <View style={styles.winAmountContainer}>
-          <Text style={styles.winText}>恭喜獲勝!</Text>
-          <Text style={styles.winAmount}>+${winAmount.toLocaleString()}</Text>
-        </View>
-      )}
-      
-      {aiSuggestion && (
-        <View style={styles.aiSuggestionContainer}>
-          <View style={styles.aiTitleContainer}>
-            <Text style={styles.aiTitle}>AI 提示</Text>
-          </View>
-          <Text style={styles.aiSuggestionText}>{aiSuggestion}</Text>
-        </View>
-      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 10,
-    padding: 15,
-    marginVertical: 20,
-  },
-  jackpotContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
   },
-  jackpotTitle: {
-    fontSize: 16,
-    color: 'white',
-  },
-  jackpotAmount: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.accent,
-  },
-  reelsContainer: {
+  slotReels: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginVertical: 20,
+    width: '100%',
+    paddingHorizontal: 10,
   },
-  reel: {
+  slotReel: {
     backgroundColor: 'white',
     borderWidth: 2,
     borderColor: COLORS.accent,
-    borderRadius: 5,
+    borderRadius: 10,
     height: 120,
     width: 80,
-    alignItems: 'center',
     justifyContent: 'center',
-  },
-  reelText: {
-    fontSize: 36,
-  },
-  winAmountContainer: {
-    backgroundColor: COLORS.success,
-    padding: 10,
-    borderRadius: 5,
     alignItems: 'center',
-    marginVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+    marginHorizontal: 5,
+    // 加入透視效果以改進 3D 旋轉效果
+    backfaceVisibility: 'hidden',
   },
-  winText: {
-    color: 'white',
+  symbolText: {
+    fontSize: 42,
+    color: COLORS.primary,
     fontWeight: 'bold',
-    fontSize: 16,
-  },
-  winAmount: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 24,
-  },
-  aiSuggestionContainer: {
-    backgroundColor: COLORS.secondary,
-    borderRadius: 10,
-    padding: 10,
-    marginTop: 15,
-  },
-  aiTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  aiTitle: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  aiSuggestionText: {
-    color: 'white',
-    fontSize: 14,
   },
 });
 

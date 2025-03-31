@@ -87,8 +87,6 @@ const AppNavigator: React.FC = () => {
 
           if (route.name === ROUTES.HOME) {
             iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === ROUTES.GAME) {
-            iconName = focused ? 'game-controller' : 'game-controller-outline';
           } else if (route.name === ROUTES.LEADERBOARD) {
             iconName = focused ? 'trophy' : 'trophy-outline';
           } else if (route.name === ROUTES.PROFILE) {
@@ -115,13 +113,6 @@ const AppNavigator: React.FC = () => {
         component={HomeScreen} 
         options={{
           tabBarLabel: '首頁'
-        }}
-      />
-      <Tab.Screen 
-        name={ROUTES.GAME} 
-        component={GameScreen} 
-        options={{
-          tabBarLabel: '遊戲'
         }}
       />
       <Tab.Screen 
@@ -158,8 +149,12 @@ const AppNavigator: React.FC = () => {
       {/* 添加其他頁面 */}
       <MainStack.Screen name={ROUTES.WALLET} component={WalletScreen} />
       <MainStack.Screen name={ROUTES.TRANSACTIONS} component={TransactionsScreen} />
-      <MainStack.Screen name={ROUTES.GAME_DETAIL} component={GameScreen} />
-      <MainStack.Screen name={ROUTES.GAME_PLAY} component={GameScreen} />
+      <MainStack.Screen name={ROUTES.GAME} component={GameScreen} />
+      <MainStack.Screen 
+        name={ROUTES.GAME_DETAIL} 
+        component={GameScreen} 
+        options={{ animation: 'slide_from_right' }}
+      />
       <MainStack.Screen name={ROUTES.NOTIFICATIONS} component={HomeScreen} />
       <MainStack.Screen name={ROUTES.AI_ASSISTANT} component={AIAssistantScreen} />
     </MainStack.Navigator>

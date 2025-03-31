@@ -3,11 +3,18 @@ import createSagaMiddleware from 'redux-saga';
 import { createLogger } from 'redux-logger';
 import rootReducer from './slices/rootReducer';
 import rootSaga from './sagas/rootSaga';
+import { composeWithDevTools } from '@redux-devtools/extension';
 
 // 擴展 global 類型
 declare global {
   // eslint-disable-next-line no-var
   var __REDUX_SAGA_MONITOR_ENABLED__: boolean;
+  var __REDUX_DEVTOOLS_ENABLED__: boolean;
+}
+
+// 設置默認值
+if (typeof global !== 'undefined') {
+  global.__REDUX_DEVTOOLS_ENABLED__ = global.__REDUX_DEVTOOLS_ENABLED__ !== false;
 }
 
 // 創建 saga 中間件
@@ -62,6 +69,9 @@ const loggerMiddleware = createLogger({
   },
 });
 
+// 判斷是否啟用 Redux DevTools
+const isDevToolsEnabled = __DEV__ || true;
+
 // 配置 store
 export const store = configureStore({
   reducer: rootReducer,
@@ -85,12 +95,12 @@ export const store = configureStore({
   // 在開發環境啟用 Redux DevTools
   devTools: {
     name: 'SlotGame Redux',
-    trace: __DEV__,
+    trace: true,
     traceLimit: 25
   }
 });
 
-// 運行 saga
+// 運行 root saga
 sagaMiddleware.run(rootSaga);
 
 // 設置 Saga 監控器開關（可以通過 React Native DevTools 開啟/關閉）
@@ -99,7 +109,7 @@ if (__DEV__ && typeof global !== 'undefined') {
 }
 
 // 將 store 添加到全局環境中方便調試 (僅在開發模式)
-if (__DEV__) {
+if (true) {
   if (typeof window !== 'undefined') {
     (window as any).store = store;
   }
@@ -108,9 +118,16 @@ if (__DEV__) {
   console.log('\x1b[36m%s\x1b[0m', '提示: 在終端按下 "j" 鍵可打開 React Native DevTools');
   console.log('\x1b[36m%s\x1b[0m', '提示: 按下 "d" 鍵打開開發者選單，然後啟用 "Debug Remote JS"');
   console.log('\x1b[36m%s\x1b[0m', 'Redux 調試提示: 使用 React Native DevTools 觀察狀態變化');
+  
+  if (isDevToolsEnabled) {
+    console.log('\x1b[32m%s\x1b[0m', 'Redux DevTools 已啟用，可以使用 Redux DevTools 擴展查看狀態');
+  } else {
+    console.log('\x1b[33m%s\x1b[0m', 'Redux DevTools 未啟用，可以在調試設置中啟用');
+  }
 }
 
 // 為 dispatch 類型提供類型
 export type AppDispatch = typeof store.dispatch;
 
+// 導出默認 store
 export default store; 

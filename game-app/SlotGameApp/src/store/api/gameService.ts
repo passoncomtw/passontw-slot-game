@@ -1,17 +1,18 @@
 import { apiService } from './apiClient';
+import { EndSessionRequest, EndSessionResponse } from '../slices/gameSlice';
 
 export interface GameListParams {
-  type?: string;
-  featured?: boolean;
-  new?: boolean;
-  page?: number;
-  pageSize?: number;
-  sortBy?: string;
-  sortOrder?: string;
+  Type?: string;
+  Featured?: boolean;
+  New?: boolean;
+  Page?: number;
+  PageSize?: number;
+  SortBy?: string;
+  SortOrder?: string;
 }
 
 export interface GameResponse {
-  gameId: string;
+  game_id: string;
   title: string;
   description: string;
   gameType: string;
@@ -38,8 +39,8 @@ export interface GameListResponse {
 }
 
 export interface GameSessionRequest {
-  gameId: string;
-  betAmount?: number;
+  GameID: string;
+  BetAmount?: number;
 }
 
 export interface GameSessionResponse {
@@ -50,23 +51,19 @@ export interface GameSessionResponse {
   gameInfo: GameResponse;
 }
 
-// 依照Swagger定義的下注請求介面
 export interface BetRequest {
-  session_id: string;  // swagger定義要求
-  bet_amount: number;  // swagger定義要求
-  bet_lines?: number;  // swagger定義要求
-  bet_options?: Record<string, any>;  // swagger定義要求
+  SessionID: string;
+  BetAmount: number;
+  BetOptions?: Record<string, any>;
 }
 
-// 為了保持向後兼容，我們保留舊的介面但參數映射到新的
 export interface PlaceBetRequest {
   sessionId: string;
-  gameId: string;
+  game_id?: string;
   betAmount: number;
   betOptions?: Record<string, any>;
 }
 
-// 依照Swagger定義的下注回應介面
 export interface BetResponse {
   session_id: string;
   round_id: string;
@@ -80,9 +77,10 @@ export interface BetResponse {
   multiplier?: number;
   features?: Record<string, any>;
   created_at?: string;
+  is_win?: boolean;
+  game_id?: string;
 }
 
-// 為了保持向後兼容，我們保留舊的介面
 export interface PlaceBetResponse {
   betId: string;
   sessionId: string;
@@ -95,18 +93,18 @@ export interface PlaceBetResponse {
   results: GameResultItem[];
   jackpotWon: boolean;
   multiplier: number;
+  transactionId?: string;
 }
 
-// 下注歷史請求參數
 export interface BetHistoryParams {
-  page?: number;
-  pageSize?: number;
-  startDate?: string;
-  endDate?: string;
-  gameId?: string;
+  Page: number;
+  PageSize: number;
+  StartDate?: string;
+  EndDate?: string;
+  GameID?: string;
+  game_id?: string;
 }
 
-// 下注歷史回應
 export interface BetHistoryResponse {
   bets: PlaceBetResponse[];
   total: number;
@@ -115,26 +113,20 @@ export interface BetHistoryResponse {
   totalPages: number;
 }
 
-// 遊戲結果項目
 export interface GameResultItem {
   position: number;
   symbol: string;
   isWinningSymbol: boolean;
 }
 
-// 將新的BetResponse轉換為舊的PlaceBetResponse格式
-function convertToPlaceBetResponse(response: BetResponse, gameId: string): PlaceBetResponse {
-  // 計算是否贏得遊戲
-  const isWin = response.win_amount > 0;
+function convertToPlaceBetResponse(response: BetResponse, gameId?: string): PlaceBetResponse {
+  const isWin = response.is_win !== undefined ? response.is_win : response.win_amount > 0;
   
-  // 將二維陣列的符號轉換為一維陣列的GameResultItem
   const results: GameResultItem[] = [];
   
   if (response.symbols && response.symbols.length > 0) {
-    // 假設symbols是一個二維陣列，例如 [["7", "bar"], ["cherry", "7"]]
     response.symbols.forEach((row, rowIndex) => {
       row.forEach((symbol, colIndex) => {
-        // 判斷該符號是否是獲勝符號 (這裡簡單假設所有符號在有獎金時都是獲勝符號)
         const isWinningSymbol = isWin;
         
         results.push({
@@ -149,36 +141,46 @@ function convertToPlaceBetResponse(response: BetResponse, gameId: string): Place
   return {
     betId: response.round_id,
     sessionId: response.session_id,
-    gameId: gameId,  // 使用傳入的gameId
+    gameId: response.game_id || gameId || 'unknown',
     betAmount: response.bet_amount,
     isWin,
     winAmount: response.win_amount,
     currentBalance: response.balance_after,
     timestamp: response.created_at || new Date().toISOString(),
     results,
-    jackpotWon: false,  // API沒有提供這個信息，默認為false
-    multiplier: response.multiplier || 1
+    jackpotWon: false,
+    multiplier: response.multiplier || 1,
+    transactionId: response.transaction_id
   };
 }
 
-// 將舊的PlaceBetRequest格式轉換為新的BetRequest格式
 function convertToBetRequest(request: PlaceBetRequest): BetRequest {
   return {
-    session_id: request.sessionId,
-    bet_amount: request.betAmount,
-    bet_options: request.betOptions
+    SessionID: request.sessionId,
+    BetAmount: request.betAmount,
+    BetOptions: request.betOptions
   };
 }
 
 const gameService = {
-  // 獲取遊戲列表
   getGameList: async (params?: GameListParams): Promise<GameListResponse> => {
     try {
-      const response = await apiService.get<GameListResponse>('/api/v1/games', { params });
-      return response as GameListResponse;
+      const formattedParams = {
+        ...(params?.Type && { Type: params.Type }),
+        ...(params?.Featured !== undefined && { Featured: params.Featured }),
+        ...(params?.New !== undefined && { New: params.New }),
+        ...(params?.Page !== undefined && { Page: params.Page }),
+        ...(params?.PageSize !== undefined && { PageSize: params.PageSize }),
+        ...(params?.SortBy && { SortBy: params.SortBy }),
+        ...(params?.SortOrder && { SortOrder: params.SortOrder })
+      };
+      
+      console.log('獲取遊戲列表參數:', formattedParams);
+      
+      const response = await apiService.get<GameListResponse>('/games', { params: formattedParams });
+      return response;
     } catch (error) {
       console.error('獲取遊戲列表失敗:', error);
-      // 返回空結果
       return {
         games: [],
         total: 0,
@@ -189,66 +191,98 @@ const gameService = {
     }
   },
 
-  // 獲取遊戲詳情
   getGameDetail: async (gameId: string): Promise<GameResponse> => {
     try {
-      const response = await apiService.get<GameResponse>(`/api/v1/games/${gameId}`);
-      return response as GameResponse;
+      const response = await apiService.get<GameResponse>(`/games/${gameId}`);
+      return response;
     } catch (error) {
       console.error(`獲取遊戲 ${gameId} 詳情失敗:`, error);
       throw error;
     }
   },
 
-  // 開始遊戲會話 - 根據swagger定義修改
   startGameSession: async (data: GameSessionRequest): Promise<GameSessionResponse> => {
     try {
-      const response = await apiService.post<GameSessionResponse>('/api/v1/games/sessions', data);
-      return response as GameSessionResponse;
+      console.log('發送遊戲會話請求參數:', data);
+      
+      const sessionRequest = {
+        game_id: data.GameID,
+        ...(data.BetAmount && { bet_amount: data.BetAmount })
+      };
+      
+      const response = await apiService.post<GameSessionResponse>('/games/sessions', sessionRequest);
+      return response;
     } catch (error) {
       console.error('開始遊戲會話失敗:', error);
       throw error;
     }
   },
 
-  // 下注方法 - 根據swagger定義修改
+  endGameSession: async (data: EndSessionRequest): Promise<EndSessionResponse> => {
+    try {
+      const endSessionRequest = {
+        session_id: data.sessionId
+      };
+      const response = await apiService.post<EndSessionResponse>('/games/sessions/end', endSessionRequest);
+      return response;
+    } catch (error) {
+      console.error('結束遊戲會話失敗:', error);
+      throw error;
+    }
+  },
+
   placeBet: async (data: PlaceBetRequest): Promise<PlaceBetResponse> => {
     try {
-      // 將舊格式轉換為新的API格式
-      const betRequest = convertToBetRequest(data);
+      console.log('發送下注請求參數:', data);
       
-      // 呼叫新的API
+      const betRequest = {
+        session_id: data.sessionId,
+        bet_amount: data.betAmount,
+        game_id: data.game_id,
+        ...(data.betOptions && { bet_options: data.betOptions })
+      };
+      
       const response = await apiService.post<BetResponse>('/api/v1/games/bets', betRequest);
       
-      // 將API回應轉換為應用程式使用的格式
-      return convertToPlaceBetResponse(response as BetResponse, data.gameId);
+      console.log('下注回應:', response);
+      return convertToPlaceBetResponse(response, data.game_id);
     } catch (error) {
       console.error('下注失敗:', error);
       throw error;
     }
   },
 
-  // 獲取遊戲結果 - 根據swagger定義，可能需要調整
   getGameResult: async (betId: string): Promise<PlaceBetResponse> => {
     try {
-      // 由於swagger沒有提供獲取單個下注結果的API，這裡使用模擬行為
-      // 在實際應用中，我們應該考慮查詢歷史記錄或使用其他相應的API
-      const response = await apiService.get<PlaceBetResponse>(`/api/v1/bets/${betId}/result`);
-      return response as PlaceBetResponse;
+      const response = await apiService.get<BetResponse>(`/api/v1/games/bets/${betId}`);
+      console.log('獲取遊戲結果回應:', response);
+      return convertToPlaceBetResponse(response);
     } catch (error) {
-      console.error(`獲取下注結果 ${betId} 失敗:`, error);
+      console.error(`獲取遊戲結果失敗:`, error);
       throw error;
     }
   },
 
-  // 獲取下注歷史 - 根據swagger定義修改
   getBetHistory: async (params?: BetHistoryParams): Promise<BetHistoryResponse> => {
     try {
-      const response = await apiService.get<BetHistoryResponse>('/api/v1/bets/history', { params });
-      return response as BetHistoryResponse;
+      const historyParams = {
+        page: params?.Page || 1,
+        page_size: params?.PageSize || 10,
+        ...(params?.StartDate && { start_date: params.StartDate }),
+        ...(params?.EndDate && { end_date: params.EndDate }),
+        ...(params?.game_id && { game_id: params.game_id }),
+        ...(params?.GameID && { game_id: params.GameID })
+      };
+      
+      console.log('獲取下注歷史參數:', historyParams);
+      
+      // 使用正確的 API 路徑
+      const response = await apiService.get<BetHistoryResponse>('/bets/history', { params: historyParams });
+      console.log('獲取下注歷史回應:', response);
+      return response;
     } catch (error) {
       console.error('獲取下注歷史失敗:', error);
-      // 返回空結果
+      // 返回一個空的響應結構，讓應用可以繼續運行
       return {
         bets: [],
         total: 0,
@@ -260,4 +294,4 @@ const gameService = {
   },
 };
 
-export default gameService; 
+export default gameService;

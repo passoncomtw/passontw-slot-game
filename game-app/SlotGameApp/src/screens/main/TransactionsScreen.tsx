@@ -243,7 +243,6 @@ function formatDate(dateString: string): string {
  * 將交易記錄按日期分組
  */
 function groupTransactionsByDate(transactions: Transaction[]): GroupedTransactions {
-  console.log("🚀 ~ groupTransactionsByDate ~ transactions:", transactions)
   if (!Array.isArray(transactions) || transactions.length === 0) {
     return {};
   }
@@ -254,7 +253,6 @@ function groupTransactionsByDate(transactions: Transaction[]): GroupedTransactio
     }
     
     const dateKey = formatDate(transaction.date);
-    console.log("🚀 ~ groupTransactionsByDate ~ dateKey:", dateKey)
     if (!dateKey) {
       return groups; // 跳過無效日期
     }
@@ -288,11 +286,9 @@ const TransactionsScreen: React.FC = () => {
   
   // 從 Redux 獲取交易記錄，確保提供默認值以避免 undefined 錯誤
   const state = useAppSelector((state: RootState) => {
-    console.log("🚀 ~ state:", state)
     return state
   })
   const {transactions} = state;
-  console.log("🚀 ~ transactions:", transactions)
   
   // 提取所需狀態並提供默認值
   const transactionData = transactions?.data || [];
@@ -364,7 +360,6 @@ const TransactionsScreen: React.FC = () => {
   // 獲取已分組的交易記錄和排序後的日期
   const groupedTransactions = groupTransactionsByDate(transactionData);
   const sortedDateKeys = sortDateKeys(Object.keys(groupedTransactions));
-  console.log("🚀 ~ groupedTransactions:", groupedTransactions)
 
   // 導航返回
   const navigateBack = () => {
@@ -381,7 +376,6 @@ const TransactionsScreen: React.FC = () => {
       return <ErrorView error={error} onRetry={onRefresh} />;
     }
     
-    console.log("🚀 ~ renderContent ~ sortedDateKeys:", sortedDateKeys)
      if (sortedDateKeys.length === 0) {
        return <EmptyView activeFilter={activeFilter} />;
      }

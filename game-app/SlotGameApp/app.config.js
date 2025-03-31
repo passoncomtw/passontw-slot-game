@@ -35,7 +35,8 @@ export default {
     },
     extra: {
       apiUrl: process.env.API_URL || "http://localhost:3010/api/v1",
-      env: process.env.NODE_ENV || "development"
+      env: process.env.NODE_ENV || "development",
+      defaultGameId: process.env.DEFAULT_GAME_ID || "1e609c12-ac58-444a-a589-06228dd908bd"
     },
     // 開啟新架構
     newArchEnabled: true

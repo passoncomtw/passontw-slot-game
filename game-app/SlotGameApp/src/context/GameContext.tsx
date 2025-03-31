@@ -26,9 +26,11 @@ interface GameContextType {
   resetWinAmount: () => void;
   updateBalance: (amount: number) => void;
   setReels: (newReels: string[]) => void;
+  setIsSpinningState: (spinning: boolean) => void;
 }
 
-const GameContext = createContext<GameContextType>({
+// 匯出 GameContext，以便在 class components 中使用
+export const GameContext = createContext<GameContextType>({
   balance: 0,
   winAmount: 0,
   betAmount: 10,
@@ -43,7 +45,8 @@ const GameContext = createContext<GameContextType>({
   spin: async () => {},
   resetWinAmount: () => {},
   updateBalance: () => {},
-  setReels: () => {}
+  setReels: () => {},
+  setIsSpinningState: () => {}
 });
 
 /**
@@ -178,6 +181,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setBalance(prev => prev + amount);
   };
 
+  /**
+   * 設置輪盤符號
+   */
+  const updateReels = (newReels: string[]) => {
+    setReels(newReels);
+  };
+  
+  /**
+   * 設置是否正在旋轉
+   */
+  const setIsSpinningState = (spinning: boolean) => {
+    setIsSpinning(spinning);
+  };
+
   return (
     <GameContext.Provider
       value={{
@@ -195,7 +212,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         spin,
         resetWinAmount,
         updateBalance,
-        setReels
+        setReels: updateReels,
+        setIsSpinningState
       }}
     >
       {children}

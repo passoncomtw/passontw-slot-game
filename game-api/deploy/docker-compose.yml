@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  game-api:
+    image: passon/backend-api:latest
+    container_name: ${CONTAINER_NAME:-game-api}
+    ports:
+      - "3010:8080"
+    env_file:
+      - .env
+    environment:
+      - GIN_MODE=release
+      - SERVER_HOST=0.0.0.0
+    volumes:
+      - ${LOG_PATH:-./logs}:/app/logs
+      - ./.env:/app/.env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/app/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  postgres_data:
+  redis_data: 

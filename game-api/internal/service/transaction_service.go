@@ -43,9 +43,9 @@ func (s *TransactionServiceImpl) GetTransactionList(ctx context.Context, req mod
 
 	// 基本查詢 - 使用連接查詢以獲取用戶名
 	query := s.db.Table("transactions t").
-		Select("t.*, u.name as username, g.title as game_name").
-		Joins("LEFT JOIN users u ON t.user_id = u.user_id::text").
-		Joins("LEFT JOIN games g ON t.game_id = g.game_id::text")
+		Select("t.*, u.username as username, g.title as game_name").
+		Joins("LEFT JOIN users u ON t.user_id = u.user_id").
+		Joins("LEFT JOIN games g ON t.game_id = g.game_id")
 
 	// 應用過濾條件
 	query = s.applyFilters(query, req)
@@ -223,9 +223,9 @@ func (s *TransactionServiceImpl) ExportTransactions(ctx context.Context, req mod
 
 	// 查詢交易數據
 	query := s.db.Table("transactions t").
-		Select("t.*, u.name as username, g.title as game_name").
-		Joins("LEFT JOIN users u ON t.user_id = u.user_id::text").
-		Joins("LEFT JOIN games g ON t.game_id = g.game_id::text").
+		Select("t.*, u.username as username, g.title as game_name").
+		Joins("LEFT JOIN users u ON t.user_id = u.user_id").
+		Joins("LEFT JOIN games g ON t.game_id = g.game_id").
 		Where("t.created_at BETWEEN ? AND ?", req.StartDate, req.EndDate.Add(24*time.Hour-time.Second))
 
 	// 根據類型篩選
@@ -329,7 +329,7 @@ func (s *TransactionServiceImpl) applyFilters(query *gorm.DB, req models.AdminTr
 	// 按交易ID或用戶名搜索
 	if req.Search != "" {
 		search := "%" + req.Search + "%"
-		query = query.Where("t.transaction_id LIKE ? OR u.name LIKE ?", search, search)
+		query = query.Where("t.transaction_id LIKE ? OR u.username LIKE ?", search, search)
 	}
 
 	// 按交易類型過濾

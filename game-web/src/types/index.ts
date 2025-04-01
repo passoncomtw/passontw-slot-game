@@ -50,25 +50,11 @@ export interface DashboardStats {
 
 // 遊戲相關類型
 export interface Game {
-  game_id: string;
+  id: string;
   title: string;
   description: string;
-  game_type: 'slot' | 'card' | 'table' | 'arcade';
-  icon: string;
-  background_color: string;
-  rtp: number;
-  volatility: 'low' | 'medium' | 'high';
-  min_bet: number;
-  max_bet: number;
-  features: {
-    free_spins: boolean;
-    bonus_rounds: boolean;
-    multipliers: boolean;
-  };
-  is_featured: boolean;
-  is_new: boolean;
+  thumbnail_url: string;
   is_active: boolean;
-  release_date: string;
   created_at: string;
   updated_at: string;
 }
@@ -134,22 +120,24 @@ export interface OperationLog {
   executed_at: string;
 }
 
-// 分頁相關類型
+// API 請求參數
 export interface PaginatedRequest {
-  page: number;
-  page_size: number;
+  page?: number;
+  page_size?: number;
+  search?: string;
+  status?: string;
   sort_by?: string;
   sort_order?: 'asc' | 'desc';
-  search?: string;
-  filters?: Record<string, unknown>;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
+// 表格過濾參數
+export interface FilterParams {
   page: number;
   page_size: number;
-  total_pages: number;
+  search?: string;
+  status?: string;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
 }
 
 // API 錯誤類型

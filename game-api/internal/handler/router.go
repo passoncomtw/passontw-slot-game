@@ -118,7 +118,7 @@ func StartServer(
 		adminUsers := admin.Group("/admin/users")
 		adminUsers.Use(adminAuth)
 		{
-			adminUsers.GET("/", adminHandler.GetUserList)
+			adminUsers.GET("", adminHandler.GetUserList)
 			adminUsers.POST("/status", adminHandler.ChangeUserStatus)
 			adminUsers.POST("/deposit", adminHandler.DepositForUser)
 		}

@@ -1,10 +1,10 @@
 import React, { PureComponent } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView, 
   TextInput,
   Animated,
   Easing,
@@ -319,7 +319,7 @@ class GameScreen extends PureComponent<GameScreenProps, GameScreenState> {
     
     console.log('發送下注請求:', {
       sessionId,
-      betAmount,
+    betAmount, 
       gameId: this.gameIdFromRoute
     });
     
@@ -519,16 +519,16 @@ class GameScreen extends PureComponent<GameScreenProps, GameScreenState> {
       hasHistory: hasBetHistory,
       recordCount: this.betHistoryRecords?.length || 0
     });
-    
-    return (
-      <View style={styles.container}>
+
+  return (
+    <View style={styles.container}>
         <Header title="幸運七" showBackButton backgroundColor="#6200EA" titleColor="#FFFFFF" />
-        
+      
         <View style={styles.content}>
           {/* 餘額顯示 */}
           <View style={styles.balanceDisplay}>
-            <View>
-              <Text style={styles.balanceLabel}>餘額</Text>
+          <View>
+            <Text style={styles.balanceLabel}>餘額</Text>
               <Text style={styles.balanceValue}>
                 ¥ {this.actualBalance?.toFixed(2)}
               </Text>
@@ -552,15 +552,15 @@ class GameScreen extends PureComponent<GameScreenProps, GameScreenState> {
             <View style={styles.jackpotDisplay}>
               <Text style={styles.jackpotLabel}>頭獎</Text>
               <Text style={styles.jackpotValue}>¥ 10,000</Text>
-            </View>
-            
+        </View>
+        
             <Animated.View 
               style={[
                 styles.slotContainer,
                 isSpinning && { transform: [{ rotate: spin }] }
               ]}
             >
-              <SlotMachine />
+        <SlotMachine />
             </Animated.View>
             
             {aiSuggestion && (
@@ -576,37 +576,37 @@ class GameScreen extends PureComponent<GameScreenProps, GameScreenState> {
           
           {/* 投注控制區域 */}
           <View style={styles.slotControls}>
-            <View>
-              <Text style={styles.betLabel}>投注金額</Text>
+          <View>
+            <Text style={styles.betLabel}>投注金額</Text>
               <View style={styles.betAmountControls}>
-                <TouchableOpacity 
+              <TouchableOpacity 
                   style={[styles.betButton, isDisabled && styles.disabledButton]}
-                  onPress={decreaseBet}
+                onPress={decreaseBet}
                   disabled={isDisabled}
                   activeOpacity={0.7}
-                >
+              >
                   <Ionicons name="remove" size={24} color={isDisabled ? '#999' : '#fff'} />
-                </TouchableOpacity>
-                
+              </TouchableOpacity>
+              
                 <TextInput
                   style={styles.betAmountInput}
                   value={betAmount.toString()}
                   editable={false}
                   textAlign="center"
                 />
-                
-                <TouchableOpacity 
+              
+              <TouchableOpacity 
                   style={[styles.betButton, isDisabled && styles.disabledButton]}
-                  onPress={increaseBet}
+                onPress={increaseBet}
                   disabled={isDisabled}
                   activeOpacity={0.7}
-                >
+              >
                   <Ionicons name="add" size={24} color={isDisabled ? '#999' : '#fff'} />
-                </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             </View>
-            
-            <TouchableOpacity 
+          </View>
+          
+          <TouchableOpacity 
               style={[
                 styles.spinButton,
                 isSpinDisabled && styles.disabledButton
@@ -619,11 +619,11 @@ class GameScreen extends PureComponent<GameScreenProps, GameScreenState> {
               <Text style={styles.spinButtonText}>
                 {isSpinning ? '旋轉中...' : '旋轉'}
               </Text>
-            </TouchableOpacity>
-          </View>
-          
+          </TouchableOpacity>
+        </View>
+        
           {/* 下注歷史區域 */}
-          <View style={styles.historyContainer}>
+        <View style={styles.historyContainer}>
             <Text style={styles.historyTitle}>
               下注歷史 
               <Text style={styles.historyCount}> ({this.betHistoryRecords?.length || 0})</Text>
@@ -638,8 +638,8 @@ class GameScreen extends PureComponent<GameScreenProps, GameScreenState> {
                       <Text style={styles.historyItemId}>#{index + 1}</Text>
                       <Text style={styles.historyItemDate}>
                         {item.timestamp ? this.formatDateTime(item.timestamp) : '未知時間'}
-                      </Text>
-                    </View>
+                  </Text>
+                </View>
                     <View style={styles.historyItemDetails}>
                       <Text style={styles.historyItemAmount}>
                         下注: ¥ {typeof item.betAmount === 'number' ? item.betAmount.toFixed(2) : '0.00'}
@@ -651,16 +651,16 @@ class GameScreen extends PureComponent<GameScreenProps, GameScreenState> {
                         {item.isWin 
                           ? `贏 ¥ ${typeof item.winAmount === 'number' ? item.winAmount.toFixed(2) : '0.00'}` 
                           : '輸'}
-                      </Text>
+                </Text>
                     </View>
-                  </View>
-                ))
-              )}
+              </View>
+            ))
+          )}
             </ScrollView>
           </View>
         </View>
-      </View>
-    );
+    </View>
+  );
   }
 }
 

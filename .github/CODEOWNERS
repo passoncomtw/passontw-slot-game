@@ -1,0 +1,8 @@
+# 預設擁有者
+* @passonTomas
+
+# game-web 前端專案
+/game-web/ @passonTomas
+
+# GitHub Actions 自動化部署配置
+/.github/workflows/ @passonTomas 

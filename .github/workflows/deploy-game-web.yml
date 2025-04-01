@@ -1,0 +1,61 @@
+name: 部署 Game Web 後台管理系統
+
+on:
+  push:
+    branches: [ "develop" ]
+    paths:
+      - 'game-web/**'
+  # pull_request:
+  #   branches: [ "main" ]
+  #   paths:
+  #     - 'game-web/**'
+  # 允許手動觸發工作流程
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # 構建任務
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./game-web
+    
+    steps:
+      - name: 簽出代碼
+        uses: actions/checkout@v4
+      
+      - name: 設置 Node.js 環境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+          cache: 'npm'
+          cache-dependency-path: './game-web/package-lock.json'
+      
+      - name: 安裝依賴
+        run: npm ci
+      
+      - name: 檢查代碼格式
+        run: npm run lint
+      
+      - name: 創建環境文件
+        run: |
+          echo "# 生產環境配置 - 由 GitHub Actions 自動生成" > .env.production
+          echo "${{ secrets.GAME_WEB_ENV }}" > .env
+          echo "已生成環境文件 .env:"
+      
+      - name: 構建專案
+        run: npm run build
+      
+      - name: 上傳構建產物作為構建結果
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-build
+          path: './game-web/dist'
+          retention-days: 1
+      - name: 創建部署配置文件
+        run: |
+          scp -r ./game-web/dist/** root@${{ secrets.DEV_FROENT_HOST }}:/var/www/html/game-backend-web
+ 

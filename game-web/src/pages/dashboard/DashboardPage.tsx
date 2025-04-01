@@ -1,43 +1,110 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useDashboardData, useMarkAllNotificationsAsRead } from '../../hooks/useDashboard';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import ErrorDisplay from '../../components/common/ErrorDisplay';
+
+// 移除對不存在模組的導入，直接內聯定義所需類型
+interface GameStatistic {
+  gameId: string;
+  name: string;
+  icon: string;
+  iconColor: string;
+  value: number;
+  percentage: number;
+}
+
+interface RecentTransaction {
+  id: string;
+  type: string;
+  amount: number;
+  username: string;
+  userId: string;
+  time: string;
+  timeDisplay: string;
+}
+
+interface SystemNotification {
+  id: string;
+  type: string;
+  title: string;
+  content: string;
+  icon: string;
+  time: string;
+  timeDisplay: string;
+  isRead: boolean;
+}
 
 const DashboardPage: React.FC = () => {
+  const [timeRange, setTimeRange] = useState<string>('today');
+  const { data, isLoading, error } = useDashboardData(timeRange);
+  const markAllAsReadMutation = useMarkAllNotificationsAsRead();
+
+  // 處理時間範圍變更
+  const handleTimeRangeChange = (range: string) => {
+    setTimeRange(range);
+  };
+
+  // 處理標記所有通知為已讀
+  const handleMarkAllAsRead = () => {
+    markAllAsReadMutation.mutate();
+  };
+
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorDisplay message="載入儀表板數據失敗" error={error} />;
+  if (!data) return <div className="text-center p-8">沒有可用數據</div>;
+
   return (
     <div>
+      {/* 歡迎訊息 */}
+      <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">您好，{data.summary?.adminName || '管理員'}！</h2>
+            <p className="text-gray-600">歡迎回到 AI 老虎機遊戲管理系統，以下是今日概覽。</p>
+          </div>
+          <div className="mt-4 sm:mt-0">
+            <span className="text-sm text-gray-500">
+              <i className="fas fa-calendar-alt mr-2"></i>今日日期: {data.summary?.currentDate || new Date().toLocaleDateString('zh-TW')}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* 統計卡片 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
-          title="總用戶數"
-          value="1,284"
-          trend="+12%"
-          isTrendUp={true}
-          icon="fa-users"
+          title="總收入"
+          value={`$${data.summary?.totalIncome?.toLocaleString() || '0'}`}
+          trend={`${(data.summary?.incomePercentage || 0) > 0 ? '+' : ''}${data.summary?.incomePercentage || 0}%`}
+          isTrendUp={(data.summary?.incomePercentage || 0) > 0}
+          icon="fa-dollar-sign"
           iconBg="bg-primary-light"
           iconColor="text-primary"
         />
         <StatCard
-          title="今日交易額"
-          value="$23,657"
-          trend="+8%"
-          isTrendUp={true}
-          icon="fa-money-bill-wave"
+          title="活躍用戶"
+          value={data.summary?.activeUsers?.toLocaleString() || '0'}
+          trend={`${(data.summary?.usersPercentage || 0) > 0 ? '+' : ''}${data.summary?.usersPercentage || 0}%`}
+          isTrendUp={(data.summary?.usersPercentage || 0) > 0}
+          icon="fa-users"
           iconBg="bg-blue-100"
           iconColor="text-info"
         />
         <StatCard
-          title="總投注次數"
-          value="45,208"
-          trend="+15%"
+          title="遊戲總數"
+          value={data.summary?.totalGames?.toString() || '0'}
+          trend={`+${data.summary?.newGames || 0}`}
           isTrendUp={true}
-          icon="fa-dice"
+          icon="fa-gamepad"
           iconBg="bg-orange-100"
           iconColor="text-accent"
         />
         <StatCard
-          title="總淨收益"
-          value="$142,540"
-          trend="+5%"
-          isTrendUp={true}
-          icon="fa-chart-line"
+          title="AI 推薦效果"
+          value={`${data.summary?.aiEffectiveness || 0}%`}
+          trend={`${(data.summary?.aiImprovement || 0) > 0 ? '+' : ''}${data.summary?.aiImprovement || 0}%`}
+          isTrendUp={(data.summary?.aiImprovement || 0) > 0}
+          icon="fa-brain"
           iconBg="bg-green-100"
           iconColor="text-success"
         />
@@ -48,16 +115,37 @@ const DashboardPage: React.FC = () => {
         {/* 主圖表 */}
         <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="font-semibold text-gray-800">交易趨勢</h3>
+            <h3 className="font-semibold text-gray-800">收入趨勢</h3>
             <div className="flex space-x-2">
-              <button className="px-3 py-1 text-xs font-medium rounded-full bg-purple-600 text-white">今日</button>
-              <button className="px-3 py-1 text-xs font-medium rounded-full text-gray-600 hover:bg-gray-100">本週</button>
-              <button className="px-3 py-1 text-xs font-medium rounded-full text-gray-600 hover:bg-gray-100">本月</button>
-              <button className="px-3 py-1 text-xs font-medium rounded-full text-gray-600 hover:bg-gray-100">全年</button>
+              <button 
+                className={`px-3 py-1 text-xs font-medium rounded-full ${timeRange === 'today' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                onClick={() => handleTimeRangeChange('today')}
+              >
+                今日
+              </button>
+              <button 
+                className={`px-3 py-1 text-xs font-medium rounded-full ${timeRange === 'week' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                onClick={() => handleTimeRangeChange('week')}
+              >
+                本週
+              </button>
+              <button 
+                className={`px-3 py-1 text-xs font-medium rounded-full ${timeRange === 'month' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                onClick={() => handleTimeRangeChange('month')}
+              >
+                本月
+              </button>
+              <button 
+                className={`px-3 py-1 text-xs font-medium rounded-full ${timeRange === 'year' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                onClick={() => handleTimeRangeChange('year')}
+              >
+                全年
+              </button>
             </div>
           </div>
           <div className="h-80 w-full bg-gray-50 rounded flex items-center justify-center text-gray-400">
-            <span>圖表區域 - 實際項目需整合圖表庫</span>
+            {/* 這裡應該是整合實際的收入圖表，如 Recharts */}
+            <RevenueChart data={data.income || []} />
           </div>
         </div>
 
@@ -69,46 +157,20 @@ const DashboardPage: React.FC = () => {
           </div>
           
           <div className="space-y-6">
-            <GameRankItem
-              name="宇宙探險"
-              value="$12,458"
-              percent={85}
-              color="bg-purple-600"
-              icon="fa-rocket"
-              bgColor="bg-purple-600"
-            />
-            <GameRankItem
-              name="神秘寶藏"
-              value="$8,372"
-              percent={70}
-              color="bg-blue-500"
-              icon="fa-gem"
-              bgColor="bg-blue-500"
-            />
-            <GameRankItem
-              name="水果盛宴"
-              value="$6,489"
-              percent={60}
-              color="bg-green-500"
-              icon="fa-apple-whole"
-              bgColor="bg-green-500"
-            />
-            <GameRankItem
-              name="幸運七彩"
-              value="$4,932"
-              percent={45}
-              color="bg-amber-500"
-              icon="fa-clover"
-              bgColor="bg-amber-500"
-            />
-            <GameRankItem
-              name="海底尋寶"
-              value="$3,527"
-              percent={30}
-              color="bg-cyan-500"
-              icon="fa-fish"
-              bgColor="bg-cyan-500"
-            />
+            {data.popularGames && data.popularGames.length > 0 ? 
+              data.popularGames.map((game: GameStatistic) => (
+                <GameRankItem
+                  key={game.gameId}
+                  name={game.name || '未知遊戲'}
+                  value={`$${game.value?.toLocaleString() || 0}`}
+                  percent={game.percentage || 0}
+                  color={game.iconColor || '#6200EA'}
+                  icon={`fa-${game.icon || 'gamepad'}`}
+                  bgColor={game.iconColor || '#6200EA'}
+                />
+              )) : 
+              <div className="text-center text-gray-500">無遊戲數據</div>
+            }
           </div>
         </div>
       </div>
@@ -123,41 +185,21 @@ const DashboardPage: React.FC = () => {
           </div>
           
           <div className="space-y-4">
-            <TransactionItem
-              title="用戶充值"
-              username="張先生"
-              amount="+$500.00"
-              time="今天 14:23"
-              isIncome={true}
-            />
-            <TransactionItem
-              title="用戶提現"
-              username="李小姐"
-              amount="-$350.00"
-              time="今天 12:48"
-              isIncome={false}
-            />
-            <TransactionItem
-              title="用戶充值"
-              username="王先生"
-              amount="+$1,000.00"
-              time="今天 10:15"
-              isIncome={true}
-            />
-            <TransactionItem
-              title="用戶提現"
-              username="趙先生"
-              amount="-$720.00"
-              time="昨天 18:36"
-              isIncome={false}
-            />
-            <TransactionItem
-              title="用戶充值"
-              username="陳先生"
-              amount="+$650.00"
-              time="昨天 15:22"
-              isIncome={true}
-            />
+            {data.recentTransactions && data.recentTransactions.length > 0 ? 
+              data.recentTransactions.map((transaction: RecentTransaction) => (
+                <TransactionItem
+                  key={transaction.id}
+                  title={transaction.type === 'deposit' ? "用戶充值" : "用戶提現"}
+                  username={transaction.username || '未知用戶'}
+                  amount={transaction.type === 'deposit' 
+                    ? `+$${transaction.amount?.toLocaleString() || 0}` 
+                    : `-$${transaction.amount?.toLocaleString() || 0}`}
+                  time={transaction.timeDisplay || '未知時間'}
+                  isIncome={transaction.type === 'deposit'}
+                />
+              )) : 
+              <div className="text-center text-gray-500">無交易記錄</div>
+            }
           </div>
         </div>
 
@@ -165,37 +207,50 @@ const DashboardPage: React.FC = () => {
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-semibold text-gray-800">系統通知</h3>
-            <button className="text-sm text-purple-600 hover:text-purple-800">全部標為已讀</button>
+            <button 
+              className="text-sm text-purple-600 hover:text-purple-800"
+              onClick={handleMarkAllAsRead}
+              disabled={markAllAsReadMutation.isPending}
+            >
+              {markAllAsReadMutation.isPending ? '處理中...' : '全部標為已讀'}
+            </button>
           </div>
           
           <div className="space-y-5">
-            <NotificationItem
-              title="系統更新完成"
-              text="系統已成功更新到最新版本 v1.2.5，包含多項安全更新和性能優化。"
-              time="30 分鐘前"
-              type="info"
-            />
-            <NotificationItem
-              title="新用戶註冊高峰"
-              text="今日新用戶註冊量已超過上週同期 150%，請注意監控系統負載。"
-              time="2 小時前"
-              type="success"
-            />
-            <NotificationItem
-              title="資料庫備份提醒"
-              text="今日18:00將進行例行資料庫備份，預計耗時30分鐘，期間系統可能略有延遲。"
-              time="5 小時前"
-              type="warning"
-            />
-            <NotificationItem
-              title="新遊戲上線通知"
-              text="「宇宙探險 II」已於今日上線，請各管理員注意玩家反饋和系統穩定性。"
-              time="昨天"
-              type="accent"
-            />
+            {data.notifications && data.notifications.length > 0 ? 
+              data.notifications.map((notification: SystemNotification) => (
+                <NotificationItem
+                  key={notification.id}
+                  title={notification.title || '未知通知'}
+                  text={notification.content || ''}
+                  time={notification.timeDisplay || '未知時間'}
+                  type={(notification.type as 'info' | 'warning' | 'success' | 'accent') || 'info'}
+                  isRead={notification.isRead || false}
+                />
+              )) : 
+              <div className="text-center text-gray-500">無系統通知</div>
+            }
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+// 收入圖表組件
+const RevenueChart: React.FC<{ data: { time: string; value: number }[] }> = ({ data }) => {
+  // 這裡實際項目中應該使用圖表庫如 Recharts 來渲染圖表
+  if (!data || data.length === 0) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <span>暫無收入數據</span>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="w-full h-full flex items-center justify-center">
+      <span>收入圖表 - {data.length} 資料點</span>
     </div>
   );
 };
@@ -247,7 +302,8 @@ interface GameRankItemProps {
 const GameRankItem: React.FC<GameRankItemProps> = ({ name, value, percent, color, icon, bgColor }) => {
   return (
     <div className="flex items-center">
-      <div className={`${bgColor} text-white w-12 h-12 rounded-lg flex items-center justify-center mr-4 flex-shrink-0`}>
+      <div className="text-white w-12 h-12 rounded-lg flex items-center justify-center mr-4 flex-shrink-0"
+           style={{ backgroundColor: bgColor }}>
         <i className={`fas ${icon}`}></i>
       </div>
       <div className="flex-1">
@@ -257,8 +313,8 @@ const GameRankItem: React.FC<GameRankItemProps> = ({ name, value, percent, color
         </div>
         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
           <div 
-            className={`h-full ${color} rounded-full`}
-            style={{ width: `${percent}%` }}
+            className="h-full rounded-full"
+            style={{ width: `${percent}%`, backgroundColor: color }}
           ></div>
         </div>
       </div>
@@ -304,9 +360,10 @@ interface NotificationItemProps {
   text: string;
   time: string;
   type: 'info' | 'warning' | 'success' | 'accent';
+  isRead?: boolean;
 }
 
-const NotificationItem: React.FC<NotificationItemProps> = ({ title, text, time, type }) => {
+const NotificationItem: React.FC<NotificationItemProps> = ({ title, text, time, type, isRead = false }) => {
   const getIconBg = () => {
     switch (type) {
       case 'info': return 'bg-blue-100 text-info';
@@ -328,7 +385,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ title, text, time, 
   };
   
   return (
-    <div className="flex">
+    <div className={`flex ${isRead ? 'opacity-70' : ''}`}>
       <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0 ${getIconBg()}`}>
         <i className={`fas ${getIcon()}`}></i>
       </div>

@@ -37,6 +37,7 @@ func (h *DashboardHandler) RegisterRoutes(api *gin.RouterGroup, auth gin.Handler
 // @Tags 儀表板
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param time_range query string false "時間範圍：today/week/month/year"
 // @Success 200 {object} utils.Response{data=models.DashboardResponse}
 // @Failure 400 {object} utils.Response
@@ -64,6 +65,7 @@ func (h *DashboardHandler) GetDashboardData(c *gin.Context) {
 // @Tags 儀表板
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Success 200 {object} utils.Response
 // @Failure 401 {object} utils.Response
 // @Failure 500 {object} utils.Response

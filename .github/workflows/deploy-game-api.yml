@@ -85,6 +85,8 @@ jobs:
               cp .env .env.backup.$(date +%Y%m%d%H%M%S)
             fi
             
+            echo ${{ secrets.CONTROLLER_CENTER_ENV }} > ./.env
+
             # 下載最新的 docker-compose.yml
             curl -sSL https://raw.githubusercontent.com/${{ github.repository }}/develop/game-api/deploy/docker-compose.yml -o docker-compose.yml
             
@@ -124,18 +126,18 @@ jobs:
             docker-compose ps
 
 
-      - name: 部署結果通知
-        if: always()
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_CHANNEL: deployments
-          SLACK_TITLE: 遊戲API部署 ${{ job.status }}
-          SLACK_MESSAGE: |
-            版本: ${{ env.VERSION }}
-            環境: ${{ github.event.inputs.environment || 'development' }}
-            構建ID: ${{ env.BUILD_ID }}
-            鏡像: ${{ env.FULL_IMAGE_NAME }}
-            提交: ${{ github.sha }}
-            觸發者: ${{ github.actor }}
-          SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }} 
+      # - name: 部署結果通知
+      #   if: always()
+      #   uses: rtCamp/action-slack-notify@v2
+      #   env:
+      #     SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+      #     SLACK_CHANNEL: deployments
+      #     SLACK_TITLE: 遊戲API部署 ${{ job.status }}
+      #     SLACK_MESSAGE: |
+      #       版本: ${{ env.VERSION }}
+      #       環境: ${{ github.event.inputs.environment || 'development' }}
+      #       構建ID: ${{ env.BUILD_ID }}
+      #       鏡像: ${{ env.FULL_IMAGE_NAME }}
+      #       提交: ${{ github.sha }}
+      #       觸發者: ${{ github.actor }}
+      #     SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }} 

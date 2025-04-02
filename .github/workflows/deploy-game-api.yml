@@ -66,8 +66,7 @@ jobs:
           build-args: |
             APP_ENV=${{ github.event.inputs.environment || 'development' }}
           tags: |
-            ${{ env.FULL_IMAGE_NAME }}
-            ${{ env.LATEST_IMAGE_NAME }}
+            passon/game-api:latest
 
       - name: 部署到遠程服務器
         uses: appleboy/ssh-action@master

@@ -1,4 +1,4 @@
-name: 部署遊戲API服務
+name: 部署遊戲 與後台 API服務
 
 on:
   push:

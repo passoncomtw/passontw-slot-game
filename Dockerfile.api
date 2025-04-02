@@ -53,7 +53,7 @@ COPY game-api/scripts/healthcheck.sh /app/healthcheck.sh
 RUN chmod +x /app/healthcheck.sh
 
 # 暴露端口
-EXPOSE 8080
+EXPOSE 3000
 
 # 設置健康檢查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD ["/app/healthcheck.sh"]

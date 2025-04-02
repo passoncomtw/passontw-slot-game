@@ -87,7 +87,7 @@ jobs:
               cp .env .env.backup.$(date +%Y%m%d%H%M%S)
             fi
             
-            echo ${{ secrets.CONTROLLER_CENTER_ENV }} > ./.env
+            # echo ${{ secrets.CONTROLLER_CENTER_ENV }} > /opt/services/game-api/.env
 
             # 下載最新的 docker-compose.yml
             curl -sSL https://raw.githubusercontent.com/${{ github.repository }}/develop/game-api/deploy/docker-compose.yml -o docker-compose.yml

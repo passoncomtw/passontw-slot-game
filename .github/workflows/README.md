@@ -4,7 +4,7 @@
 
 ## 工作流程清單
 
-### 1. 部署遊戲API服務 (deploy-game-api.yml)
+### 1. 部署遊戲與後台 API服務 (deploy-game-api.yml)
 
 此工作流程用於自動構建和部署遊戲API服務 (game-api) 到目標服務器上。
 
@@ -33,8 +33,8 @@
 
 以下 Secrets 需要在 GitHub 存儲庫設置中配置：
 
-1. `DOCKER_HUB_USERNAME`: DockerHub 用戶名
-2. `DOCKER_HUB_TOKEN`: DockerHub 訪問令牌
+1. `DOCKERHUB_USERNAME`: DockerHub 用戶名
+2. `DOCKERHUB_PASSWORD`: DockerHub 密碼或訪問令牌
 3. `SERVER_HOST`: 部署服務器的主機地址
 4. `SERVER_SSH_USER`: SSH 用戶名
 5. `SERVER_SSH_KEY`: SSH 私鑰
@@ -52,7 +52,7 @@
 
 1. 前往 GitHub 存儲庫頁面
 2. 點擊 "Actions" 選項卡
-3. 從左側選擇 "部署遊戲API服務" 工作流程
+3. 從左側選擇 "部署遊戲與後台 API服務" 工作流程
 4. 點擊 "Run workflow" 按鈕
 5. 選擇分支並填寫所需參數
 6. 點擊 "Run workflow" 開始執行
@@ -67,7 +67,7 @@
 # Linux: curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
 
 # 運行完整工作流程
-act -j build-and-deploy -s DOCKER_HUB_USERNAME=xxx -s DOCKER_HUB_TOKEN=xxx
+act -j build-and-deploy -s DOCKERHUB_USERNAME=xxx -s DOCKERHUB_PASSWORD=xxx
 
 # 使用 DryRun 模式
 act -j build-and-deploy -n

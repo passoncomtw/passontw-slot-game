@@ -46,14 +46,15 @@ jobs:
       - name: 設置版本變數
         id: vars
         run: |
+          echo ${{ secrets.CONTROLLER_CENTER_ENV }} > ./.env
           VERSION=$(echo ${{ github.event.inputs.version || 'v0.1.0' }})
           TIMESTAMP=$(date -u +'%Y%m%d%H%M%S')
           COMMIT_SHA=$(git rev-parse --short HEAD)
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
-          echo "BUILD_ID=${TIMESTAMP}-${COMMIT_SHA}" >> $GITHUB_ENV
-          echo "IMAGE_TAG=${VERSION}-${TIMESTAMP}-${COMMIT_SHA}" >> $GITHUB_ENV
-          echo "FULL_IMAGE_NAME=passon/game-api:${VERSION}-${TIMESTAMP}-${COMMIT_SHA}" >> $GITHUB_ENV
-          echo "LATEST_IMAGE_NAME=passon/game-api:latest" >> $GITHUB_ENV
+          echo "VERSION=${VERSION}" >> ./game-api/.env
+          echo "BUILD_ID=${TIMESTAMP}-${COMMIT_SHA}" >> ./game-api/.env
+          echo "IMAGE_TAG=${VERSION}-${TIMESTAMP}-${COMMIT_SHA}" >> ./game-api/.env
+          echo "FULL_IMAGE_NAME=passon/game-api:${VERSION}-${TIMESTAMP}-${COMMIT_SHA}" >> ./game-api/.env
+          echo "LATEST_IMAGE_NAME=passon/game-api:latest" >> ./game-api/.env
 
       - name: 構建並推送Docker鏡像
         uses: docker/build-push-action@v4

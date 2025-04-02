@@ -70,8 +70,13 @@ RUN chmod +x /app/healthcheck.sh
 # 使用非 root 用戶
 USER appuser
 
+# 設置環境變量
+ENV SERVER_HOST=0.0.0.0
+ENV SERVER_PORT=3000
+
 # 暴露端口
 EXPOSE 8080
+EXPOSE 3000
 
 # 設置健康檢查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD ["/app/healthcheck.sh"]

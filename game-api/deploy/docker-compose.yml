@@ -2,10 +2,10 @@ version: '3.8'
 
 services:
   game-api:
-    image: passon/backend-api:latest
+    image: passon/game-api:latest
     container_name: ${CONTAINER_NAME:-game-api}
     ports:
-      - "3010:8080"
+      - "${API_PORT:-8080}:8080"
     env_file:
       - .env
     environment:
@@ -21,7 +21,10 @@ services:
       timeout: 10s
       retries: 3
       start_period: 5s
+    networks:
+      - game-network
 
-volumes:
-  postgres_data:
-  redis_data: 
+
+networks:
+  game-network:
+    driver: bridge 

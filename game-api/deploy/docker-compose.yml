@@ -5,7 +5,7 @@ services:
     image: passon/game-api:latest
     container_name: ${CONTAINER_NAME:-game-api}
     ports:
-      - "${API_PORT:-8080}:8080"
+      - "${API_PORT:-3000}:3000"
     env_file:
       - .env
     environment:

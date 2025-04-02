@@ -82,10 +82,10 @@ jobs:
             mkdir -p /opt/services/game-api
             cd /opt/services/game-api
             
-            # 備份當前環境文件（如果存在）
-            if [ -f .env ]; then
-              cp .env .env.backup.$(date +%Y%m%d%H%M%S)
-            fi
+            # # 備份當前環境文件（如果存在）
+            # if [ -f .env ]; then
+            #   cp .env .env.backup.$(date +%Y%m%d%H%M%S)
+            # fi
             
             # echo ${{ secrets.CONTROLLER_CENTER_ENV }} > /opt/services/game-api/.env
 

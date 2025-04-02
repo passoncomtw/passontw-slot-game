@@ -13,6 +13,9 @@ COPY game-api/go.mod game-api/go.sum ./
 # 修正模組路徑問題
 RUN go mod edit -module game-api
 
+# 設置 GO111MODULE 環境變量
+ENV GO111MODULE=on
+
 # 下載依賴
 RUN go mod download
 
@@ -22,8 +25,8 @@ RUN go install github.com/swaggo/swag/cmd/swag@latest
 # 複製源代碼
 COPY game-api/ ./
 
-# 生成 Swagger 文檔
-RUN swag init -g ./main.go
+# 生成 Swagger 文檔 (在項目根目錄執行)
+RUN swag init -g main.go
 
 # 構建參數
 ARG APP_ENV=development

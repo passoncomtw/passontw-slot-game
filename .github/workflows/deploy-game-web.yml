@@ -5,6 +5,7 @@ on:
     branches: [ "develop" ]
     paths:
       - 'game-web/**'
+      - '.github/workflows/deploy-game-web.yml'
   # pull_request:
   #   branches: [ "main" ]
   #   paths:

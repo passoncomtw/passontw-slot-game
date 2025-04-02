@@ -21,7 +21,7 @@ type Admin struct {
 
 // TableName 指定資料表名稱
 func (Admin) TableName() string {
-	return "users"
+	return "admin_users"
 }
 
 // BeforeCreate 在創建前執行

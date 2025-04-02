@@ -19,12 +19,11 @@
 4. 設置版本變數 (版本號、時間戳、提交 SHA)
 5. 構建並推送 Docker 鏡像
 6. 通過 SSH 部署到遠程服務器
-7. 發送部署結果通知
 
 #### 部署流程
 1. 備份目標服務器上的現有環境文件
-2. 下載最新的 docker-compose.yml 文件
-3. 創建新的環境配置文件 (.env)
+2. 設置環境配置文件 (.env)
+3. 下載最新的 docker-compose.yml 文件
 4. 拉取最新的鏡像並重啟服務
 5. 清理舊鏡像
 6. 輸出部署日誌
@@ -35,12 +34,9 @@
 
 1. `DOCKERHUB_USERNAME`: DockerHub 用戶名
 2. `DOCKERHUB_PASSWORD`: DockerHub 密碼或訪問令牌
-3. `SERVER_HOST`: 部署服務器的主機地址
-4. `SERVER_SSH_USER`: SSH 用戶名
-5. `SERVER_SSH_KEY`: SSH 私鑰
-6. `DB_PASSWORD`: 數據庫密碼
-7. `JWT_SECRET`: JWT 密鑰
-8. `SLACK_WEBHOOK`: Slack 通知網址 (可選)
+3. `DEV_BACKEND_HOST`: 開發環境後端服務器的主機地址
+4. `SSH_KEY_PROD_VALUE`: SSH 私鑰
+5. `CONTROLLER_CENTER_ENV`: 遊戲 API 服務的完整環境配置
 
 ## 如何使用
 

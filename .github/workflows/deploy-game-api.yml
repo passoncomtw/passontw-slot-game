@@ -7,6 +7,8 @@ on:
     paths:
       - 'game-api/**'
       - '.github/workflows/deploy-game-api.yml'
+      - 'game-api/deploy/docker-compose.yml'
+      - 'game-api/deploy/Dockerfile.api'
   workflow_dispatch:
     inputs:
       environment:

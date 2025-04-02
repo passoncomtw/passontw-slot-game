@@ -1,8 +1,8 @@
 # 構建階段
-FROM golang:1.22-alpine AS builder
+FROM golang:1.23.8-bookworm AS builder
 
 # 設置必要的 Alpine 包
-RUN apk add --no-cache git make gcc libc-dev
+RUN apt-get update && apt-get install -y git make gcc libc-dev
 
 # 設置工作目錄
 WORKDIR /app
